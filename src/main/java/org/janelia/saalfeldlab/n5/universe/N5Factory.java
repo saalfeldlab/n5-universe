@@ -24,11 +24,18 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.n5;
+package org.janelia.saalfeldlab.n5.universe;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Optional;
 
@@ -59,32 +66,84 @@ import com.amazonaws.services.s3.AmazonS3URI;
 import com.google.cloud.resourcemanager.Project;
 import com.google.cloud.resourcemanager.ResourceManager;
 import com.google.cloud.storage.Storage;
-
-import ch.systemsx.cisd.hdf5.HDF5Factory;
-import ch.systemsx.cisd.hdf5.IHDF5Reader;
-import ch.systemsx.cisd.hdf5.IHDF5Writer;
+import com.google.gson.GsonBuilder;
 
 /**
- * Factory methods for various N5 readers and writers.  The factory methods
- * do not expose all parameters of each reader or writer to keep things
- * simple in this tutorial.  In particular, custom JSON adapters for not so
- * simple types are not considered, albeit incredibly useful.  Please inspect
- * the constructors of the readers and writers for further parameters.
+ * Factory for various N5 readers and writers.  Implementation specific
+ * parameters can be provided to the factory instance and will be used when
+ * such implementations are generated and ignored otherwise. Reasonable
+ * defaults are provided.
  *
  * @author Stephan Saalfeld
  * @author John Bogovic
  * @author Igor Pisarev
  */
-public interface N5Factory
-{
+public class N5Factory implements Serializable {
+
+	private static byte[] HDF5_SIG = {(byte)137, 72, 68, 70, 13, 10, 26, 10};
+	private int[] hdf5DefaultBlockSize = {64, 64, 64, 1, 1};
+	private boolean hdf5OverrideBlockSize = false;
+	private GsonBuilder gsonBuilder = new GsonBuilder();
+	private String zarrDimensionSeparator = ".";
+	private boolean zarrMapN5DatasetAttributes = true;
+	private String googleCloudProjectId = null;
+
+	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
+
+		hdf5DefaultBlockSize = blockSize;
+		return this;
+	}
+
+	public N5Factory hdf5OverrideBlockSize(final boolean override) {
+
+		hdf5OverrideBlockSize = override;
+		return this;
+	}
+
+	public N5Factory gsonBuilder(final GsonBuilder gsonBuilder) {
+
+		this.gsonBuilder = gsonBuilder;
+		return this;
+	}
+
+	public N5Factory zarrDimensionSeparator(final String separator) {
+
+		zarrDimensionSeparator = separator;
+		return this;
+	}
+
+	public N5Factory zarrMapN5Attributes(final boolean mapAttributes) {
+
+		zarrMapN5DatasetAttributes = mapAttributes;
+		return this;
+	}
+
+	public N5Factory googleCloudProjectId(final String projectId) {
+
+		googleCloudProjectId = projectId;
+		return this;
+	}
+
+	private static boolean isHDF5(final String path) throws FileNotFoundException, IOException {
+
+		/* optimistic */
+		if (Files.isRegularFile(Paths.get(path)) && path.matches("(?i).*\\.(h5|hdf5)"))
+			return true;
+		else
+			try (final FileInputStream in = new FileInputStream(new File(path))) {
+				final byte[] sig = new byte[8];
+				in.read(sig);
+				return Arrays.equals(sig, HDF5_SIG);
+			}
+	}
 
 	/**
 	 * Helper method.
 	 *
-	 * @param url the amazon n5 object url
-	 * @return an AmazonS3 instance
+	 * @param url
+	 * @return
 	 */
-	public static AmazonS3 createS3(final String url) {
+	private static AmazonS3 createS3(final String url) {
 
 		AmazonS3 s3;
 		AWSCredentials credentials = null;
@@ -117,13 +176,13 @@ public interface N5Factory
 	/**
 	 * Open an {@link N5Reader} for N5 filesystem.
 	 *
-	 * @param path path to the root n5 directory
-	 * @return n5 reader
+	 * @param path
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5FSReader openFSReader(final String path) throws IOException {
+	public N5FSReader openFSReader(final String path) throws IOException {
 
-		return new N5FSReader(path);
+		return new N5FSReader(path, gsonBuilder);
 	}
 
 	/**
@@ -132,13 +191,13 @@ public interface N5Factory
 	 * For more options of the Zarr backend study the {@link N5ZarrReader}
 	 * constructors.
 	 *
-	 * @param path path to the root zarr directory
-	 * @return n5 reader
+	 * @param path
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5ZarrReader openZarrReader(final String path) throws IOException {
+	public N5ZarrReader openZarrReader(final String path) throws IOException {
 
-		return new N5ZarrReader(path);
+		return new N5ZarrReader(path, gsonBuilder, zarrDimensionSeparator, zarrMapN5DatasetAttributes);
 	}
 
 	/**
@@ -148,58 +207,65 @@ public interface N5Factory
 	 * For more options of the HDF5 backend study the {@link N5HDF5Reader}
 	 * constructors.
 	 *
-	 * @param path path to the hdf5 file
+	 * @param path
 	 * @param defaultBlockSize
 	 * 		This block size will be used for reading non-chunked datasets.
 	 * 		It is also possible to override the block-size for reading chunked
 	 * 		datasets but we do not do that here as it's rarely useful.
-	 * @return n5 reader
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5HDF5Reader openHDF5Reader(final String path, final int... defaultBlockSize) throws IOException {
+	public N5HDF5Reader openHDF5Reader(final String path) throws IOException {
 
-		final IHDF5Reader hdf5Reader = HDF5Factory.openForReading(path);
-		return new N5HDF5Reader(hdf5Reader, defaultBlockSize);
+		return new N5HDF5Reader(path, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
 	}
 
 	/**
 	 * Open an {@link N5Reader} for Google Cloud.
 	 *
-	 * @param url the google cloud n5 object url
-	 * @return n5 reader
+	 * @param url
+	 * @param projectId
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5GoogleCloudStorageReader openGoogleCloudReader(final String url) throws IOException {
+	public N5GoogleCloudStorageReader openGoogleCloudReader(final String url) throws IOException {
 
 		final GoogleCloudStorageClient storageClient = new GoogleCloudStorageClient();
 		final Storage storage = storageClient.create();
 		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(url);
-		final String bucketName = googleCloudUri.getBucket();
-		return new N5GoogleCloudStorageReader(storage, bucketName);
+
+		return new N5GoogleCloudStorageReader(
+				storage,
+				googleCloudUri.getBucket(),
+				googleCloudUri.getKey(),
+				gsonBuilder);
 	}
 
 	/**
 	 * Open an {@link N5Reader} for AWS S3.
 	 *
-	 * @param url the amazon n5 object url
-	 * @return n5 reader
+	 * @param url
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5AmazonS3Reader openAWSS3Reader(final String url) throws IOException {
+	public N5AmazonS3Reader openAWSS3Reader(final String url) throws IOException {
 
-		return new N5AmazonS3Reader(createS3(url), new AmazonS3URI(url));
+		return new N5AmazonS3Reader(
+				createS3(url),
+				new AmazonS3URI(url),
+				gsonBuilder);
 	}
 
 	/**
 	 * Open an {@link N5Writer} for N5 filesystem.
 	 *
-	 * @param path path to the root n5 directory
-	 * @return n5 writer
+	 * @param path
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5FSWriter openFSWriter(final String path) throws IOException {
+	public N5FSWriter openFSWriter(final String path) throws IOException {
 
-		return new N5FSWriter(path);
+		return new N5FSWriter(path, gsonBuilder);
 	}
 
 	/**
@@ -208,13 +274,13 @@ public interface N5Factory
 	 * For more options of the Zarr backend study the {@link N5ZarrWriter}
 	 * constructors.
 	 *
-	 * @param path path to root zarr directory
-	 * @return n5 writer
+	 * @param path
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5ZarrWriter openZarrWriter(final String path) throws IOException {
+	public N5ZarrWriter openZarrWriter(final String path) throws IOException {
 
-		return new N5ZarrWriter(path);
+		return new N5ZarrWriter(path, gsonBuilder, zarrDimensionSeparator, zarrMapN5DatasetAttributes);
 	}
 
 	/**
@@ -225,67 +291,72 @@ public interface N5Factory
 	 * For more options of the HDF5 backend study the {@link N5HDF5Writer}
 	 * constructors.
 	 *
-	 * @param path path to hdf5 file
+	 * @param path
 	 * @param defaultBlockSize
 	 * 		This block size will be used for reading non-chunked datasets.
 	 * 		It is also possible to override the block-size for reading non-
 	 * 		chunked datasets but we do not do that here as it's rarely
 	 * 		useful.
-	 * @return n5 writer
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5HDF5Writer openHDF5Writer(final String path, final int... defaultBlockSize) throws IOException {
+	public N5HDF5Writer openHDF5Writer(final String path) throws IOException {
 
-		final IHDF5Writer hdf5Writer = HDF5Factory.open(path);
-		return new N5HDF5Writer(hdf5Writer, defaultBlockSize);
+		return new N5HDF5Writer(path, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
 	}
 
 	/**
 	 * Open an {@link N5Writer} for Google Cloud.
 	 *
-	 * @param url url to n5 root in google cloud 
+	 * @param url
 	 * @param projectId
-	 * @return n5 writer
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5GoogleCloudStorageWriter openGoogleCloudWriter(final String url, final String projectId) throws IOException {
+	public N5GoogleCloudStorageWriter openGoogleCloudWriter(final String url) throws IOException {
 
 		final GoogleCloudStorageClient storageClient;
-		if (projectId == null) {
+		if (googleCloudProjectId == null) {
 			final ResourceManager resourceManager = new GoogleCloudResourceManagerClient().create();
 			final Iterator<Project> projectsIterator = resourceManager.list().iterateAll().iterator();
 			if (!projectsIterator.hasNext())
 				return null;
 			storageClient = new GoogleCloudStorageClient(projectsIterator.next().getProjectId());
 		} else
-			storageClient = new GoogleCloudStorageClient(projectId);
+			storageClient = new GoogleCloudStorageClient(googleCloudProjectId);
 
 		final Storage storage = storageClient.create();
 		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(url);
-		final String bucketName = googleCloudUri.getBucket();
-		return new N5GoogleCloudStorageWriter(storage, bucketName);
+		return new N5GoogleCloudStorageWriter(
+				storage,
+				googleCloudUri.getBucket(),
+				googleCloudUri.getKey(),
+				gsonBuilder);
 	}
 
 	/**
 	 * Open an {@link N5Writer} for AWS S3.
 	 *
-	 * @param url url to n5 root in amazon s3
-	 * @return n5 writer
+	 * @param url
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5AmazonS3Writer openAWSS3Writer(final String url) throws IOException {
+	public N5AmazonS3Writer openAWSS3Writer(final String url) throws IOException {
 
-		return new N5AmazonS3Writer(createS3(url), new AmazonS3URI(url));
+		return new N5AmazonS3Writer(
+				createS3(url),
+				new AmazonS3URI(url),
+				gsonBuilder);
 	}
 
 	/**
 	 * Open an {@link N5Reader} based on some educated guessing from the url.
 	 *
-	 * @param url url or path to an n5 root of some type
-	 * @return n5 reader
+	 * @param url
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5Reader openReader(final String url) throws IOException {
+	public N5Reader openReader(final String url) throws IOException {
 
 		try {
 			final URI uri = new URI(url);
@@ -302,8 +373,8 @@ public interface N5Factory
 					return openGoogleCloudReader(url);
 			}
 		} catch (final URISyntaxException e) {}
-		if (url.matches("(?i).*\\.(h5|hdf5|hdf)"))
-			return openHDF5Reader(url, 64);
+		if (isHDF5(url))
+			return openHDF5Reader(url);
 		else if (url.matches("(?i).*\\.zarr"))
 			return openZarrReader(url);
 		else
@@ -313,11 +384,11 @@ public interface N5Factory
 	/**
 	 * Open an {@link N5Writer} based on some educated guessing from the url.
 	 *
-	 * @param url url or path to an n5 root of some type
-	 * @return n5 writer
+	 * @param url
+	 * @return
 	 * @throws IOException
 	 */
-	public static N5Writer openWriter(final String url) throws IOException {
+	public N5Writer openWriter(final String url) throws IOException {
 
 		try {
 			final URI uri = new URI(url);
@@ -326,16 +397,16 @@ public interface N5Factory
 			else if (scheme.equals("s3"))
 				return openAWSS3Writer(url);
 			else if (scheme.equals("gs"))
-				return openGoogleCloudWriter(url, null);
+				return openGoogleCloudWriter(url);
 			else if (scheme.equals("https") || scheme.equals("http")) {
 				if (uri.getHost().matches(".*s3\\.amazonaws\\.com"))
 					return openAWSS3Writer(url);
 				else if (uri.getHost().matches(".*cloud\\.google\\.com"))
-					return openGoogleCloudWriter(url, null);
+					return openGoogleCloudWriter(url);
 			}
 		} catch (final URISyntaxException e) {}
-		if (url.matches("(?i).*\\.(h5|hdf5|hdf)"))
-			return openHDF5Writer(url, 64);
+		if (isHDF5(url))
+			return openHDF5Writer(url);
 		else if (url.matches("(?i).*\\.zarr"))
 			return openZarrWriter(url);
 		else
