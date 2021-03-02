@@ -61,9 +61,9 @@ public class Singleton {
 		singletons.clear();
 	}
 
-	public static void main(final String... args) {
+	public static void main(final String... args) throws IOException {
 
-
+		run(args);
 	}
 
 
