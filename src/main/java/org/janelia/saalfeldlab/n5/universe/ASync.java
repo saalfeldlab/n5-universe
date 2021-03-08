@@ -4,10 +4,6 @@
 package org.janelia.saalfeldlab.n5.universe;
 
 import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import net.imglib2.loops.LoopBuilder.TriConsumer;
 
 /**
  * @author Stephan Saalfeld
@@ -15,46 +11,90 @@ import net.imglib2.loops.LoopBuilder.TriConsumer;
  */
 public class ASync {
 
-	public static <T> void async(
-			final Supplier<T> request,
-			final Consumer<T> callback) {
+	@FunctionalInterface
+	public static interface ThrowingSupplier<T, E extends Exception> {
 
-		new Thread(() -> callback.accept(request.get())).run();
+	    public T get() throws E;
 	}
 
-	public static <T, E extends Exception> void async(
-			final Supplier<T> request,
-			final Consumer<T> callback,
-			final TriConsumer<Supplier<T>, Consumer<T>, Exception> except) {
+	@FunctionalInterface
+	public static interface ThrowingConsumer<T, E extends Exception> {
+
+	    public void accept(final T t) throws E;
+	}
+
+	@FunctionalInterface
+	public static interface ThrowingBiConsumer<T, S, E extends Exception> {
+
+	    public void accept(final T t, final S s) throws E;
+	}
+
+	@FunctionalInterface
+	public static interface ThrowingTriConsumer<T, S, Q, E extends Exception> {
+
+	    public void accept(final T t, final S s, final Q q) throws E;
+	}
+
+	public static <T, E extends Exception, F extends Exception> void async(
+			final ThrowingSupplier<T, E> request,
+			final ThrowingConsumer<T, F> callback) {
 
 		new Thread(() -> {
 			try {
 				callback.accept(request.get());
 			} catch (final Exception e) {
-				except.accept(request, callback, e);
+				throw new RuntimeException(e);
 			}
-		});
+		}).run();
 	}
 
-	public static <T> void async(
-			final Supplier<T> request,
-			final Consumer<T> callback,
-			final ExecutorService exec) {
+	public static <T, E extends Exception, F extends Exception> void async(
+			final ThrowingSupplier<T, E> request,
+			final ThrowingConsumer<T, F> callback,
+			final ThrowingTriConsumer<ThrowingSupplier<T, E>, ThrowingConsumer<T, F>, Exception, Exception> except) {
 
-		exec.submit(() -> callback.accept(request.get()));
+		new Thread(() -> {
+			try {
+				callback.accept(request.get());
+			} catch (final Exception e) {
+				try {
+					except.accept(request, callback, e);
+				} catch (final Exception f) {
+					throw new RuntimeException(e);
+				}
+			}
+		}).run();
 	}
 
-	public static <T, E extends Exception> void async(
-			final Supplier<T> request,
-			final Consumer<T> callback,
-			final TriConsumer<Supplier<T>, Consumer<T>, Exception> except,
+	public static <T, E extends Exception, F extends Exception> void async(
+			final ThrowingSupplier<T, E> request,
+			final ThrowingConsumer<T, F> callback,
 			final ExecutorService exec) {
 
 		exec.submit(() -> {
 			try {
 				callback.accept(request.get());
 			} catch (final Exception e) {
-				except.accept(request, callback, e);
+				throw new RuntimeException(e);
+			}
+		});
+	}
+
+	public static <T, E extends Exception, F extends Exception> void async(
+			final ThrowingSupplier<T, E> request,
+			final ThrowingConsumer<T, F> callback,
+			final ThrowingTriConsumer<ThrowingSupplier<T, E>, ThrowingConsumer<T, F>, Exception, Exception> except,
+			final ExecutorService exec) {
+
+		exec.submit(() -> {
+			try {
+				callback.accept(request.get());
+			} catch (final Exception e) {
+				try {
+					except.accept(request, callback, e);
+				} catch (final Exception f) {
+					throw new RuntimeException(e);
+				}
 			}
 		});
 	}
