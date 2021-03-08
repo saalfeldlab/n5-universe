@@ -126,15 +126,19 @@ public class N5Factory implements Serializable {
 
 	private static boolean isHDF5(final String path) throws FileNotFoundException, IOException {
 
-		/* optimistic */
-		if (Files.isRegularFile(Paths.get(path)) && path.matches("(?i).*\\.(h5|hdf5)"))
-			return true;
-		else
-			try (final FileInputStream in = new FileInputStream(new File(path))) {
-				final byte[] sig = new byte[8];
-				in.read(sig);
-				return Arrays.equals(sig, HDF5_SIG);
+		if (Files.isRegularFile(Paths.get(path))) {
+			/* optimistic */
+			if (path.matches("(?i).*\\.(h5|hdf5)"))
+				return true;
+			else {
+				try (final FileInputStream in = new FileInputStream(new File(path))) {
+					final byte[] sig = new byte[8];
+					in.read(sig);
+					return Arrays.equals(sig, HDF5_SIG);
+				}
 			}
+		}
+		return false;
 	}
 
 	/**
