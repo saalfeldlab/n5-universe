@@ -373,7 +373,7 @@ public class N5Factory implements Serializable {
 			else if (scheme.equals("https") || scheme.equals("http")) {
 				if (uri.getHost().matches(".*s3\\.amazonaws\\.com"))
 					return openAWSS3Reader(url);
-				else if (uri.getHost().matches(".*cloud\\.google\\.com"))
+				else if (uri.getHost().matches(".*cloud\\.google\\.com") || uri.getHost().matches(".*storage\\.googleapis\\.com"))
 					return openGoogleCloudReader(url);
 			}
 		} catch (final URISyntaxException e) {}
