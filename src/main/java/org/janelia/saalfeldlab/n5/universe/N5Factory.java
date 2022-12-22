@@ -80,6 +80,8 @@ import com.google.gson.GsonBuilder;
  */
 public class N5Factory implements Serializable {
 
+	private static final long serialVersionUID = -6823715427289454617L;
+
 	private static byte[] HDF5_SIG = {(byte)137, 72, 68, 70, 13, 10, 26, 10};
 	private int[] hdf5DefaultBlockSize = {64, 64, 64, 1, 1};
 	private boolean hdf5OverrideBlockSize = false;
@@ -124,7 +126,15 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
-	private static boolean isHDF5(final String path) throws FileNotFoundException, IOException {
+	public static boolean isHDF5Writer(final String path) {
+
+		if (path.contains(".h5") || path.contains(".hdf5"))
+			return true;
+		else
+			return false;
+	}
+
+	public static boolean isHDF5Reader(final String path) throws FileNotFoundException, IOException {
 
 		if (Files.isRegularFile(Paths.get(path))) {
 			/* optimistic */
@@ -180,9 +190,9 @@ public class N5Factory implements Serializable {
 	/**
 	 * Open an {@link N5Reader} for N5 filesystem.
 	 *
-	 * @param path
-	 * @return
-	 * @throws IOException
+	 * @param path path to the n5 root folder
+	 * @return the N5FsReader
+	 * @throws IOException the io exception
 	 */
 	public N5FSReader openFSReader(final String path) throws IOException {
 
@@ -195,9 +205,9 @@ public class N5Factory implements Serializable {
 	 * For more options of the Zarr backend study the {@link N5ZarrReader}
 	 * constructors.
 	 *
-	 * @param path
-	 * @return
-	 * @throws IOException
+	 * @param path path to the zarr directory
+	 * @return the N5ZarrReader
+	 * @throws IOException the io exception
 	 */
 	public N5ZarrReader openZarrReader(final String path) throws IOException {
 
@@ -211,13 +221,9 @@ public class N5Factory implements Serializable {
 	 * For more options of the HDF5 backend study the {@link N5HDF5Reader}
 	 * constructors.
 	 *
-	 * @param path
-	 * @param defaultBlockSize
-	 * 		This block size will be used for reading non-chunked datasets.
-	 * 		It is also possible to override the block-size for reading chunked
-	 * 		datasets but we do not do that here as it's rarely useful.
-	 * @return
-	 * @throws IOException
+	 * @param path path to the hdf5 file
+	 * @return the N5HDF5Reader
+	 * @throws IOException the io exception
 	 */
 	public N5HDF5Reader openHDF5Reader(final String path) throws IOException {
 
@@ -227,10 +233,9 @@ public class N5Factory implements Serializable {
 	/**
 	 * Open an {@link N5Reader} for Google Cloud.
 	 *
-	 * @param url
-	 * @param projectId
-	 * @return
-	 * @throws IOException
+	 * @param url url to the google cloud object
+	 * @return the N5GoogleCloudStorageReader
+	 * @throws IOException the io exception
 	 */
 	public N5GoogleCloudStorageReader openGoogleCloudReader(final String url) throws IOException {
 
@@ -248,9 +253,9 @@ public class N5Factory implements Serializable {
 	/**
 	 * Open an {@link N5Reader} for AWS S3.
 	 *
-	 * @param url
-	 * @return
-	 * @throws IOException
+	 * @param url url to the amazon s3 object
+	 * @return the N5AmazonS3Reader
+	 * @throws IOException the io exception
 	 */
 	public N5AmazonS3Reader openAWSS3Reader(final String url) throws IOException {
 
@@ -263,9 +268,9 @@ public class N5Factory implements Serializable {
 	/**
 	 * Open an {@link N5Writer} for N5 filesystem.
 	 *
-	 * @param path
-	 * @return
-	 * @throws IOException
+	 * @param path path to the n5 directory
+	 * @return the N5FSWriter
+	 * @throws IOException the io exception
 	 */
 	public N5FSWriter openFSWriter(final String path) throws IOException {
 
@@ -278,9 +283,9 @@ public class N5Factory implements Serializable {
 	 * For more options of the Zarr backend study the {@link N5ZarrWriter}
 	 * constructors.
 	 *
-	 * @param path
-	 * @return
-	 * @throws IOException
+	 * @param path path to the zarr directory
+	 * @return the N5ZarrWriter
+	 * @throws IOException the io exception
 	 */
 	public N5ZarrWriter openZarrWriter(final String path) throws IOException {
 
@@ -295,14 +300,9 @@ public class N5Factory implements Serializable {
 	 * For more options of the HDF5 backend study the {@link N5HDF5Writer}
 	 * constructors.
 	 *
-	 * @param path
-	 * @param defaultBlockSize
-	 * 		This block size will be used for reading non-chunked datasets.
-	 * 		It is also possible to override the block-size for reading non-
-	 * 		chunked datasets but we do not do that here as it's rarely
-	 * 		useful.
-	 * @return
-	 * @throws IOException
+	 * @param path path to the hdf5 file
+	 * @return the N5HDF5Writer
+	 * @throws IOException the io exception
 	 */
 	public N5HDF5Writer openHDF5Writer(final String path) throws IOException {
 
@@ -312,10 +312,9 @@ public class N5Factory implements Serializable {
 	/**
 	 * Open an {@link N5Writer} for Google Cloud.
 	 *
-	 * @param url
-	 * @param projectId
-	 * @return
-	 * @throws IOException
+	 * @param url url to the google cloud object
+	 * @return the N5GoogleCloudStorageWriter
+	 * @throws IOException the io exception
 	 */
 	public N5GoogleCloudStorageWriter openGoogleCloudWriter(final String url) throws IOException {
 
@@ -341,9 +340,9 @@ public class N5Factory implements Serializable {
 	/**
 	 * Open an {@link N5Writer} for AWS S3.
 	 *
-	 * @param url
-	 * @return
-	 * @throws IOException
+	 * @param url url to the s3 object
+	 * @return the N5AmazonS3Writer
+	 * @throws IOException the io exception
 	 */
 	public N5AmazonS3Writer openAWSS3Writer(final String url) throws IOException {
 
@@ -356,9 +355,9 @@ public class N5Factory implements Serializable {
 	/**
 	 * Open an {@link N5Reader} based on some educated guessing from the url.
 	 *
-	 * @param url
-	 * @return
-	 * @throws IOException
+	 * @param url the location of the root location of the store
+	 * @return the N5Reader
+	 * @throws IOException the io exception
 	 */
 	public N5Reader openReader(final String url) throws IOException {
 
@@ -366,31 +365,38 @@ public class N5Factory implements Serializable {
 			final URI uri = new URI(url);
 			final String scheme = uri.getScheme();
 			if (scheme == null);
+			else if (scheme.equals( "file") )
+				return openFileBasedN5Reader( Paths.get( uri ).toFile().getCanonicalPath() );
 			else if (scheme.equals("s3"))
 				return openAWSS3Reader(url);
 			else if (scheme.equals("gs"))
 				return openGoogleCloudReader(url);
-			else if (scheme.equals("https") || scheme.equals("http")) {
+			else if (uri.getHost()!= null && scheme.equals("https") || scheme.equals("http")) {
 				if (uri.getHost().matches(".*s3\\.amazonaws\\.com"))
 					return openAWSS3Reader(url);
 				else if (uri.getHost().matches(".*cloud\\.google\\.com") || uri.getHost().matches(".*storage\\.googleapis\\.com"))
 					return openGoogleCloudReader(url);
 			}
-		} catch (final URISyntaxException e) {}
-		if (isHDF5(url))
-			return openHDF5Reader(url);
-		else if (url.matches("(?i).*\\.zarr"))
-			return openZarrReader(url);
+		} catch (final URISyntaxException ignored ) {}
+		return openFileBasedN5Reader( url );
+	}
+
+	private N5Reader openFileBasedN5Reader( final String url ) throws IOException
+	{
+		if (isHDF5Reader( url ))
+			return openHDF5Reader( url );
+		else if ( url.contains(".zarr"))
+			return openZarrReader( url );
 		else
-			return openFSReader(url);
+			return openFSReader( url );
 	}
 
 	/**
 	 * Open an {@link N5Writer} based on some educated guessing from the url.
 	 *
-	 * @param url
-	 * @return
-	 * @throws IOException
+	 * @param url the location of the root location of the store
+	 * @return the N5Writer
+	 * @throws IOException the io exception
 	 */
 	public N5Writer openWriter(final String url) throws IOException {
 
@@ -398,18 +404,25 @@ public class N5Factory implements Serializable {
 			final URI uri = new URI(url);
 			final String scheme = uri.getScheme();
 			if (scheme == null);
+			else if (scheme == "file")
+				return openFileBasedN5Writer( uri.getPath() );
 			else if (scheme.equals("s3"))
 				return openAWSS3Writer(url);
 			else if (scheme.equals("gs"))
 				return openGoogleCloudWriter(url);
-			else if (scheme.equals("https") || scheme.equals("http")) {
+			else if (uri.getHost() != null && scheme.equals("https") || scheme.equals("http")) {
 				if (uri.getHost().matches(".*s3\\.amazonaws\\.com"))
 					return openAWSS3Writer(url);
-				else if (uri.getHost().matches(".*cloud\\.google\\.com"))
+				else if (uri.getHost().matches(".*cloud\\.google\\.com") || uri.getHost().matches(".*storage\\.googleapis\\.com"))
 					return openGoogleCloudWriter(url);
 			}
 		} catch (final URISyntaxException e) {}
-		if (isHDF5(url))
+		return openFileBasedN5Writer( url );
+	}
+
+	private N5Writer openFileBasedN5Writer( final String url ) throws IOException
+	{
+		if (isHDF5Writer(url))
 			return openHDF5Writer(url);
 		else if (url.matches("(?i).*\\.zarr"))
 			return openZarrWriter(url);
