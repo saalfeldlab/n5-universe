@@ -1,0 +1,4 @@
+{
+    "transform" : { "type" : "identity" },
+    "outputLabels" : ["x", "y", "z" ]
+}

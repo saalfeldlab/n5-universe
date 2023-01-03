@@ -1,0 +1,91 @@
+{
+  "transformMetadata": {
+    "transforms": [
+      {
+        "transform": { 
+            "type": "identity"
+        },
+        "outputLabels": [ "c" ]
+      },
+      {
+        "transform": {
+          "type": "scale",
+          "scale": [ 2, 3, 4 ]
+        },
+        "outputLabels": [ "z", "y", "x" ]
+      }
+    ]
+  },
+  "spaces" : [
+    { "name" : "raw",
+      "axes" : [ "0", "1", "2", "3" ]
+    },
+    { "name" : "physical",
+      "axes" : ["z", "y", "x"],
+      "unit" : "um",
+      "comment": "This is shorthand for the x. y, and z axes defined explicitly below"
+    },
+    { "name" : "channel",
+      "axes" : ["c"],
+      "comment": "This is shorthand for the c axis defined explicitly below"
+    }
+  ],
+  "transforms" : [
+      {
+          "sourceSpace" : "raw",
+          "sourceAxes" : ["0", "1", "2"],
+          "targetSpace" : "physical",
+          "transform" : {
+              "type" : "scale",
+              "scale" : [0.6, 0.5, 0.4]
+          }
+      },
+      {
+          "sourceSpace" : "raw",
+          "sourceAxes" : ["3"],
+          "targetSpace" : "channel"
+      }
+  ],
+  "axes" : [
+      {
+        "label":"z",
+        "type":"space",
+        "unit":"um"
+      },
+      {
+        "label":"y",
+        "type":"space",
+        "unit":"um"
+      },
+      {
+        "label":"x",
+        "type":"space",
+        "unit":"um"
+      },
+      {
+        "label":"c",
+        "type":"channel",
+        "unit":"none"
+      },
+      {
+        "label":"0",
+        "type":"data",
+        "unit":"none"
+      },
+      {
+        "label":"1",
+        "type":"data",
+        "unit":"none"
+      },
+      {
+        "label":"2",
+        "type":"data",
+        "unit":"none"
+      },
+      {
+        "label":"3",
+        "type":"data",
+        "unit":"none"
+      }
+  ]
+}

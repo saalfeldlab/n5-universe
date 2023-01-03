@@ -1,0 +1,36 @@
+{
+    "multiscales" : 
+{
+  "path": "c0",
+  "datasets": [
+    {
+      "path": "c0/s0",
+      "spatialTransform": {
+        "transform": {
+          "scale": [
+            2,
+            3,
+            4
+          ],
+          "type": "scale"
+        },
+        "unit": "mm"
+      }
+    },
+    {
+      "path": "c0/s1",
+      "spatialTransform": {
+        "transform": {
+          "scale": [
+            4,
+            6,
+            8
+          ],
+          "type": "scale"
+        },
+        "unit": "mm"
+      }
+    }
+  ]
+}
+}
