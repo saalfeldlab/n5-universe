@@ -37,7 +37,6 @@ import net.thisptr.jackson.jq.Versions;
 import net.thisptr.jackson.jq.exception.JsonQueryException;
 import net.thisptr.jackson.jq.internal.misc.Strings;
 import net.thisptr.jackson.jq.path.Path;
-import org.janelia.saalfeldlab.n5.universe.translation.ImportedTranslations;
 
 public class JqUtils {
 
