@@ -149,6 +149,9 @@ public class ContainerMetadataNode extends AbstractGsonReader implements N5Write
 	 * @param thisPath path to a node
 	 */
 	public void addPathsRecursive( String thisPath ) {
+		if (attributes == null) {
+			attributes = new JsonObject();
+		}
 		if (attributes.isJsonObject()) {
 			attributes.getAsJsonObject().addProperty("path", thisPath );
 		}
