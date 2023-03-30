@@ -59,7 +59,7 @@ public interface N5MetadataParser<T extends N5Metadata> extends BiFunction<N5Rea
   }
 
   /**
-   * Called by the {@link org.janelia.saalfeldlab.n5.N5DatasetDiscoverer}
+   * Called by the {@link org.janelia.saalfeldlab.n5.universe.N5DatasetDiscoverer}
    * while discovering the N5 tree and filling the metadata for datasets or groups.
    * <p>
    * The metadata parsing is done in the bottom-up fashion, so the children of the given {@code node}
