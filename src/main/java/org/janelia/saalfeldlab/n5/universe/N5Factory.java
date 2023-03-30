@@ -404,7 +404,7 @@ public class N5Factory implements Serializable {
 			final URI uri = new URI(url);
 			final String scheme = uri.getScheme();
 			if (scheme == null);
-			else if (scheme == "file")
+			else if (scheme.equals("file"))
 				return openFileBasedN5Writer( uri.getPath() );
 			else if (scheme.equals("s3"))
 				return openAWSS3Writer(url);
