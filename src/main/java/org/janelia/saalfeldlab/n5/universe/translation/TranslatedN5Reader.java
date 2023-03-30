@@ -96,16 +96,4 @@ public class TranslatedN5Reader extends AbstractGsonReader {
 				.orElse( new HashMap<>());
 	}
 
-	@Override public JsonElement getAttributesJson(String pathName) throws IOException {
-
-		if (n5 instanceof GsonAttributesParser) {
-			return ((GsonAttributesParser)n5).getAttributesJson("/");
-		} else {
-			final JsonObject root = new JsonObject();
-			getAttributes(pathName).forEach(root::add);
-			return root;
-		}
-
-	}
-
 }
