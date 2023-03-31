@@ -126,6 +126,7 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
+
 	private static boolean isHDF5Writer(final String path) {
 
 		if (path.matches("(?i).*\\.(h5|hdf|hdf5)"))
@@ -365,23 +366,31 @@ public class N5Factory implements Serializable {
 			final URI uri = new URI(url);
 			final String scheme = uri.getScheme();
 			if (scheme == null);
+			else if (scheme.equals( "file") )
+				return openFileBasedN5Reader( Paths.get( uri ).toFile().getCanonicalPath() );
 			else if (scheme.equals("s3"))
 				return openAWSS3Reader(url);
 			else if (scheme.equals("gs"))
 				return openGoogleCloudReader(url);
-			else if (scheme.equals("https") || scheme.equals("http")) {
+			else if (uri.getHost()!= null && scheme.equals("https") || scheme.equals("http")) {
 				if (uri.getHost().matches(".*s3\\.amazonaws\\.com"))
 					return openAWSS3Reader(url);
 				else if (uri.getHost().matches(".*cloud\\.google\\.com") || uri.getHost().matches(".*storage\\.googleapis\\.com"))
 					return openGoogleCloudReader(url);
 			}
-		} catch (final URISyntaxException e) {}
-		if (isHDF5Reader(url))
-			return openHDF5Reader(url);
+		} catch (final URISyntaxException ignored ) {}
+		return openFileBasedN5Reader( url );
+	}
+
+	private N5Reader openFileBasedN5Reader( final String url ) throws IOException
+	{
+		if (isHDF5Reader( url ))
+			return openHDF5Reader( url );
 		else if (url.matches("(?i).*\\.zarr"))
-			return openZarrReader(url);
+			return openZarrReader( url );
+
 		else
-			return openFSReader(url);
+			return openFSReader( url );
 	}
 
 	/**
@@ -397,17 +406,24 @@ public class N5Factory implements Serializable {
 			final URI uri = new URI(url);
 			final String scheme = uri.getScheme();
 			if (scheme == null);
+			else if (scheme.equals("file"))
+				return openFileBasedN5Writer( uri.getPath() );
 			else if (scheme.equals("s3"))
 				return openAWSS3Writer(url);
 			else if (scheme.equals("gs"))
 				return openGoogleCloudWriter(url);
-			else if (scheme.equals("https") || scheme.equals("http")) {
+			else if (uri.getHost() != null && scheme.equals("https") || scheme.equals("http")) {
 				if (uri.getHost().matches(".*s3\\.amazonaws\\.com"))
 					return openAWSS3Writer(url);
-				else if (uri.getHost().matches(".*cloud\\.google\\.com"))
+				else if (uri.getHost().matches(".*cloud\\.google\\.com") || uri.getHost().matches(".*storage\\.googleapis\\.com"))
 					return openGoogleCloudWriter(url);
 			}
 		} catch (final URISyntaxException e) {}
+		return openFileBasedN5Writer( url );
+	}
+
+	private N5Writer openFileBasedN5Writer( final String url ) throws IOException
+	{
 		if (isHDF5Writer(url))
 			return openHDF5Writer(url);
 		else if (url.matches("(?i).*\\.zarr"))

@@ -1,0 +1,19 @@
+{
+  "transformMetadata": {
+    "transforms": [
+      {
+        "transform": { 
+            "type": "identity"
+        },
+        "outputLabels": [ "c" ]
+      },
+      {
+        "transform": {
+          "type": "scale",
+          "scale": [ 2, 3, 4 ]
+        },
+        "outputLabels": [ "z", "y", "x" ]
+      }
+    ]
+  }
+}

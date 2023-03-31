@@ -5,13 +5,13 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>30.0.0</version>
+		<version>34.1.0</version>
 		<relativePath />
 	</parent>
 
 	<groupId>org.janelia.saalfeldlab</groupId>
 	<artifactId>n5-universe</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1.0-SNAPSHOT</version>
 
 	<name>N5-Universe</name>
 	<description>Utilities spanning all of the N5 repositories</description>
@@ -97,8 +97,8 @@
 		<url>https://github.com/saalfedlab/n5-universe/issues</url>
 	</issueManagement>
 	<ciManagement>
-		<system>Travis CI</system>
-		<url>https://travis-ci.com/saalfeldlab/n5-universe</url>
+		<system>GitHub Actions</system>
+		<url>https://github.com/saalfeldlab/n5-universe/actions</url>
 	</ciManagement>
 
 	<properties>
@@ -109,13 +109,13 @@
 		<license.copyrightOwners>Stephan Saalfeld</license.copyrightOwners>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
-		<releaseProfiles>deploy-to-scijava</releaseProfiles>
+		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
-		<n5.version>2.4.0</n5.version>
+		<n5.version>2.5.1</n5.version>
 		<n5-hdf5.version>1.3.0</n5-hdf5.version>
 		<n5-google-cloud.version>3.3.2</n5-google-cloud.version>
 		<n5-aws-s3.version>3.2.0</n5-aws-s3.version>
-		<n5-zarr.version>0.0.6</n5-zarr.version>
+		<n5-zarr.version>0.0.8</n5-zarr.version>
 	</properties>
 
 	<dependencies>
@@ -143,7 +143,27 @@
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5-zarr</artifactId>
 		</dependency>
-	</dependencies>
+		<dependency>
+			<groupId>net.thisptr</groupId>
+			<artifactId>jackson-jq</artifactId>
+			<version>1.0.0-preview.20191208</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>se.sawano.java</groupId>
+			<artifactId>alphanumeric-comparator</artifactId>
+			<version>1.4.1</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5</artifactId>
+			<version>${n5.version}</version>
+			<classifier>tests</classifier>
+			<scope>test</scope>
+		</dependency>
+    </dependencies>
 
 
 	<repositories>

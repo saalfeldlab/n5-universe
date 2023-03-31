@@ -1,0 +1,8 @@
+{
+"transform": {
+    "axes": [ "z", "y", "x" ], 
+    "units": [ "um", "um", "um"],
+    "scale": [ 1.0, 2.0, 3.0 ],
+    "translate": [ 0.1, 0.2, 0.3 ]
+    }
+}

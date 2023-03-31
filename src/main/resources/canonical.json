@@ -1,0 +1,18 @@
+{
+  "spatialTransform": {
+    "transform": {
+      "type": "scale_offset",
+      "scale": [
+        3,
+        2,
+        1
+      ],
+      "offset": [
+        0.3,
+        0.2,
+        0.1
+      ]
+    },
+    "unit": "um"
+  }
+}
