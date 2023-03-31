@@ -11,7 +11,7 @@
 
 	<groupId>org.janelia.saalfeldlab</groupId>
 	<artifactId>n5-universe</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.1.1-SNAPSHOT</version>
 
 	<name>N5-Universe</name>
 	<description>Utilities spanning all of the N5 repositories</description>
