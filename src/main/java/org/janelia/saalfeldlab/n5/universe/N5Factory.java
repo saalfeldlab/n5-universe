@@ -126,19 +126,20 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
-	public static boolean isHDF5Writer(final String path) {
 
-		if (path.contains(".h5") || path.contains(".hdf5"))
+	private static boolean isHDF5Writer(final String path) {
+
+		if (path.matches("(?i).*\\.(h5|hdf|hdf5)"))
 			return true;
 		else
 			return false;
 	}
 
-	public static boolean isHDF5Reader(final String path) throws FileNotFoundException, IOException {
+	private static boolean isHDF5Reader(final String path) throws FileNotFoundException, IOException {
 
 		if (Files.isRegularFile(Paths.get(path))) {
 			/* optimistic */
-			if (path.matches("(?i).*\\.(h5|hdf5)"))
+			if (isHDF5Writer(path))
 				return true;
 			else {
 				try (final FileInputStream in = new FileInputStream(new File(path))) {
@@ -385,8 +386,9 @@ public class N5Factory implements Serializable {
 	{
 		if (isHDF5Reader( url ))
 			return openHDF5Reader( url );
-		else if ( url.contains(".zarr"))
+		else if (url.matches("(?i).*\\.zarr"))
 			return openZarrReader( url );
+
 		else
 			return openFSReader( url );
 	}
