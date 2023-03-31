@@ -97,8 +97,8 @@
 		<url>https://github.com/saalfedlab/n5-universe/issues</url>
 	</issueManagement>
 	<ciManagement>
-		<system>Travis CI</system>
-		<url>https://travis-ci.com/saalfeldlab/n5-universe</url>
+		<system>GitHub Actions</system>
+		<url>https://github.com/saalfeldlab/n5-universe/actions</url>
 	</ciManagement>
 
 	<properties>
