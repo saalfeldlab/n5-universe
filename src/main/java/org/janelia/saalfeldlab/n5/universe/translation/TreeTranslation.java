@@ -22,6 +22,11 @@ public class TreeTranslation {
 		updateTranslated();
 	}
 
+	public Gson getGson()
+	{
+		return gson;
+	}
+
 	public JqContainerTranslation getTranslationFunction() {
 		return fwdFun;
 	}

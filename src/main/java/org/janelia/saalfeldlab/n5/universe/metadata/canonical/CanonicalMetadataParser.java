@@ -175,7 +175,7 @@ public class CanonicalMetadataParser implements N5MetadataParser< CanonicalMetad
 			return Optional.empty();
 
 		return root.getNode(node.getPath())
-				.map(ContainerMetadataNode::getAttributes)
+				.map(ContainerMetadataNode::getContainerAttributes)
 				.map(this::canonicalMetadata)
 				.filter(filter);
 	}

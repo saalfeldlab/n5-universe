@@ -87,7 +87,7 @@ public class TranslatedN5Tests {
 		// move "img" dataset to "data"
 		final String fwdTranslation = "include \"n5\"; moveSubTree( \"/img\"; \"data\" )";
 		final String invTranslation = "include \"n5\"; moveSubTree( \"/data\"; \"img\" )";
-		final TranslatedN5Reader n5Xlated = new TranslatedN5Reader(n5, fwdTranslation, invTranslation );
+		final TranslatedN5Reader n5Xlated = new TranslatedN5Reader(n5, n5.getGson(), fwdTranslation, invTranslation );
 		Assert.assertTrue("translated dataset exists", n5Xlated.exists("data"));
 
 		DatasetAttributes attrs;

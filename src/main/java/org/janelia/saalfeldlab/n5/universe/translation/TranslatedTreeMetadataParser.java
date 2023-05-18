@@ -71,7 +71,7 @@ public class TranslatedTreeMetadataParser extends CanonicalMetadataParser {
 			return Optional.empty();
 
 		return translatedRoot.getChild( node.getPath(), groupSep )
-				.map( ContainerMetadataNode::getAttributes )
+				.map( ContainerMetadataNode::getContainerAttributes )
 				.map( this::canonicalMetadata )
 				.filter(filter);
 	}

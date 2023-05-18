@@ -12,7 +12,15 @@
  * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIG	 * @param mapN5DatasetAttributes 
+	 * 	  If true, getAttributes and variants of getAttribute methods will
+	 * 	  contain keys used by n5 datasets, and whose values are those for
+	 *    their corresponding zarr fields. For example, if true, the key "dimensions"
+	 *    (from n5) may be used to obtain the value of the key "shape" (from zarr). 
+	 * @param mergeAttributes 
+	 * 	  If true, fields from .zgroup, .zarray, and .zattrs will be merged
+	 *    when calling getAttributes, and variants of getAttribute
+	 * @param cacheMeta cache attributes and meta dataHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
@@ -42,18 +50,24 @@ import java.util.Optional;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudResourceManagerClient;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageClient;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageURI;
+import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
+import org.janelia.saalfeldlab.n5.N5KeyValueReader;
+import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.googlecloud.N5GoogleCloudStorageReader;
 import org.janelia.saalfeldlab.n5.googlecloud.N5GoogleCloudStorageWriter;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
+import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.N5AmazonS3Reader;
 import org.janelia.saalfeldlab.n5.s3.N5AmazonS3Writer;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
+import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
+import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -86,9 +100,13 @@ public class N5Factory implements Serializable {
 	private int[] hdf5DefaultBlockSize = {64, 64, 64, 1, 1};
 	private boolean hdf5OverrideBlockSize = false;
 	private GsonBuilder gsonBuilder = new GsonBuilder();
+	private boolean cacheAttributes = true;
 	private String zarrDimensionSeparator = ".";
 	private boolean zarrMapN5DatasetAttributes = true;
+	private boolean zarrMergeAttributes = true;
 	private String googleCloudProjectId = null;
+	
+	private KeyValueAccess keyValueAccess;
 
 	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
 
@@ -108,6 +126,12 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
+	public N5Factory cacheAttributes(final boolean cacheAttributes) {
+
+		this.cacheAttributes = cacheAttributes;
+		return this;
+	}
+
 	public N5Factory zarrDimensionSeparator(final String separator) {
 
 		zarrDimensionSeparator = separator;
@@ -117,6 +141,12 @@ public class N5Factory implements Serializable {
 	public N5Factory zarrMapN5Attributes(final boolean mapAttributes) {
 
 		zarrMapN5DatasetAttributes = mapAttributes;
+		return this;
+	}
+
+	public N5Factory zarrMergeAttributes(final boolean mergeAttributes) {
+
+		zarrMergeAttributes = mergeAttributes;
 		return this;
 	}
 
@@ -212,7 +242,7 @@ public class N5Factory implements Serializable {
 	 */
 	public N5ZarrReader openZarrReader(final String path) throws IOException {
 
-		return new N5ZarrReader(path, gsonBuilder, zarrDimensionSeparator, zarrMapN5DatasetAttributes);
+		return new N5ZarrReader(path, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
 	}
 
 	/**
@@ -255,15 +285,23 @@ public class N5Factory implements Serializable {
 	 * Open an {@link N5Reader} for AWS S3.
 	 *
 	 * @param url url to the amazon s3 object
-	 * @return the N5AmazonS3Reader
+	 * @return the N5Reader
 	 * @throws IOException the io exception
 	 */
-	public N5AmazonS3Reader openAWSS3Reader(final String url) throws IOException {
+	public N5Reader openAWSS3Reader(final String url) throws IOException {
 
-		return new N5AmazonS3Reader(
-				createS3(url),
-				new AmazonS3URI(url),
-				gsonBuilder);
+		final AmazonS3URI s3uri = new AmazonS3URI(url);
+		final AmazonS3 s3 = createS3(url);
+
+		// when, if ever do we want to creat a bucket?
+		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, s3uri.getBucket(), false);
+		if( url.contains(".zarr" )) {
+			return new ZarrKeyValueReader(s3kv, s3uri.getKey(), gsonBuilder, 
+					zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes );	
+		}
+		else {
+			return new N5KeyValueReader(s3kv, s3uri.getKey(), gsonBuilder, cacheAttributes );	
+		}
 	}
 
 	/**
@@ -290,7 +328,7 @@ public class N5Factory implements Serializable {
 	 */
 	public N5ZarrWriter openZarrWriter(final String path) throws IOException {
 
-		return new N5ZarrWriter(path, gsonBuilder, zarrDimensionSeparator, zarrMapN5DatasetAttributes);
+		return new N5ZarrWriter(path, gsonBuilder, zarrDimensionSeparator, zarrMapN5DatasetAttributes, true );
 	}
 
 	/**
@@ -342,15 +380,23 @@ public class N5Factory implements Serializable {
 	 * Open an {@link N5Writer} for AWS S3.
 	 *
 	 * @param url url to the s3 object
-	 * @return the N5AmazonS3Writer
+	 * @return the N5Writer
 	 * @throws IOException the io exception
 	 */
-	public N5AmazonS3Writer openAWSS3Writer(final String url) throws IOException {
+	public N5Writer openAWSS3Writer(final String url) throws IOException {
 
-		return new N5AmazonS3Writer(
-				createS3(url),
-				new AmazonS3URI(url),
-				gsonBuilder);
+		final AmazonS3URI s3uri = new AmazonS3URI(url);
+		final AmazonS3 s3 = createS3(url);
+
+		// when, if ever do we want to creat a bucket?
+		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, s3uri.getBucket(), false);
+		if( url.contains(".zarr" )) {
+			return new ZarrKeyValueWriter(s3kv, s3uri.getKey(), gsonBuilder, 
+					zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes );	
+		}
+		else {
+			return new N5KeyValueWriter(s3kv, s3uri.getKey(), gsonBuilder, cacheAttributes );	
+		}
 	}
 
 	/**

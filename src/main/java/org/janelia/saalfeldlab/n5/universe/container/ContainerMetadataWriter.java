@@ -70,7 +70,7 @@ public class ContainerMetadataWriter {
 			return;
 
 		String path = nopt.get().getPath();
-		HashMap<String, JsonElement> attrs = nopt.get().getAttributes();
+		HashMap<String, JsonElement> attrs = nopt.get().getContainerAttributes();
 		for( String key : attrs.keySet())
 		if( attrs.containsKey(key))
 			n5.setAttribute(path, key, attrs.get(key));
@@ -84,7 +84,7 @@ public class ContainerMetadataWriter {
 		if( !nopt.isPresent())
 			return;
 
-		HashMap<String, JsonElement> attrs = nopt.get().getAttributes();
+		HashMap<String, JsonElement> attrs = nopt.get().getContainerAttributes();
 		if( attrs.containsKey(key))
 			n5.setAttribute(pathName, key, attrs.get(key));
 	}

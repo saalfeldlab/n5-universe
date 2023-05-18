@@ -17,8 +17,14 @@ import java.util.stream.Stream;
 
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.GsonAttributesParser;
+import org.janelia.saalfeldlab.n5.GsonKeyValueReader;
+import org.janelia.saalfeldlab.n5.GsonKeyValueWriter;
+import org.janelia.saalfeldlab.n5.GsonUtils;
+import org.janelia.saalfeldlab.n5.KeyValueAccess;
+import org.janelia.saalfeldlab.n5.LockedChannel;
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5URL;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
 import com.google.gson.Gson;
@@ -36,7 +42,7 @@ import org.janelia.saalfeldlab.n5.universe.translation.JqUtils;
  * @author John Bogovic
  */
 
-public class ContainerMetadataNode implements N5Writer {
+public class ContainerMetadataNode implements GsonKeyValueWriter {
 	protected HashMap<String, JsonElement> attributes;
 	protected Map<String, ContainerMetadataNode> children;
 	protected final transient Gson gson;
@@ -54,20 +60,42 @@ public class ContainerMetadataNode implements N5Writer {
 		this.children = children;
 		this.gson = gson;
 	}
+	
+	public ContainerMetadataNode(final JsonObject attributes,
+			final Map<String, ContainerMetadataNode> children, final Gson gson) {
+		this.attributes = gson.fromJson(attributes, 
+				TypeToken.getParameterized( HashMap.class, String.class, JsonElement.class ).getType());
+		this.children = children;
+		this.gson = gson;
+	}
 
-	public ContainerMetadataNode( ContainerMetadataNode other) {
+	public ContainerMetadataNode( final ContainerMetadataNode other ) {
 		gson = other.gson;
 		attributes = other.attributes;
 		children = other.children;
 	}
 
-	public HashMap<String, JsonElement> getAttributes() {
+	public HashMap<String, JsonElement> getContainerAttributes() {
 		return attributes;
 	}
+	
+	@Override
+	public JsonElement getAttributes(final String pathName) throws N5Exception.N5IOException {
 
-	public HashMap<String, JsonElement> getAttributes( String pathName ) {
-		return getNode( pathName ).map( x -> x.getAttributes() ).orElse( new HashMap<>());
+		final String groupPath = N5URL.normalizeGroupPath(pathName);
+		final String attributesPath = attributesPath(groupPath);
+		Optional<ContainerMetadataNode> nodeOpt = getNode(groupPath);
+		if( nodeOpt.isPresent() )
+		{
+			final ContainerMetadataNode node = nodeOpt.get();
+			return gson.toJsonTree( node.getContainerAttributes() );
+		}
+		return null; // TODO is this correct?
 	}
+
+//	public HashMap<String, JsonElement> getAttributes( String pathName ) {
+//		return getNode( pathName ).map( x -> x.getAttributes() ).orElse( new HashMap<>());
+//	}
 
 	public Map<String, ContainerMetadataNode> getChildren() {
 		return children;
@@ -205,11 +233,11 @@ public class ContainerMetadataNode implements N5Writer {
 			return c.getChild(relToChild, groupSeparator);
 	}
 
-	@Override
-	public <T> T getAttribute( String path, String key, Class<T> clazz ) {
-		return getNode( path ).map( x -> gson.fromJson( x.getAttributes().get(key), clazz))
-				.orElseGet( () -> null );
-	}
+//	@Override
+//	public <T> T getAttribute( String path, String key, Class<T> clazz ) {
+//		return getNode( path ).map( x -> gson.fromJson( x.getAttributes().get(key), clazz))
+//				.orElseGet( () -> null );
+//	}
 
 //	@Override
 //	public <T> T getAttribute(String pathName, String key, Class<T> clazz) {
@@ -221,20 +249,20 @@ public class ContainerMetadataNode implements N5Writer {
 //		return null;
 //	}
 
-	@Override
-	public <T> T getAttribute(String pathName, String key, Type type) throws IOException {
-		Optional<ContainerMetadataNode> nodeOpt = getNode(pathName);
-		if( nodeOpt.isPresent() ) {
-			return gson.fromJson( nodeOpt.get().getAttributes().get(key), type );
-		}
-		return null;
-	}
+//	@Override
+//	public <T> T getAttribute(String pathName, String key, Type type) throws IOException {
+//		Optional<ContainerMetadataNode> nodeOpt = getNode(pathName);
+//		if( nodeOpt.isPresent() ) {
+//			return gson.fromJson( nodeOpt.get().getAttributes().get(key), type );
+//		}
+//		return null;
+//	}
 
-	@Override
-	public DatasetAttributes getDatasetAttributes(String pathName) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+//	@Override
+//	public DatasetAttributes getDatasetAttributes(String pathName) throws IOException {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
 
 	@Override
 	public boolean exists(String pathName) {
@@ -242,7 +270,7 @@ public class ContainerMetadataNode implements N5Writer {
 	}
 
 	@Override
-	public String[] list(String pathName) throws IOException {
+	public String[] list(String pathName) throws N5Exception.N5IOException {
 		Optional<ContainerMetadataNode> node = getNode(pathName);
 		if( node.isPresent() ) {
 			Set<String> set = node.get().children.keySet();
@@ -250,52 +278,6 @@ public class ContainerMetadataNode implements N5Writer {
 		}
 		else
 			return new String[]{};
-	}
-
-	@Override
-	public Map<String, Class<?>> listAttributes(String pathName) throws IOException {
-		final HashMap<String, JsonElement> jsonElementMap = getAttributes(pathName);
-		final HashMap<String, Class<?>> attributes = new HashMap<>();
-		jsonElementMap.forEach(
-				(key, jsonElement) -> {
-					final Class<?> clazz;
-					if (jsonElement.isJsonNull())
-						clazz = null;
-					else if (jsonElement.isJsonPrimitive())
-						clazz = GsonAttributesParser.classForJsonPrimitive((JsonPrimitive)jsonElement);
-					else if (jsonElement.isJsonArray()) {
-						final JsonArray jsonArray = (JsonArray)jsonElement;
-						Class<?> arrayElementClass = Object.class;
-						if (jsonArray.size() > 0) {
-							final JsonElement firstElement = jsonArray.get(0);
-							if (firstElement.isJsonPrimitive()) {
-								arrayElementClass = GsonAttributesParser.classForJsonPrimitive(firstElement.getAsJsonPrimitive());
-								for (int i = 1; i < jsonArray.size() && arrayElementClass != Object.class; ++i) {
-									final JsonElement element = jsonArray.get(i);
-									if (element.isJsonPrimitive()) {
-										final Class<?> nextArrayElementClass = GsonAttributesParser.classForJsonPrimitive(element.getAsJsonPrimitive());
-										if (nextArrayElementClass != arrayElementClass)
-											if (nextArrayElementClass == double.class && arrayElementClass == long.class)
-												arrayElementClass = double.class;
-											else {
-												arrayElementClass = Object.class;
-												break;
-											}
-									} else {
-										arrayElementClass = Object.class;
-										break;
-									}
-								}
-							}
-							clazz = Array.newInstance(arrayElementClass, 0).getClass();
-						} else
-							clazz = Object[].class;
-					}
-					else
-						clazz = Object.class;
-					attributes.put(key, clazz);
-				});
-		return attributes;
 	}
 
 	@Override
@@ -309,6 +291,34 @@ public class ContainerMetadataNode implements N5Writer {
 		JsonElement json = gson.toJsonTree(attributes);
 		HashMap<String, JsonElement> map = gson.fromJson(json, mapType);
 		getNode( pathName ).ifPresent( x -> x.attributes.putAll(map) );
+	}
+
+	@Override
+	public boolean removeAttribute(String pathName, String key) throws IOException {
+		final Optional<ContainerMetadataNode> node = getNode( pathName );
+		if( node.isPresent() )
+			return node.get().remove(key);
+
+		return false;
+	}
+
+	@Override
+	public <T> T removeAttribute(String pathName, String key, Class<T> clazz) throws IOException {
+		final Optional<ContainerMetadataNode> node = getNode(pathName);
+		final T t = getAttribute(pathName, key, clazz);
+		if (t != null) {
+			node.get().remove(key);
+		}
+		return t;
+	}
+
+	@Override
+	public boolean removeAttributes(String pathName, List<String> attributes) throws IOException {
+		boolean removed = false;
+		for (final String attribute : attributes) {
+			removed |= removeAttribute(pathName, attribute);
+		}
+		return removed;
 	}
 
 	@Override
@@ -390,9 +400,9 @@ public class ContainerMetadataNode implements N5Writer {
 
 
 	@SuppressWarnings("unchecked")
-	public static  <N extends GsonAttributesParser & N5Reader > ContainerMetadataNode build(
+	public static  <N extends GsonKeyValueReader & N5Reader > ContainerMetadataNode build(
 			final N5Reader n5, final String dataset, final Gson gson ) {
-		if (n5 instanceof GsonAttributesParser) {
+		if (n5 instanceof GsonKeyValueReader) {
 			try {
 				return buildGson((N)n5, dataset, gson );
 			} catch (Exception e) {
@@ -411,7 +421,7 @@ public class ContainerMetadataNode implements N5Writer {
 		return build( n5, "", gson );
 	}
 
-	public static <N extends GsonAttributesParser & N5Reader > ContainerMetadataNode buildGson(
+	public static <N extends GsonKeyValueReader & N5Reader > ContainerMetadataNode buildGson(
 			final N n5, final String dataset, final Gson gson )
 			throws InterruptedException, ExecutionException {
 		String[] datasets;
@@ -429,13 +439,9 @@ public class ContainerMetadataNode implements N5Writer {
 		return null;
 	}
 
-	public static <N extends GsonAttributesParser & N5Reader> ContainerMetadataNode buildHelper(final N n5, N5TreeNode baseNode ) {
+	public static <N extends GsonKeyValueReader & N5Reader> ContainerMetadataNode buildHelper(final N n5, N5TreeNode baseNode ) {
 
-		HashMap<String, JsonElement> attrs = null;
-		try {
-			attrs = n5.getAttributes(baseNode.getPath());
-		} catch (IOException e) { }
-
+		final JsonObject attrs = n5.getAttributes(baseNode.getPath()).getAsJsonObject();
 		final List<N5TreeNode> children = baseNode.childrenList();
 
 		final HashMap<String, ContainerMetadataNode> childMap = new HashMap<>();
@@ -516,6 +522,31 @@ public class ContainerMetadataNode implements N5Writer {
 		} catch (JsonSyntaxException e) {
 			return Optional.empty();
 		}
+	}
+
+	@Override
+	public String getBasePath() {
+		return null;
+	}
+
+	@Override
+	public String groupPath(String... nodes) {
+		return Arrays.stream(nodes).collect( Collectors.joining(","));
+	}
+
+	@Override
+	public String getContainerURI() {
+		return null;
+	}
+
+	@Override
+	public Gson getGson() {
+		return gson;
+	}
+
+	@Override
+	public KeyValueAccess getKeyValueAccess() {
+		return null;
 	}
 
 }

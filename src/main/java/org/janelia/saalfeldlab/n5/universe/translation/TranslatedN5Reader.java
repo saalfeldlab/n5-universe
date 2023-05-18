@@ -1,20 +1,18 @@
 package org.janelia.saalfeldlab.n5.universe.translation;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.HashMap;
 import java.util.Map;
-import org.janelia.saalfeldlab.n5.AbstractGsonReader;
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.GsonAttributesParser;
+import org.janelia.saalfeldlab.n5.GsonKeyValueReader;
+import org.janelia.saalfeldlab.n5.KeyValueAccess;
+import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
 
-public class TranslatedN5Reader extends AbstractGsonReader {
+public class TranslatedN5Reader implements GsonKeyValueReader {
 	
 	private final N5Reader n5;
 
@@ -34,7 +32,7 @@ public class TranslatedN5Reader extends AbstractGsonReader {
 		return translation;
 	}
 
-	public TranslatedN5Reader( final AbstractGsonReader n5Base, 
+	public TranslatedN5Reader( final GsonKeyValueReader n5Base, 
 			final String fwdTranslation,
 			final String invTranslation ) {
 		this( n5Base, JqUtils.buildGson(n5Base), fwdTranslation, invTranslation );
@@ -80,7 +78,7 @@ public class TranslatedN5Reader extends AbstractGsonReader {
 	}
 
 	@Override
-	public String[] list(String pathName) throws IOException {
+	public String[] list(String pathName) {
 		return translation.getTranslated().list(pathName);
 	}
 
@@ -89,11 +87,36 @@ public class TranslatedN5Reader extends AbstractGsonReader {
 		return translation.getTranslated().listAttributes(pathName);
 	}
 
+//	@Override
+//	public HashMap<String, JsonElement> getAttributes(String pathName) throws IOException {
+//		return translation.getTranslated().getNode(pathName)
+//				.map( ContainerMetadataNode::getAttributes )
+//				.orElse( new HashMap<>());
+//	}
+
 	@Override
-	public HashMap<String, JsonElement> getAttributes(String pathName) throws IOException {
-		return translation.getTranslated().getNode(pathName)
-				.map( ContainerMetadataNode::getAttributes )
-				.orElse( new HashMap<>());
+	public String getBasePath() {
+		return n5.getBasePath();
 	}
 
+	@Override
+	public String groupPath(String... nodes) {
+		return n5.groupPath(nodes);
+	}
+
+	@Override
+	public String getContainerURI() {
+		return n5.getContainerURI(); // TODO add translation info?
+	}
+
+	@Override
+	public Gson getGson() {
+		return translation.getGson();
+	}
+
+	@Override
+	public KeyValueAccess getKeyValueAccess() {
+		return (n5 instanceof N5KeyValueReader ) ? 
+				((N5KeyValueReader)n5).getKeyValueAccess() : null;
+	}
 }
