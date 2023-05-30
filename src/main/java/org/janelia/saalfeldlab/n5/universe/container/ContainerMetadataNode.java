@@ -1,8 +1,8 @@
 package org.janelia.saalfeldlab.n5.universe.container;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.lang.reflect.Type;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,19 +19,14 @@ import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GsonKeyValueReader;
 import org.janelia.saalfeldlab.n5.GsonKeyValueWriter;
-import org.janelia.saalfeldlab.n5.GsonUtils;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
-import org.janelia.saalfeldlab.n5.LockedChannel;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URL;
-import org.janelia.saalfeldlab.n5.N5Writer;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
@@ -43,6 +38,8 @@ import org.janelia.saalfeldlab.n5.universe.translation.JqUtils;
  */
 
 public class ContainerMetadataNode implements GsonKeyValueWriter {
+
+	protected String path;
 	protected HashMap<String, JsonElement> attributes;
 	protected Map<String, ContainerMetadataNode> children;
 	protected final transient Gson gson;
@@ -51,6 +48,7 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 		gson = JqUtils.buildGson(null);
 		attributes = new HashMap<String, JsonElement>();
 		children = new HashMap<String, ContainerMetadataNode >();
+		path = "";
 		addPathsRecursive();
 	}
 
@@ -83,7 +81,6 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	public JsonElement getAttributes(final String pathName) throws N5Exception.N5IOException {
 
 		final String groupPath = N5URL.normalizeGroupPath(pathName);
-		final String attributesPath = attributesPath(groupPath);
 		Optional<ContainerMetadataNode> nodeOpt = getNode(groupPath);
 		if( nodeOpt.isPresent() )
 		{
@@ -92,10 +89,6 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 		}
 		return null; // TODO is this correct?
 	}
-
-//	public HashMap<String, JsonElement> getAttributes( String pathName ) {
-//		return getNode( pathName ).map( x -> x.getAttributes() ).orElse( new HashMap<>());
-//	}
 
 	public Map<String, ContainerMetadataNode> getChildren() {
 		return children;
@@ -143,10 +136,11 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	 * @return the path to this node from the root.
 	 */
 	public String getPath() {
-		if( attributes.containsKey("path"))
-			return attributes.get("path").getAsString();
-		else
-			return "";
+		return path;
+//		if( attributes.containsKey("path"))
+//			return attributes.get("path").getAsString();
+//		else
+//			return "";
 	}
 
 	public Stream<String> getChildPathsRecursive( String thisPath ) {
@@ -168,7 +162,7 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	 * @param thisPath path to a node
 	 */
 	public void addPathsRecursive( String thisPath ) {
-		attributes.put("path", new JsonPrimitive( thisPath ));
+		path = thisPath;
 		for ( String childPath : children.keySet() )
 			children.get(childPath).addPathsRecursive( thisPath + "/" + childPath );
 	}
@@ -233,37 +227,6 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 			return c.getChild(relToChild, groupSeparator);
 	}
 
-//	@Override
-//	public <T> T getAttribute( String path, String key, Class<T> clazz ) {
-//		return getNode( path ).map( x -> gson.fromJson( x.getAttributes().get(key), clazz))
-//				.orElseGet( () -> null );
-//	}
-
-//	@Override
-//	public <T> T getAttribute(String pathName, String key, Class<T> clazz) {
-//
-//		Optional<ContainerMetadataNode> nodeOpt = getNode(pathName);
-//		if( nodeOpt.isPresent() ) {
-//			return gson.fromJson( nodeOpt.get().getAttributes().get(key), clazz );
-//		}
-//		return null;
-//	}
-
-//	@Override
-//	public <T> T getAttribute(String pathName, String key, Type type) throws IOException {
-//		Optional<ContainerMetadataNode> nodeOpt = getNode(pathName);
-//		if( nodeOpt.isPresent() ) {
-//			return gson.fromJson( nodeOpt.get().getAttributes().get(key), type );
-//		}
-//		return null;
-//	}
-
-//	@Override
-//	public DatasetAttributes getDatasetAttributes(String pathName) throws IOException {
-//		// TODO Auto-generated method stub
-//		return null;
-//	}
-
 	@Override
 	public boolean exists(String pathName) {
 		return getNode( pathName ).isPresent();
@@ -273,7 +236,7 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	public String[] list(String pathName) throws N5Exception.N5IOException {
 		Optional<ContainerMetadataNode> node = getNode(pathName);
 		if( node.isPresent() ) {
-			Set<String> set = node.get().children.keySet();
+			final Set<String> set = node.get().getChildren().keySet();
 			return set.toArray( new String[ set.size() ]);
 		}
 		else
@@ -441,7 +404,8 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 
 	public static <N extends GsonKeyValueReader & N5Reader> ContainerMetadataNode buildHelper(final N n5, N5TreeNode baseNode ) {
 
-		final JsonObject attrs = n5.getAttributes(baseNode.getPath()).getAsJsonObject();
+		final JsonElement attrsRaw = n5.getAttributes(baseNode.getPath());
+		final JsonObject attrs = (attrsRaw != null && attrsRaw.isJsonObject() ) ? attrsRaw.getAsJsonObject() : new JsonObject();
 		final List<N5TreeNode> children = baseNode.childrenList();
 
 		final HashMap<String, ContainerMetadataNode> childMap = new HashMap<>();
@@ -525,18 +489,8 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	}
 
 	@Override
-	public String getBasePath() {
-		return null;
-	}
-
-	@Override
 	public String groupPath(String... nodes) {
 		return Arrays.stream(nodes).collect( Collectors.joining(","));
-	}
-
-	@Override
-	public String getContainerURI() {
-		return null;
 	}
 
 	@Override
@@ -546,7 +500,12 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 
 	@Override
 	public KeyValueAccess getKeyValueAccess() {
-		return null;
+		throw new UnsupportedOperationException("getKeyValueAccess not supported by ContainerMetadataNode");
+	}
+
+	@Override
+	public URI getURI() {
+		throw new UnsupportedOperationException("getURI not supported by ContainerMetadataNode");
 	}
 
 }

@@ -3,6 +3,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.Optional;
 
 import org.janelia.saalfeldlab.n5.DataType;
@@ -53,9 +54,15 @@ public class TranslationTests {
 		URL configUrl = TransformTests.class.getResource( "/n5.jq" );
 		File baseDir = new File( configUrl.getFile() ).getParentFile();
 		containerDir = new File( baseDir, "translations.n5" );
-		
-		final String n5TestRoot = "src/test/resources/test.n5";
-		containerDirTest = new File(n5TestRoot);
+
+		try {
+			final File tmpFile = Files.createTempDirectory("n5-translation-test-").toFile();
+			tmpFile.deleteOnExit();
+			final String tmpPath = tmpFile.getCanonicalPath();
+			containerDirTest = new File(tmpPath);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		try {
 			n5 = new N5FSWriter( containerDir.getCanonicalPath(), JqUtils.gsonBuilder(null) );

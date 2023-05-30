@@ -62,8 +62,7 @@ public class IdentityTranslatedN5Tests //extends AbstractN5Test {
 			n5.createGroup(groupName);
 
 			n5.setAttribute(groupName, "key1", "value1");
-			// path
-			Assert.assertEquals(2, n5.listAttributes(groupName).size());
+			Assert.assertEquals(1, n5.listAttributes(groupName).size());
 
 			/* class interface */
 			Assert.assertEquals("value1", n5.getAttribute(groupName, "key1", String.class));
@@ -74,7 +73,7 @@ public class IdentityTranslatedN5Tests //extends AbstractN5Test {
 			newAttributes.put("key2", "value2");
 			newAttributes.put("key3", "value3");
 			n5.setAttributes(groupName, newAttributes);
-			Assert.assertEquals(4, n5.listAttributes(groupName).size());
+			Assert.assertEquals(3, n5.listAttributes(groupName).size());
 			/* class interface */
 			Assert.assertEquals("value1", n5.getAttribute(groupName, "key1", String.class));
 			Assert.assertEquals("value2", n5.getAttribute(groupName, "key2", String.class));
@@ -87,7 +86,7 @@ public class IdentityTranslatedN5Tests //extends AbstractN5Test {
 			// test the case where the resulting file becomes shorter
 			n5.setAttribute(groupName, "key1", new Integer(1));
 			n5.setAttribute(groupName, "key2", new Integer(2));
-			Assert.assertEquals(4, n5.listAttributes(groupName).size());
+			Assert.assertEquals(3, n5.listAttributes(groupName).size());
 			/* class interface */
 			Assert.assertEquals(new Integer(1), n5.getAttribute(groupName, "key1", Integer.class));
 			Assert.assertEquals(new Integer(2), n5.getAttribute(groupName, "key2", Integer.class));
