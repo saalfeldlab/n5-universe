@@ -14,7 +14,9 @@ def parentPath: if length <= 1 then "" elif length == 2 then .[0] else .[0:-1] |
 
 def attrPaths: paths | select(.[-1] == "attributes");
 
-def addPaths: reduce attrPaths as $path ( . ; setpath( [ ($path | .[]), "path"]; ( $path | parentPath )));
+def addPaths: reduce attrPaths as $path ( . ; setpath( [ ($path | .[0:-1] | .[]), "path"]; ( $path | parentPath )));
+
+def addPathsLegacy: reduce attrPaths as $path ( . ; setpath( [ ($path | .[]), "path"]; ( $path | parentPath )));
 
 def id3d: [1,0,0,0, 0,1,0,0, 0,0,1,0];
 
