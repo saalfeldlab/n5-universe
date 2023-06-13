@@ -77,8 +77,6 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.AmazonS3URI;
-import com.google.cloud.resourcemanager.Project;
-import com.google.cloud.resourcemanager.ResourceManager;
 import com.google.cloud.storage.Storage;
 import com.google.gson.GsonBuilder;
 
@@ -270,15 +268,12 @@ public class N5Factory implements Serializable {
 	 */
 	public N5GoogleCloudStorageReader openGoogleCloudReader(final String url) throws IOException {
 
-		final GoogleCloudStorageClient storageClient = new GoogleCloudStorageClient();
-		final Storage storage = storageClient.create();
 		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(url);
-
 		return new N5GoogleCloudStorageReader(
-				storage,
-				googleCloudUri.getBucket(),
-				googleCloudUri.getKey(),
-				gsonBuilder);
+				googleCloudUri,
+				gsonBuilder,
+				cacheAttributes
+				);
 	}
 
 	/**
@@ -357,23 +352,11 @@ public class N5Factory implements Serializable {
 	 */
 	public N5GoogleCloudStorageWriter openGoogleCloudWriter(final String url) throws IOException {
 
-		final GoogleCloudStorageClient storageClient;
-		if (googleCloudProjectId == null) {
-			final ResourceManager resourceManager = new GoogleCloudResourceManagerClient().create();
-			final Iterator<Project> projectsIterator = resourceManager.list().iterateAll().iterator();
-			if (!projectsIterator.hasNext())
-				return null;
-			storageClient = new GoogleCloudStorageClient(projectsIterator.next().getProjectId());
-		} else
-			storageClient = new GoogleCloudStorageClient(googleCloudProjectId);
-
-		final Storage storage = storageClient.create();
 		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(url);
 		return new N5GoogleCloudStorageWriter(
-				storage,
-				googleCloudUri.getBucket(),
-				googleCloudUri.getKey(),
-				gsonBuilder);
+				googleCloudUri,
+				gsonBuilder,
+				cacheAttributes);
 	}
 
 	/**
