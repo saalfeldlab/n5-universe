@@ -432,7 +432,7 @@ public class N5Factory implements Serializable {
 	{
 		if (isHDF5Reader( url ))
 			return openHDF5Reader( url );
-		else if (url.matches("(?i).*\\.zarr"))
+		else if (url.matches("(?i).*\\.zarr.*"))
 			return openZarrReader( url );
 
 		else
