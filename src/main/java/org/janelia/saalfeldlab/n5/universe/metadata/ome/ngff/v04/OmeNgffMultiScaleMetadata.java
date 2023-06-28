@@ -32,7 +32,6 @@ import java.util.stream.DoubleStream;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.MultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
@@ -45,11 +44,11 @@ import net.imglib2.realtransform.AffineTransform3D;
 /**
  * The multiscales metadata for the OME NGFF specification.
  * <p>
- * See <a href="https://ngff.openmicroscopy.org/0.3/#multiscale-md">https://ngff.openmicroscopy.org/0.3/#multiscale-md</a>
+ * See <a href="https://ngff.openmicroscopy.org/0.3/#multiscale-md">https://ngff.openmicroscopy.org/0.4/#multiscale-md</a>
  * 
  * @author John Bogovic
  */
-public class OmeNgffMultiScaleMetadata extends MultiscaleMetadata<N5SingleScaleMetadata> {
+public class OmeNgffMultiScaleMetadata {
 
 	public final String name;
 	public final String type;
@@ -69,15 +68,16 @@ public class OmeNgffMultiScaleMetadata extends MultiscaleMetadata<N5SingleScaleM
 			final CoordinateTransformation<?>[] coordinateTransformations,
 			final OmeNgffDownsamplingMetadata metadata )
 	{
-		super( path, buildMetadata( nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes ) );
+		
 		this.name = name;
 		this.type = type;
 		this.version = version;
 		this.axes = axes;
 		this.datasets = datasets;
 		this.coordinateTransformations = coordinateTransformations;
-		this.childrenAttributes = childrenAttributes;
 		this.metadata = metadata;
+		this.childrenAttributes = childrenAttributes;
+		this.childrenMetadata = buildMetadata( nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes );
 	}
 	
 	public static N5SingleScaleMetadata[] buildMetadata( final int nd, final String path,
@@ -102,8 +102,18 @@ public class OmeNgffMultiScaleMetadata extends MultiscaleMetadata<N5SingleScaleM
 		for ( int i = 0; i < N; i++ )
 		{
 			final AffineTransform3D affineTransform = TransformationUtils.tranformsToAffine(datasets[i], transforms);
-			childrenMetadata[i] = new N5SingleScaleMetadata(MetadataUtils.canonicalPath(path, datasets[i].path),
-					affineTransform, ones, ones, offset, axes[0].getUnit(), childrenAttributes[i]);
+			N5SingleScaleMetadata meta; 
+			if( childrenAttributes == null )
+			{
+				meta = new N5SingleScaleMetadata(MetadataUtils.canonicalPath(path, datasets[i].path),
+						affineTransform, ones, ones, offset, axes[0].getUnit(), null );
+			}
+			else {
+				meta = new N5SingleScaleMetadata(MetadataUtils.canonicalPath(path, datasets[i].path),
+						affineTransform, ones, ones, offset, axes[0].getUnit(), childrenAttributes[i] );
+				
+			}
+			childrenMetadata[i] = meta;
 		}
 		return childrenMetadata;
 	}
@@ -132,44 +142,37 @@ public class OmeNgffMultiScaleMetadata extends MultiscaleMetadata<N5SingleScaleM
 		return childrenMetadata;
 	}
 
-	@Override
 	public String[] getPaths() {
 		return Arrays.stream( datasets ).map( x -> { return x.path; }).toArray( String[]::new );
 	}
 
 	public String[] getCanonicalPaths() {
-		return Arrays.stream( getPaths() ).map( x -> {
-			if( x.startsWith( "/" ))
+
+		return Arrays.stream(getPaths()).map((x) -> {
+			if (x.startsWith("/"))
 				return x;
-			else
-			{
-				N5URL url;
-				try
-				{
-					url = new N5URL( "?" + this.path + "/" + x );
-				}
-				catch ( URISyntaxException e )
-				{
+			 else {
+				N5URI url;
+				try {
+					url = new N5URI("?" + this.path + "/" + x);
+				} catch (URISyntaxException e) {
 					return null;
 				}
 				return url.getGroupPath();
-			}	
-		} ).toArray( String[]::new );
+			}
+		}).toArray(String[]::new);
 	}
 
-	@Override
 	public N5SingleScaleMetadata[] getChildrenMetadata()
 	{
-		return childrenMetadata;
+		return this.childrenMetadata;
 	}
 
-	@Override
 	public String getPath()
 	{
 		return path;
 	}
 
-	@Override
 	public String[] units()
 	{
 		return Arrays.stream( axes ).map( x -> x.getUnit() ).toArray( String[]::new );
