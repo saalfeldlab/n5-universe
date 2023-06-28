@@ -64,9 +64,7 @@ public class GenericMetadataParserTest {
 	@After
 	public void after()
 	{
-		try {
-			n5.remove();
-		} catch (IOException e) { }
+		n5.remove();
 	}
 
 	@Test
