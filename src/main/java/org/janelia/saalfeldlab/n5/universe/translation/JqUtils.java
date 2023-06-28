@@ -8,7 +8,7 @@ import com.google.gson.FieldAttributes;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.CompressionAdapter;
 import org.janelia.saalfeldlab.n5.DataType;
-import org.janelia.saalfeldlab.n5.GsonKeyValueReader;
+import org.janelia.saalfeldlab.n5.GsonN5Reader;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
 import org.janelia.saalfeldlab.n5.universe.metadata.axisTransforms.TransformAxes;
@@ -75,8 +75,8 @@ public class JqUtils {
 
 			final Class<?> declaringClass = f.getDeclaringClass();
 			final boolean isContainerMetadataNode = declaringClass.equals(ContainerMetadataNode.class);
-			final boolean isAbstractGsonReader = declaringClass.equals(GsonKeyValueReader.class);
-			return isAbstractGsonReader && f.getName().equals("gson");
+			final boolean isGsonReader = declaringClass.equals(GsonN5Reader.class);
+			return isGsonReader && f.getName().equals("gson");
 		}
 
 		@Override public boolean shouldSkipClass(Class<?> clazz) {
@@ -87,8 +87,8 @@ public class JqUtils {
 
 	public static GsonBuilder gsonBuilder( final N5Reader n5 ) {
 		final GsonBuilder gsonBuilder;
-		if (n5 instanceof GsonKeyValueReader) {
-			gsonBuilder = ((GsonKeyValueReader)n5).getGson().newBuilder();
+		if (n5 instanceof GsonN5Reader) {
+			gsonBuilder = ((GsonN5Reader)n5).getGson().newBuilder();
 		} else gsonBuilder = new GsonBuilder();
 		gsonBuilder.registerTypeAdapter(SpatialTransform.class, new SpatialTransformAdapter( n5 ));
 		gsonBuilder.registerTypeAdapter(CanonicalMetadata.class, new CanonicalMetadataAdapter());

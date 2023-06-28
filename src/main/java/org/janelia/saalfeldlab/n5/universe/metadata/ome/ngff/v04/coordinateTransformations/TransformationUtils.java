@@ -9,7 +9,7 @@ public class TransformationUtils {
 	public static AffineTransform3D tranformsToAffine(OmeNgffDataset dataset, CoordinateTransformation<?>[] transforms )
 	{
 		if( dataset.coordinateTransformations == null )
-			return null;
+			return new AffineTransform3D(); // identity
 
 		final AffineTransform3D out = buildTransform(dataset.coordinateTransformations);
 		if( transforms != null )

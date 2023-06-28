@@ -7,21 +7,19 @@ import java.net.URI;
 import java.util.Map;
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.GsonKeyValueReader;
-import org.janelia.saalfeldlab.n5.KeyValueAccess;
+import org.janelia.saalfeldlab.n5.GsonN5Reader;
 import org.janelia.saalfeldlab.n5.N5Exception;
-import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
 
-public class TranslatedN5Reader implements GsonKeyValueReader {
+public class TranslatedN5Reader implements GsonN5Reader {
 	
 	private final N5Reader n5;
 
 	protected final InvertibleTreeTranslation translation;
 
-	public TranslatedN5Reader( final N5Reader n5Base, 
+	public TranslatedN5Reader( final N5Reader n5Base,
 			final Gson gson,
 			final String fwdTranslation, 
 			final String invTranslation ) {
@@ -35,7 +33,7 @@ public class TranslatedN5Reader implements GsonKeyValueReader {
 		return translation;
 	}
 
-	public TranslatedN5Reader( final GsonKeyValueReader n5Base, 
+	public TranslatedN5Reader( final GsonN5Reader n5Base,
 			final String fwdTranslation,
 			final String invTranslation ) {
 		this( n5Base, JqUtils.buildGson(n5Base), fwdTranslation, invTranslation );
@@ -99,9 +97,4 @@ public class TranslatedN5Reader implements GsonKeyValueReader {
 		return translation.getGson();
 	}
 
-	@Override
-	public KeyValueAccess getKeyValueAccess() {
-		return (n5 instanceof N5KeyValueReader ) ? 
-				((N5KeyValueReader)n5).getKeyValueAccess() : null;
-	}
 }

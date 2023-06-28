@@ -8,15 +8,18 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.gson.Gson;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.reflect.TypeToken;
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
+
 import net.thisptr.jackson.jq.BuiltinFunctionLoader;
 import net.thisptr.jackson.jq.Expression;
 import net.thisptr.jackson.jq.Function;
@@ -28,12 +31,12 @@ import net.thisptr.jackson.jq.Versions;
 import net.thisptr.jackson.jq.exception.JsonQueryException;
 import net.thisptr.jackson.jq.internal.misc.Strings;
 import net.thisptr.jackson.jq.path.Path;
-import org.janelia.saalfeldlab.n5.AbstractGsonReader;
 import org.janelia.saalfeldlab.n5.Bzip2Compression;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.GsonAttributesParser;
+import org.janelia.saalfeldlab.n5.GsonN5Reader;
+import org.janelia.saalfeldlab.n5.GsonUtils;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.Lz4Compression;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -85,19 +88,17 @@ public abstract class AbstractMetadataTemplateParser<T extends N5Metadata> imple
 	@Override
 	public Optional<T> parseMetadata(N5Reader n5, N5TreeNode node) {
 
-		HashMap<String, JsonElement> attrs;
-		if( n5 instanceof AbstractGsonReader ) {
-			try {
-				attrs = ((AbstractGsonReader) n5).getAttributes( node.getPath() );
-			} catch (IOException e) {
-				return Optional.empty();
-			}
-		}
-		else
+		JsonElement elem;
+		if (n5 instanceof GsonN5Reader) {
+			elem = ((GsonN5Reader) n5).getAttributes(node.getPath());
+		} else
 			return Optional.empty();
 
-		if( attrs.isEmpty() )
-		{
+		if (!elem.isJsonObject())
+			return Optional.empty();
+
+		final JsonObject attrs = elem.getAsJsonObject();
+		if (attrs.isEmpty()) {
 			// TODO should i display this warning?
 			System.err.println("could not parse attributes");
 			return Optional.empty();
@@ -136,7 +137,7 @@ public abstract class AbstractMetadataTemplateParser<T extends N5Metadata> imple
 		return Optional.empty();
 	}
 
-	public <R extends AbstractGsonReader> Optional<T> parseMetadataTree( final R n5, N5TreeNode node) {
+	public <R extends GsonN5Reader> Optional<T> parseMetadataTree( final R n5, N5TreeNode node) {
 
 		ContainerMetadataNode treeNode;
 		try {
@@ -178,10 +179,32 @@ public abstract class AbstractMetadataTemplateParser<T extends N5Metadata> imple
 
 		return Optional.empty();
 	}	
+	
+	public static <S> Optional<S> parseFromObj(final Gson gson, final JsonObject object,
+			final BiFunction<Gson, HashMap<String, JsonElement>, Optional<S>> fun) {
+
+		final Type mapType = new TypeToken<Map<String, JsonElement>>() {
+		}.getType();
+		return fun.apply(gson, gson.fromJson(object, mapType));
+	}
+	
+	public static <S> Optional<S> parseFromMap(final Gson gson, final HashMap<String, JsonElement> object,
+			final BiFunction<Gson, JsonElement, Optional<S>> fun) {
+
+		return fun.apply(gson, gson.toJsonTree(object));
+	}
 
 	public abstract Optional<T> parseFromMap( final Gson gson, HashMap<String, JsonElement> attributeMap );
 
-//	public abstract Optional<T> parse( final Gson gson, JsonElement elem );
+	@SuppressWarnings("unchecked")
+	public Optional<T> parse( final Gson gson, JsonElement elem ){
+
+		if( elem.isJsonObject() ) {
+			return parseFromMap(gson, gson.fromJson(elem, HashMap.class));
+		}
+
+		return Optional.empty();
+	}
 
 	public static Scope buildRootScope()
 	{
@@ -202,28 +225,28 @@ public abstract class AbstractMetadataTemplateParser<T extends N5Metadata> imple
 		});
 		return rootScope;
 	}
-	
-	public static Optional<DatasetAttributes> datasetAttributes(final Gson gson, HashMap<String, JsonElement> attributeMap) {
+
+	public static Optional<DatasetAttributes> datasetAttributes(final Gson gson, JsonObject attributes) {
 
 		try {
 
-			final long[] dimensions = GsonAttributesParser.parseAttribute(attributeMap, "dimensions", long[].class, gson);
+			final long[] dimensions = GsonUtils.readAttribute(attributes, "dimensions", long[].class, gson);
 			if (dimensions == null)
 				return Optional.empty();
 
-			final DataType dataType = GsonAttributesParser.parseAttribute(attributeMap, "dataType", DataType.class, gson);
+			final DataType dataType = GsonUtils.readAttribute(attributes, "dataType", DataType.class, gson);
 			if (dataType == null)
 				return Optional.empty();
 
-			int[] blockSize = GsonAttributesParser.parseAttribute(attributeMap, "blockSize", int[].class, gson);
+			int[] blockSize = GsonUtils.readAttribute(attributes, "blockSize", int[].class, gson);
 			if (blockSize == null)
 				blockSize = Arrays.stream(dimensions).mapToInt(a -> (int)a).toArray();
 
-			Compression compression = GsonAttributesParser.parseAttribute(attributeMap, "compression", Compression.class, gson);
+			Compression compression = GsonUtils.readAttribute(attributes, "compression", Compression.class, gson);
 
 			/* version 0 */
 			if (compression == null) {
-				switch (GsonAttributesParser.parseAttribute(attributeMap, "compression", String.class, gson)) {
+				switch (GsonUtils.readAttribute(attributes, "compression", String.class, gson)) {
 				case "raw":
 					compression = new RawCompression();
 					break;

@@ -25,7 +25,7 @@ public abstract class MultiscaleMetadata<T extends N5DatasetMetadata & SpatialMe
 
   final private String[] units;
 
-  final protected T[] childrenMetadata;
+  final protected transient T[] childrenMetadata;
 
   public MultiscaleMetadata(final String basePath, final T[] childrenMetadata) {
 

@@ -210,57 +210,6 @@ public class CanonicalMetadataParser implements N5MetadataParser< CanonicalMetad
 		});
 		return rootScope;
 	}
-	
-	public static Optional<DatasetAttributes> datasetAttributes(final Gson gson,
-			HashMap<String, JsonElement> attributeMap) {
-
-		try {
-
-			final long[] dimensions = GsonAttributesParser.parseAttribute(attributeMap, "dimensions", long[].class,
-					gson);
-			if (dimensions == null)
-				return Optional.empty();
-
-			final DataType dataType = GsonAttributesParser.parseAttribute(attributeMap, "dataType", DataType.class,
-					gson);
-			if (dataType == null)
-				return Optional.empty();
-
-			int[] blockSize = GsonAttributesParser.parseAttribute(attributeMap, "blockSize", int[].class, gson);
-			if (blockSize == null)
-				blockSize = Arrays.stream(dimensions).mapToInt(a -> (int) a).toArray();
-
-			Compression compression = GsonAttributesParser.parseAttribute(attributeMap, "compression",
-					Compression.class, gson);
-
-			/* version 0 */
-			if (compression == null) {
-				switch (GsonAttributesParser.parseAttribute(attributeMap, "compression", String.class, gson)) {
-				case "raw":
-					compression = new RawCompression();
-					break;
-				case "gzip":
-					compression = new GzipCompression();
-					break;
-				case "bzip2":
-					compression = new Bzip2Compression();
-					break;
-				case "lz4":
-					compression = new Lz4Compression();
-					break;
-				case "xz":
-					compression = new XzCompression();
-					break;
-				}
-			}
-
-			return Optional.of(new DatasetAttributes(dimensions, blockSize, dataType, compression));
-
-		} catch (Exception e) {
-		}
-
-		return Optional.empty();
-	}
 
 	public static Optional<DatasetAttributes> datasetAttributes(final JsonDeserializationContext context, JsonElement elem ) {
 
