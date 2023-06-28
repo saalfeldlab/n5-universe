@@ -100,7 +100,7 @@ public class N5Factory implements Serializable {
 	private int[] hdf5DefaultBlockSize = {64, 64, 64, 1, 1};
 	private boolean hdf5OverrideBlockSize = false;
 	private GsonBuilder gsonBuilder = new GsonBuilder();
-	private boolean cacheAttributes = true;
+	private boolean cacheAttributes = false;
 	private String zarrDimensionSeparator = ".";
 	private boolean zarrMapN5DatasetAttributes = true;
 	private boolean zarrMergeAttributes = true;
@@ -296,7 +296,7 @@ public class N5Factory implements Serializable {
 		// when, if ever do we want to creat a bucket?
 		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, s3uri.getBucket(), false);
 		if( url.contains(".zarr" )) {
-			return new ZarrKeyValueReader(s3kv, s3uri.getKey(), gsonBuilder, 
+			return new ZarrKeyValueReader(s3kv, s3uri.getURI().getPath(), gsonBuilder,
 					zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes );	
 		}
 		else {
