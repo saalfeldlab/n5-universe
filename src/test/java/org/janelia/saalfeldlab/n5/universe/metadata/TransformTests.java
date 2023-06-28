@@ -6,6 +6,7 @@ import java.net.URL;
 import java.util.Optional;
 
 import org.janelia.saalfeldlab.n5.GzipCompression;
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
@@ -82,7 +83,7 @@ public class TransformTests {
 	{
 		try {
 			n5.remove();
-		} catch (IOException e) { }
+		} catch (N5Exception e) { }
 	}
 
 	@Test

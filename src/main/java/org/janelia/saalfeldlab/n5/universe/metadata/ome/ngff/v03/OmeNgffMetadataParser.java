@@ -1,6 +1,5 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v03;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -22,7 +21,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser< OmeNgffMetadata 
 		try
 		{
 			multiscales = n5.getAttribute( node.getPath(), "multiscales", OmeNgffMultiScaleMetadata[].class );
-		} catch ( IOException e )
+		} catch ( Exception e )
 		{
 			return Optional.empty();
 		}

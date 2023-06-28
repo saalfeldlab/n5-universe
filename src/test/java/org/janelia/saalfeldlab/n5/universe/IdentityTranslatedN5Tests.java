@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.translation.JqUtils;
@@ -96,7 +97,7 @@ public class IdentityTranslatedN5Tests //extends AbstractN5Test {
 			Assert.assertEquals(new Integer(2), n5.getAttribute(groupName, "key2", new TypeToken<Integer>(){}.getType()));
 			Assert.assertEquals("value3", n5.getAttribute(groupName, "key3", new TypeToken<String>(){}.getType()));
 
-		} catch (final IOException e) {
+		} catch (final N5Exception e) {
 			fail(e.getMessage());
 		}
 	}

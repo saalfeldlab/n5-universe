@@ -29,7 +29,7 @@ public class TranslatedTreeMetadataWriter extends TreeTranslation{
 		this( n5, "", translation );
 	}
 
-	public void writeAllTranslatedAttributes() throws IOException {
+	public void writeAllTranslatedAttributes() {
 		writer.setMetadataTree(rootTranslated);
 		writer.writeAllAttributes();
 	}
@@ -38,10 +38,9 @@ public class TranslatedTreeMetadataWriter extends TreeTranslation{
 	 * Writes all attributes stored in the node corresponding to the given pathName.
 	 * 
 	 * @param pathName the path
-	 * @throws IOException the exception
 	 */
 	public void writeAllTranslatedAttributes(
-			final String pathName ) throws IOException {
+			final String pathName ) {
 
 		writer.setMetadataTree(rootTranslated);
 		writer.writeAllAttributes( pathName );

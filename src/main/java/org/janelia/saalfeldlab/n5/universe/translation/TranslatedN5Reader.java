@@ -3,7 +3,6 @@ package org.janelia.saalfeldlab.n5.universe.translation;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 import org.janelia.saalfeldlab.n5.DataBlock;
@@ -13,7 +12,7 @@ import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5URL;
+import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
 
 public class TranslatedN5Reader implements GsonKeyValueReader {
@@ -61,12 +60,11 @@ public class TranslatedN5Reader implements GsonKeyValueReader {
 		ContainerMetadataNode translatedPathNode = translation.getInverseTranslationFunction().apply(pathNode);
 		translatedPathNode.addPathsRecursive();
 		final String path = translatedPathNode.flattenLeaves().findFirst().get().getPath();
-		return N5URL.normalizeGroupPath(path);
+		return N5URI.normalizeGroupPath(path);
 	}
 
 	@Override
-	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition)
-			throws IOException {
+	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 
 		return n5.readBlock( originalPath( pathName ), datasetAttributes, gridPosition);
 	}
@@ -82,7 +80,7 @@ public class TranslatedN5Reader implements GsonKeyValueReader {
 	}
 
 	@Override
-	public Map<String, Class<?>> listAttributes(String pathName) throws IOException {
+	public Map<String, Class<?>> listAttributes(String pathName) {
 		return translation.getTranslated().listAttributes(pathName);
 	}
 

@@ -11,6 +11,7 @@ import java.util.Random;
 
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
@@ -66,7 +67,7 @@ public class TranslatedN5Tests {
 	public void after() {
 		try {
 			n5.remove();
-		} catch (IOException e) { }
+		} catch (N5Exception e) { }
 	}
 	
 	@Test
@@ -76,7 +77,7 @@ public class TranslatedN5Tests {
 			n5.createGroup("/pathXlation");
 			n5.createDataset("/pathXlation/src", 
 					new DatasetAttributes( new long[]{16,16}, new int[]{16,16}, DataType.UINT8, new RawCompression()));
-		} catch (IOException e) {
+		} catch (N5Exception e) {
 			e.printStackTrace();
 		}
 		Assert.assertTrue("pathXlation src exists", n5.exists("/pathXlation/src"));

@@ -1,8 +1,9 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.axes;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Optional;
+
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
@@ -29,7 +30,7 @@ public class DefaultAxisMetadataParser implements N5MetadataParser< DefaultAxisM
 			}
 
 			return Optional.of( new DefaultAxisMetadata(path, axisLabels, types, units ));
-		} catch (IOException e) {
+		} catch (N5Exception e) {
 			return Optional.empty();
 		}
 	}

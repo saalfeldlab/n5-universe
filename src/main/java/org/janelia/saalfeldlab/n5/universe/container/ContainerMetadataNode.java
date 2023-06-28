@@ -1,6 +1,5 @@
 package org.janelia.saalfeldlab.n5.universe.container;
 
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.Arrays;
@@ -17,12 +16,11 @@ import java.util.stream.Stream;
 
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.GsonKeyValueReader;
-import org.janelia.saalfeldlab.n5.GsonKeyValueWriter;
-import org.janelia.saalfeldlab.n5.KeyValueAccess;
+import org.janelia.saalfeldlab.n5.GsonN5Reader;
+import org.janelia.saalfeldlab.n5.GsonN5Writer;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5URL;
+import org.janelia.saalfeldlab.n5.N5URI;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -32,12 +30,7 @@ import com.google.gson.reflect.TypeToken;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.translation.JqUtils;
 
-/**
- *
- * @author John Bogovic
- */
-
-public class ContainerMetadataNode implements GsonKeyValueWriter {
+public class ContainerMetadataNode implements GsonN5Writer {
 
 	protected String path;
 	protected HashMap<String, JsonElement> attributes;
@@ -58,10 +51,10 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 		this.children = children;
 		this.gson = gson;
 	}
-	
+
 	public ContainerMetadataNode(final JsonObject attributes,
 			final Map<String, ContainerMetadataNode> children, final Gson gson) {
-		this.attributes = gson.fromJson(attributes, 
+		this.attributes = gson.fromJson(attributes,
 				TypeToken.getParameterized( HashMap.class, String.class, JsonElement.class ).getType());
 		this.children = children;
 		this.gson = gson;
@@ -80,7 +73,7 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	@Override
 	public JsonElement getAttributes(final String pathName) throws N5Exception.N5IOException {
 
-		final String groupPath = N5URL.normalizeGroupPath(pathName);
+		final String groupPath = N5URI.normalizeGroupPath(pathName);
 		Optional<ContainerMetadataNode> nodeOpt = getNode(groupPath);
 		if( nodeOpt.isPresent() )
 		{
@@ -137,10 +130,6 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	 */
 	public String getPath() {
 		return path;
-//		if( attributes.containsKey("path"))
-//			return attributes.get("path").getAsString();
-//		else
-//			return "";
 	}
 
 	public Stream<String> getChildPathsRecursive( String thisPath ) {
@@ -257,7 +246,7 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	}
 
 	@Override
-	public boolean removeAttribute(String pathName, String key) throws IOException {
+	public boolean removeAttribute(String pathName, String key) {
 		final Optional<ContainerMetadataNode> node = getNode( pathName );
 		if( node.isPresent() )
 			return node.get().remove(key);
@@ -266,7 +255,7 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	}
 
 	@Override
-	public <T> T removeAttribute(String pathName, String key, Class<T> clazz) throws IOException {
+	public <T> T removeAttribute(String pathName, String key, Class<T> clazz) {
 		final Optional<ContainerMetadataNode> node = getNode(pathName);
 		final T t = getAttribute(pathName, key, clazz);
 		if (t != null) {
@@ -276,7 +265,7 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	}
 
 	@Override
-	public boolean removeAttributes(String pathName, List<String> attributes) throws IOException {
+	public boolean removeAttributes(String pathName, List<String> attributes) {
 		boolean removed = false;
 		for (final String attribute : attributes) {
 			removed |= removeAttribute(pathName, attribute);
@@ -345,27 +334,25 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	}
 
 	@Override
-	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock)
-			throws IOException {
+	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
 	}
 
 	@Override
-	public boolean deleteBlock(String pathName, long... gridPosition) throws IOException {
+	public boolean deleteBlock(String pathName, long... gridPosition) {
 		return false;
 	}
 
 	@Override
-	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition)
-			throws IOException {
+	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 		return null;
 	}
 
 
 
 	@SuppressWarnings("unchecked")
-	public static  <N extends GsonKeyValueReader & N5Reader > ContainerMetadataNode build(
+	public static  <N extends GsonN5Reader & N5Reader > ContainerMetadataNode build(
 			final N5Reader n5, final String dataset, final Gson gson ) {
-		if (n5 instanceof GsonKeyValueReader) {
+		if (n5 instanceof GsonN5Reader) {
 			try {
 				return buildGson((N)n5, dataset, gson );
 			} catch (Exception e) {
@@ -384,7 +371,7 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 		return build( n5, "", gson );
 	}
 
-	public static <N extends GsonKeyValueReader & N5Reader > ContainerMetadataNode buildGson(
+	public static <N extends GsonN5Reader & N5Reader > ContainerMetadataNode buildGson(
 			final N n5, final String dataset, final Gson gson )
 			throws InterruptedException, ExecutionException {
 		String[] datasets;
@@ -396,13 +383,13 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 			containerRoot.addPathsRecursive(dataset);
 			return containerRoot;
 
-		} catch (IOException e) {
+		} catch (N5Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
-	public static <N extends GsonKeyValueReader & N5Reader> ContainerMetadataNode buildHelper(final N n5, N5TreeNode baseNode ) {
+	public static <N extends GsonN5Reader> ContainerMetadataNode buildHelper(final N n5, N5TreeNode baseNode ) {
 
 		final JsonElement attrsRaw = n5.getAttributes(baseNode.getPath());
 		final JsonObject attrs = (attrsRaw != null && attrsRaw.isJsonObject() ) ? attrsRaw.getAsJsonObject() : new JsonObject();
@@ -430,7 +417,7 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 			containerRoot.addPathsRecursive(dataset);
 			return containerRoot;
 
-		} catch (IOException e) {
+		} catch (N5Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -499,13 +486,13 @@ public class ContainerMetadataNode implements GsonKeyValueWriter {
 	}
 
 	@Override
-	public KeyValueAccess getKeyValueAccess() {
-		throw new UnsupportedOperationException("getKeyValueAccess not supported by ContainerMetadataNode");
+	public URI getURI() {
+		throw new UnsupportedOperationException("getURI not supported by ContainerMetadataNode");
 	}
 
 	@Override
-	public URI getURI() {
-		throw new UnsupportedOperationException("getURI not supported by ContainerMetadataNode");
+	public void setAttributes(String groupPath, JsonElement attributes) throws N5Exception {
+		// TODO Auto-generated method stub
 	}
 
 }

@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.Scale3D;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -204,7 +205,7 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 				continue;
 			}
 		}
-	} catch (IOException e) {}
+	} catch (N5Exception e) {}
 
 	return Optional.of( pixelResObj );
   }

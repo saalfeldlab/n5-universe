@@ -1,7 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.translation;
 
 import com.google.gson.Gson;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import org.janelia.saalfeldlab.n5.DataBlock;
@@ -28,28 +27,28 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	}
 	
 	@Override
-	public <T> void setAttribute( final String pathName, final String key, final T attribute) throws IOException {
+	public <T> void setAttribute( final String pathName, final String key, final T attribute) {
 		translation.setTranslatedAttribute( pathName, key, attribute );
 		containerWriter.setMetadataTree(translation.getOrig());
 		containerWriter.writeAllAttributes();
 	}
 
 	@Override
-	public void setAttributes(String pathName, Map<String, ?> attributes) throws IOException {
+	public void setAttributes(String pathName, Map<String, ?> attributes) {
 		translation.setTranslatedAttributes(pathName, attributes);
 		containerWriter.setMetadataTree(translation.getOrig());
 		containerWriter.writeAllAttributes();
 	}
 
 	@Override
-	public void createGroup(String pathName) throws IOException {
+	public void createGroup(String pathName) {
 		translation.getTranslated().createGroup(pathName);
 		translation.updateOriginal();
 		writer.createGroup(originalPath(pathName));
 	}
 
 	@Override
-	public boolean remove(String pathName) throws IOException {
+	public boolean remove(String pathName) {
 		boolean success = writer.remove(originalPath(pathName));
 		if( success ) {
 			translation.getTranslated().remove(pathName);
@@ -59,7 +58,7 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	}
 
 	@Override
-	public boolean remove() throws IOException {
+	public boolean remove() {
 		boolean success = writer.remove();
 		if( success ) {
 			translation.rootOrig = new ContainerMetadataNode();
@@ -69,7 +68,7 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	}
 
 	@Override
-	public boolean removeAttribute(String pathName, String key) throws IOException {
+	public boolean removeAttribute(String pathName, String key) {
 
 		final ContainerMetadataNode tlated = translation.getTranslated();
 		if (tlated.removeAttribute(pathName, key)) {
@@ -80,7 +79,7 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	}
 
 	@Override
-	public <T> T removeAttribute(String pathName, String key, Class<T> clazz) throws IOException {
+	public <T> T removeAttribute(String pathName, String key, Class<T> clazz) {
 
 		final ContainerMetadataNode tlated = translation.getTranslated();
 		final T t = tlated.removeAttribute(pathName, key, clazz);
@@ -92,7 +91,7 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	}
 
 	@Override
-	public boolean removeAttributes(String pathName, List<String> attributes) throws IOException {
+	public boolean removeAttributes(String pathName, List<String> attributes) {
 
 		final ContainerMetadataNode tlated = translation.getTranslated();
 		if (tlated.removeAttributes(pathName, attributes)) {
@@ -103,13 +102,12 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	}
 
 	@Override
-	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock)
-			throws IOException {
+	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
 		writer.writeBlock(originalPath(pathName), datasetAttributes, dataBlock);
 	}
 
 	@Override
-	public boolean deleteBlock(String pathName, long... gridPosition) throws IOException {
+	public boolean deleteBlock(String pathName, long... gridPosition) {
 		return writer.deleteBlock(originalPath(pathName), gridPosition);
 	}
 

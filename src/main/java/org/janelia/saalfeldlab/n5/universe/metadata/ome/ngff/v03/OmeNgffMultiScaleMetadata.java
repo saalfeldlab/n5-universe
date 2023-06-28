@@ -31,7 +31,7 @@ import java.util.Optional;
 import java.util.stream.DoubleStream;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.N5URL;
+import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.MultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
@@ -129,27 +129,23 @@ public class OmeNgffMultiScaleMetadata extends MultiscaleMetadata<N5SingleScaleM
 	}
 
 	public String[] getCanonicalPaths() {
-		return Arrays.stream( getPaths() ).map( x -> {
-			if( x.startsWith( "/" ))
+
+		return Arrays.stream(getPaths()).map((x) -> {
+			if (x.startsWith("/"))
 				return x;
-			else
-			{
-				N5URL url;
-				try
-				{
-					url = new N5URL( "?" + this.path + "/" + x );
-				}
-				catch ( URISyntaxException e )
-				{
+			else {
+				N5URI url;
+				try {
+					url = new N5URI("?" + this.path + "/" + x);
+				} catch (URISyntaxException e) {
 					return null;
 				}
 				return url.getGroupPath();
-			}	
-		} ).toArray( String[]::new );
+			}
+		}).toArray(String[]::new);
 	}
 
-	@Override
-	public N5SingleScaleMetadata[] getChildrenMetadata()
+	@Override public N5SingleScaleMetadata[] getChildrenMetadata()
 	{
 		return childrenMetadata;
 	}

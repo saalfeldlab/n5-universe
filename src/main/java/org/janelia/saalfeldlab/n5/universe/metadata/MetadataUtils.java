@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.N5URL;
+import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 
 public class MetadataUtils
@@ -63,7 +63,7 @@ public class MetadataUtils
 	{
 		try
 		{
-			final N5URL url = new N5URL( "?/" + parent + "/" + child );
+			final N5URI url = new N5URI( "?/" + parent + "/" + child );
 			return url.normalizeGroupPath();
 		}
 		catch ( URISyntaxException e )

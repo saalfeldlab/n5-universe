@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.gson.Gson;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonElement;
-import java.io.IOException;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -25,9 +25,9 @@ import org.janelia.saalfeldlab.n5.Bzip2Compression;
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.GsonAttributesParser;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.Lz4Compression;
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.RawCompression;
@@ -115,7 +115,7 @@ public class CanonicalMetadataParser implements N5MetadataParser< CanonicalMetad
 			if( color == null )
 				color = n5.getAttribute(path, "color", RGBAColorMetadata.class);
 
-		} catch (IOException e) {
+		} catch (N5Exception e) {
 		}
 
 		if( spatial != null ) {

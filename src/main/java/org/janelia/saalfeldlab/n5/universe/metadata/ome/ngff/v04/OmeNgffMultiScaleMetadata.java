@@ -30,7 +30,7 @@ import java.util.Arrays;
 import java.util.stream.DoubleStream;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.N5URL;
+import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.MultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;

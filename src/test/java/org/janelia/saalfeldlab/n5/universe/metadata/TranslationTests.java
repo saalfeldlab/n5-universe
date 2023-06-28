@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
@@ -51,7 +52,7 @@ public class TranslationTests {
 	@Before
 	public void before()
 	{
-		URL configUrl = TransformTests.class.getResource( "/n5.jq" );
+		URL configUrl = TranslationTests.class.getResource( "/n5.jq" );
 		File baseDir = new File( configUrl.getFile() ).getParentFile();
 		containerDir = new File( baseDir, "translations.n5" );
 
@@ -83,7 +84,7 @@ public class TranslationTests {
 	public void after() {
 		try {
 			n5.remove();
-		} catch (IOException e) {
+		} catch (Exception e) {
 		}
 	}
 
@@ -267,7 +268,7 @@ public class TranslationTests {
 			n5.createGroup("/pathXlation");
 			n5.createDataset("/pathXlation/src", 
 					new DatasetAttributes( new long[]{16,16}, new int[]{16,16}, DataType.UINT8, new RawCompression()));
-		} catch (IOException e) {
+		} catch (N5Exception e) {
 			e.printStackTrace();
 		}
 		Assert.assertTrue("pathXlation src exists", n5.exists("/pathXlation/src"));
@@ -299,7 +300,7 @@ public class TranslationTests {
 			parsedCode = n5.getAttribute( "pathXlation/dst", "secretCode", Integer.class);
 			Assert.assertEquals("parsed code dst", code, parsedCode );
 
-		} catch (IOException e) {
+		} catch (N5Exception e) {
 //			e.printStackTrace();
 			Assert.fail( e.getMessage() );
 		}

@@ -2,8 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata;
 
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
-
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.universe.metadata.NgffMultiScaleGroupAttributes.MultiscaleDataset;
 import org.junit.Assert;
@@ -15,7 +14,7 @@ public class NgffTests {
 	private N5FSReader n5;
 
 	@Before
-	  public void setUp() throws IOException {
+	  public void setUp() throws N5Exception {
 
 		final String n5Root = "src/test/resources/ngff.n5";
 		n5 = new N5FSReader(n5Root);
@@ -42,7 +41,7 @@ public class NgffTests {
 				scale *= 2;
 			}
 
-		} catch (IOException e) {
+		} catch (N5Exception e) {
 			fail("Ngff parsing failed");
 			e.printStackTrace();
 		}

@@ -46,7 +46,7 @@ public class ContainerMetadataWriter {
 		this.n5 = n5;
 	}
 
-	public void writeAllAttributes() throws IOException {
+	public void writeAllAttributes() {
 
 		Iterator<String> it = metadataTree.getChildPathsRecursive(metadataTree.getPath()).iterator();
 		while( it.hasNext() )
@@ -57,10 +57,9 @@ public class ContainerMetadataWriter {
 	 * Writes all attributes stored in the tree.
 	 * 
 	 * @param pathName the path
-	 * @throws IOException the exception
 	 */
 	public void writeAllAttributes(
-			final String pathName ) throws IOException {
+			final String pathName ) {
 
 		if( !n5.exists(pathName))
 			n5.createGroup(pathName);
