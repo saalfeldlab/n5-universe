@@ -155,7 +155,6 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
-
 	private static boolean isHDF5Writer(final String path) {
 
 		if (path.matches("(?i).*\\.(h5|hdf|hdf5)"))
@@ -183,12 +182,6 @@ public class N5Factory implements Serializable {
 		return false;
 	}
 
-	/**
-	 * Helper method.
-	 *
-	 * @param url
-	 * @return
-	 */
 	private static AmazonS3 createS3(final String url) {
 
 		AmazonS3 s3;
@@ -224,7 +217,6 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param path path to the n5 root folder
 	 * @return the N5FsReader
-	 * @throws IOException the io exception
 	 */
 	public N5FSReader openFSReader(final String path) {
 
@@ -239,7 +231,6 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param path path to the zarr directory
 	 * @return the N5ZarrReader
-	 * @throws IOException the io exception
 	 */
 	public N5ZarrReader openZarrReader(final String path) {
 
@@ -255,15 +246,10 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param path path to the hdf5 file
 	 * @return the N5HDF5Reader
-	 * @throws IOException the io exception
 	 */
 	public N5HDF5Reader openHDF5Reader(final String path) {
 
-		try {
-			return new N5HDF5Reader(path, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
-		} catch (IOException e) {
-			throw new N5Exception.N5IOException(e);
-		}
+		return new N5HDF5Reader(path, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
 	}
 
 	/**
@@ -271,7 +257,6 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param url url to the google cloud object
 	 * @return the N5GoogleCloudStorageReader
-	 * @throws IOException the io exception
 	 */
 	public N5GoogleCloudStorageReader openGoogleCloudReader(final String url) {
 
@@ -346,15 +331,10 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param path path to the hdf5 file
 	 * @return the N5HDF5Writer
-	 * @throws IOException the io exception
 	 */
 	public N5HDF5Writer openHDF5Writer(final String path) {
 
-		try {
-			return new N5HDF5Writer(path, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
-		} catch (IOException e) {
-			throw new N5Exception.N5IOException(e);
-		}
+		return new N5HDF5Writer(path, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
 	}
 
 	/**
@@ -362,7 +342,6 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param url url to the google cloud object
 	 * @return the N5GoogleCloudStorageWriter
-	 * @throws IOException the io exception
 	 */
 	public N5GoogleCloudStorageWriter openGoogleCloudWriter(final String url) {
 
@@ -390,7 +369,6 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param url url to the s3 object
 	 * @return the N5Writer
-	 * @throws IOException the io exception
 	 */
 	public N5Writer openAWSS3Writer(final String url) {
 
@@ -413,7 +391,6 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param url the location of the root location of the store
 	 * @return the N5Reader
-	 * @throws IOException the io exception
 	 */
 	public N5Reader openReader(final String url) {
 
