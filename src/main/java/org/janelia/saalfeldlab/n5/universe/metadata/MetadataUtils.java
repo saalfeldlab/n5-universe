@@ -18,6 +18,7 @@ public class MetadataUtils
 	 * 
 	 * @param baseMetadata metadata
 	 * @param datasetMetadata dataset metadata
+	 * @return the single scale metadata
 	 */
 	public static N5SingleScaleMetadata setDatasetAttributes( N5SingleScaleMetadata baseMetadata, N5DatasetMetadata datasetMetadata )
 	{

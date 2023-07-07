@@ -277,7 +277,6 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param url url to the amazon s3 object
 	 * @return the N5Reader
-	 * @throws IOException the io exception
 	 */
 	public N5Reader openAWSS3Reader(final String url) {
 
@@ -300,7 +299,6 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param path path to the n5 directory
 	 * @return the N5FSWriter
-	 * @throws IOException the io exception
 	 */
 	public N5FSWriter openFSWriter(final String path) {
 
@@ -315,7 +313,6 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param path path to the zarr directory
 	 * @return the N5ZarrWriter
-	 * @throws IOException the io exception
 	 */
 	public N5ZarrWriter openZarrWriter(final String path) {
 
@@ -434,7 +431,6 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param url the location of the root location of the store
 	 * @return the N5Writer
-	 * @throws IOException the io exception
 	 */
 	public N5Writer openWriter(final String url) {
 
