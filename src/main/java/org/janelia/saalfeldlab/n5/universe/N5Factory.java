@@ -57,6 +57,7 @@ import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.googlecloud.N5GoogleCloudStorageReader;
 import org.janelia.saalfeldlab.n5.googlecloud.N5GoogleCloudStorageWriter;
@@ -395,7 +396,7 @@ public class N5Factory implements Serializable {
 	public N5Reader openReader(final String url) {
 
 		try {
-			final URI uri = new URI(url);
+			final URI uri = N5URI.from(url, null, null).getURI();
 			final String scheme = uri.getScheme();
 			if (scheme == null);
 			else if (scheme.equals("file")) {
@@ -404,7 +405,7 @@ public class N5Factory implements Serializable {
 				} catch (IOException e) {
 					throw new N5Exception.N5IOException(e);
 				}
-			}			else if (scheme.equals("s3"))
+			} else if (scheme.equals("s3"))
 				return openAWSS3Reader(url);
 			else if (scheme.equals("gs"))
 				return openGoogleCloudReader(url);
@@ -438,7 +439,7 @@ public class N5Factory implements Serializable {
 	public N5Writer openWriter(final String url) {
 
 		try {
-			final URI uri = new URI(url);
+			final URI uri = N5URI.from(url, null, null).getURI();
 			final String scheme = uri.getScheme();
 			if (scheme == null);
 			else if (scheme.equals("file"))
