@@ -6,13 +6,16 @@ import java.util.Optional;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
+import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v03.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 
-public class OmeNgffMetadataParser implements N5MetadataParser< OmeNgffMetadata >
+public class OmeNgffMetadataParser implements N5MetadataParser< OmeNgffMetadata >, N5MetadataWriter< OmeNgffMetadata >
 {
 	@Override
 	public Optional< OmeNgffMetadata > parseMetadata( N5Reader n5, N5TreeNode node )
@@ -63,53 +66,33 @@ public class OmeNgffMetadataParser implements N5MetadataParser< OmeNgffMetadata 
 			}
 
 			N5SingleScaleMetadata[] msChildrenMeta = ms.buildChildren( nd, attrs );
-//			N5SingleScaleMetadata[] mergedChildrenMeta = MetadataUtils.updateChildrenDatasetAttributes( msChildrenMeta, dsetMeta );
 			MetadataUtils.updateChildrenMetadata( node, msChildrenMeta );
 			ms.childrenMetadata = msChildrenMeta;
-			
 
-//			for( int i = 0; i < attrs.length; i++ )
-//			int i = 0;
-//			for ( String childPath : ms.getPaths() )
-//			{
-//				final String childPathCan = canonicalPath( node, childPath );
-//				final N5SingleScaleMetadata meta = (N5SingleScaleMetadata) scaleLevelNodes.get( childPathCan ).getMetadata();
-//				childrenMeta[ i ] = meta;
-//				attrs[ i++ ] = meta.getAttributes();
-//
-//				// build node
-//				final N5TreeNode childNode = new N5TreeNode( childPathCan );
-//				childNode.setMetadata( children[ i ] );
-//				node.add( childNode );;
-//			}
-
-//			for ( int i = 0; i < children.length; i++ )
-//			{
-//				final String childPath = children[i].getPath();
-//				final String childPathCan = canonicalPath( node, childPath );
-//				if( scaleLevelNodes.containsKey( childPathCan ))
-//				{
-//					
-//				}
-//			}
-
-//			N5SingleScaleMetadata[] cs = ( N5SingleScaleMetadata[] ) Arrays.stream( childrenMeta ).filter( x -> {
-//				final String childPath = x.getPath();
-//				final String childPathCan = canonicalPath( node, childPath );
-//				return scaleLevelNodes.containsKey( childPathCan );
-//			}).toArray();
-//
-//			final String childPathCan = "";
-//			scaleLevelNodes.get( childPathCan ).set
-			
-
-//			ms.childrenMetadata = childrenMeta;
-//			ms.childrenMetadata = cs;
 			ms.childrenAttributes = attrs;
 		}
 		return Optional.of( new OmeNgffMetadata( node.getPath(), multiscales ) );
 	}
 
+	@Override
+	public void writeMetadata(OmeNgffMetadata t, N5Writer n5, String path) throws Exception {
+
+		n5.setAttribute(path, "multiscales", t.getMultiscales() );
+
+		if (t.getMultiscales().length <= 0)
+			return;
+
+		for( int i = 0; i < t.getMultiscales().length; i++ ) {
+			final OmeNgffMultiScaleMetadata ms = t.getMultiscales()[i];
+			for( int j = 0; j < t.getMultiscales().length; j++ ) {
+
+				final OmeNgffDataset ds = ms.datasets[j];
+				final N5SingleScaleMetadata meta = ms.childrenMetadata[j];
+				String childPath = path + "/" + ds.path;
+			}
+		}
+
+	}
 
 
 }

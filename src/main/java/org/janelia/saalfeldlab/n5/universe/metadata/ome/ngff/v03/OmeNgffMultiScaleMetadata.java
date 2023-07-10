@@ -28,6 +28,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v03;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.DoubleStream;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;

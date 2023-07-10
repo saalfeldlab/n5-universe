@@ -4,9 +4,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 
 public class OmeNgffMetadata implements N5Metadata
 {
-	public final String path;
+	protected final OmeNgffMultiScaleMetadata[] multiscales;
 
-	public final OmeNgffMultiScaleMetadata[] multiscales;
+	protected transient final String path;
 
 	public OmeNgffMetadata( final String path,
 			final OmeNgffMultiScaleMetadata[] multiscales )
@@ -16,9 +16,12 @@ public class OmeNgffMetadata implements N5Metadata
 	}
 
 	@Override
-	public String getPath()
-	{
+	public String getPath() {
 		return path;
+	}
+
+	public OmeNgffMultiScaleMetadata[] getMultiscales() {
+		return multiscales;
 	}
 
 }
