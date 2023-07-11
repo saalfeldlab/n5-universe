@@ -99,13 +99,20 @@ public class N5Factory implements Serializable {
 	private static byte[] HDF5_SIG = {(byte)137, 72, 68, 70, 13, 10, 26, 10};
 	private int[] hdf5DefaultBlockSize = {64, 64, 64, 1, 1};
 	private boolean hdf5OverrideBlockSize = false;
+
 	private GsonBuilder gsonBuilder = new GsonBuilder();
 	private boolean cacheAttributes = false;
+
 	private String zarrDimensionSeparator = ".";
 	private boolean zarrMapN5DatasetAttributes = true;
 	private boolean zarrMergeAttributes = true;
-	private String googleCloudProjectId = null;
 	
+	private String googleCloudProjectId = null;
+
+	private String s3Region = null;
+	private AWSCredentials s3Credentials = null;
+	private boolean s3Anonymous = true;
+
 	private KeyValueAccess keyValueAccess;
 
 	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
@@ -156,6 +163,21 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
+	/**
+	 * This factory will use the {@link DefaultAWSCredentialsProviderChain} to find s3 credentials.
+	 *
+	 * @return this N5Factory
+	 */
+	public N5Factory s3UseCredentials() {
+		s3Anonymous = false;
+		return this;
+	}
+
+	public N5Factory s3UseCredentials(final AWSCredentials credentials) {
+		this.s3Credentials = credentials;
+		return this;
+	}
+
 	private static boolean isHDF5Writer(final String path) {
 
 		if (path.matches("(?i).*\\.(h5|hdf|hdf5)"))
@@ -183,34 +205,37 @@ public class N5Factory implements Serializable {
 		return false;
 	}
 
-	private static AmazonS3 createS3(final String url) {
+	private AmazonS3 createS3(final String url) {
 
-		AmazonS3 s3;
 		AWSCredentials credentials = null;
-		try {
-			credentials = new DefaultAWSCredentialsProviderChain().getCredentials();
-		} catch(final Exception e) {
-			System.out.println( "Could not load AWS credentials, falling back to anonymous." );
+		final AWSStaticCredentialsProvider credentialsProvider;
+		if( s3Credentials != null ) {
+			credentials = s3Credentials;
+			credentialsProvider = new AWSStaticCredentialsProvider(credentials);
 		}
-		final AWSStaticCredentialsProvider credentialsProvider =
-				new AWSStaticCredentialsProvider(credentials == null ? new AnonymousAWSCredentials() : credentials);
+		else {
+			// if not anonymous, try finding credentials
+			if( !s3Anonymous ) {
+				try {
+					credentials = new DefaultAWSCredentialsProviderChain().getCredentials();
+				} catch(final Exception e) {
+					System.out.println( "Could not load AWS credentials, falling back to anonymous." );
+				}
+				credentialsProvider = new AWSStaticCredentialsProvider(credentials == null ? new AnonymousAWSCredentials() : credentials);
+			}
+			else
+				credentialsProvider = new AWSStaticCredentialsProvider(new AnonymousAWSCredentials());
+		}
 
 		final AmazonS3URI uri = new AmazonS3URI(url);
-		final Optional<String> region = Optional.ofNullable(uri.getRegion());
+		Regions region = Optional.ofNullable(uri.getRegion()).map(Regions::fromName)	// first try getting the region from the URL
+			.orElse( Optional.ofNullable(s3Region).map(Regions::fromName)				// next use whatever is passed in
+			.orElse(Regions.US_EAST_1));												// fallback to us-east-1
 
-		if(region.isPresent()) {
-			s3 = AmazonS3ClientBuilder.standard()
-					.withCredentials(credentialsProvider)
-					.withRegion(region.map(Regions::fromName).orElse(Regions.US_EAST_1))
-					.build();
-		} else {
-			s3 = AmazonS3ClientBuilder.standard()
-					.withCredentials(credentialsProvider)
-					.withRegion(Regions.US_EAST_1)
-					.build();
-		}
-
-		return s3;
+		return AmazonS3ClientBuilder.standard()
+				.withCredentials(credentialsProvider)
+				.withRegion(region)
+				.build();
 	}
 
 	/**
