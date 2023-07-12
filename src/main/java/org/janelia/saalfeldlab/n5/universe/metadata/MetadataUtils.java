@@ -8,6 +8,9 @@ import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+
 public class MetadataUtils
 {
 
@@ -90,6 +93,20 @@ public class MetadataUtils
 				y[ j ] *= x[ j ]; 
 
 		return y;
+	}
+
+	/**
+	 * Gets a String from a {@link JsonElement} if possible, returning null if the
+	 * element is {@link JsonNull}.
+	 *
+	 * @param element
+	 * @return a string
+	 */
+	public static String getStringNullable(JsonElement element) {
+		if (element.isJsonNull())
+			return null;
+		else
+			return element.getAsString();
 	}
 
 }

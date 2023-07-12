@@ -2,6 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
 import java.lang.reflect.Type;
 
+import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
@@ -26,8 +27,9 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 		if (!jobj.has("axes") && !jobj.has("datasets"))
 			return null;
 
-		final String name = jobj.get("name").getAsString();
-		final String type = jobj.get("type").getAsString();
+		// name and type may be null
+		final String name = MetadataUtils.getStringNullable(jobj.get("name"));
+		final String type = MetadataUtils.getStringNullable(jobj.get("type"));
 		final String version = jobj.get("version").getAsString();
 
 		final Axis[] axes = context.deserialize(jobj.get("axes"), Axis[].class);

@@ -84,11 +84,9 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			final N5SingleScaleMetadata[] msChildrenMeta = ms.buildChildren( nd, attrs, ms.coordinateTransformations, ms.axes );
 			MetadataUtils.updateChildrenMetadata( node, msChildrenMeta );
 			ms.childrenAttributes = attrs;
-
-		
+			ms.childrenMetadata = msChildrenMeta;
 		}
 
-		OmeNgffDataset[] dsets = multiscales[0].datasets;
 		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales ));
 	}
 
