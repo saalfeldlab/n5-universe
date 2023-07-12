@@ -111,7 +111,7 @@ public class N5Factory implements Serializable {
 
 	private String s3Region = null;
 	private AWSCredentials s3Credentials = null;
-	private boolean s3Anonymous = true;
+	private boolean s3Anonymous = false;
 
 	private KeyValueAccess keyValueAccess;
 
@@ -400,7 +400,7 @@ public class N5Factory implements Serializable {
 
 		// when, if ever do we want to creat a bucket?
 		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, s3uri.getBucket(), false);
-		if( url.contains(".zarr" )) {
+		if (lastExtension(url).startsWith(".zarr")) {
 			return new ZarrKeyValueWriter(s3kv, s3uri.getKey(), gsonBuilder, 
 					zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes );	
 		}
@@ -416,7 +416,6 @@ public class N5Factory implements Serializable {
 	 * @return the N5Reader
 	 */
 	public N5Reader openReader(final String url) {
-
 		try {
 			final URI uri = N5URI.from(url, null, null).getURI();
 			final String scheme = uri.getScheme();
@@ -444,7 +443,7 @@ public class N5Factory implements Serializable {
 	private N5Reader openFileBasedN5Reader( final String url ) {
 		if (isHDF5Reader( url ))
 			return openHDF5Reader( url );
-		else if (url.matches("(?i).*\\.zarr.*"))
+		else if (lastExtension(url).startsWith(".zarr"))
 			return openZarrReader( url );
 
 		else
@@ -483,9 +482,19 @@ public class N5Factory implements Serializable {
 	{
 		if (isHDF5Writer(url))
 			return openHDF5Writer(url);
-		else if (url.matches("(?i).*\\.zarr"))
+		else if (lastExtension(url).startsWith(".zarr"))
 			return openZarrWriter(url);
 		else
 			return openFSWriter(url);
 	}
+
+	private static String lastExtension(final String path) {
+
+		final int i = path.lastIndexOf('.');
+		if (i >= 0)
+			return path.substring(path.lastIndexOf('.'));
+		else
+			return null;
+	}
+
 }
