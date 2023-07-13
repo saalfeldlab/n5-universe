@@ -43,6 +43,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Optional;
 
@@ -81,6 +82,8 @@ import com.google.cloud.resourcemanager.ResourceManager;
 import com.google.cloud.storage.Storage;
 import com.google.gson.GsonBuilder;
 
+import net.imglib2.algorithm.util.Singleton;
+
 /**
  * Factory for various N5 readers and writers.  Implementation specific
  * parameters can be provided to the factory instance and will be used when
@@ -111,6 +114,7 @@ public class N5Factory implements Serializable {
 	private String s3Region = null;
 	private AWSCredentials s3Credentials = null;
 	private boolean s3Anonymous = false;
+	private boolean s3ReuseClient = true;
 
 	private KeyValueAccess keyValueAccess;
 
@@ -177,6 +181,16 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
+	public N5Factory s3Region(final String region) {
+		s3Region = region;
+		return this;
+	}
+
+	public N5Factory s3NewClient() {
+		s3ReuseClient = false;
+		return this;
+	}
+
 	private static boolean isHDF5Writer(final String path) {
 
 		if (path.matches("(?i).*\\.(h5|hdf|hdf5)"))
@@ -204,6 +218,21 @@ public class N5Factory implements Serializable {
 		return false;
 	}
 
+	private synchronized AmazonS3 getOrCreateS3(final AmazonS3URI uri) {
+
+		if( !s3ReuseClient )
+			return createS3(uri);
+
+		final Regions region = getRegion(uri);
+		return Singleton.get("aws-" + region.toString(), () -> createS3(uri));
+	}
+
+	private Regions getRegion(final AmazonS3URI uri) {
+		return Optional.ofNullable(uri.getRegion()).map(Regions::fromName)	// first try getting the region from the URL
+			.orElse( Optional.ofNullable(s3Region).map(Regions::fromName)	// next use whatever is passed in
+			.orElse(Regions.US_EAST_1));									// fallback to us-east-1
+	}
+
 	private AmazonS3 createS3(final AmazonS3URI uri) {
 
 		AWSCredentials credentials = null;
@@ -226,13 +255,9 @@ public class N5Factory implements Serializable {
 				credentialsProvider = new AWSStaticCredentialsProvider(new AnonymousAWSCredentials());
 		}
 
-		Regions region = Optional.ofNullable(uri.getRegion()).map(Regions::fromName)	// first try getting the region from the URL
-			.orElse( Optional.ofNullable(s3Region).map(Regions::fromName)				// next use whatever is passed in
-			.orElse(Regions.US_EAST_1));												// fallback to us-east-1
-
 		return AmazonS3ClientBuilder.standard()
 				.withCredentials(credentialsProvider)
-				.withRegion(region)
+				.withRegion(getRegion(uri))
 				.build();
 	}
 
@@ -308,7 +333,7 @@ public class N5Factory implements Serializable {
 	public N5Reader openAWSS3Reader(final String uri) throws URISyntaxException {
 
 		final AmazonS3URI s3uri = new AmazonS3URI(N5URI.encodeAsUri(uri));
-		final AmazonS3 s3 = createS3(s3uri);
+		final AmazonS3 s3 = getOrCreateS3(s3uri);
 
 		// when, if ever do we want to creat a bucket?
 		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, s3uri.getBucket(), false);
@@ -371,6 +396,25 @@ public class N5Factory implements Serializable {
 	public N5Writer openGoogleCloudWriter(final String uri) throws URISyntaxException {
 
 		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(N5URI.encodeAsUri(uri));
+		final GoogleCloudStorageClient storageClient = createGcsClient( googleCloudUri );
+
+		final Storage storage = storageClient.create();
+		final GoogleCloudStorageKeyValueAccess googleCloudBackend = new GoogleCloudStorageKeyValueAccess(storage, googleCloudUri.getBucket(), false);
+		if (lastExtension(uri).startsWith(".zarr")) {
+			return new ZarrKeyValueWriter(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder,
+					zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes );
+		} else {
+			return new N5KeyValueWriter(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder, cacheAttributes );
+		}
+	}
+
+	private GoogleCloudStorageClient getOrCreateGcsClient(final GoogleCloudStorageURI googleCloudUri) {
+
+		return Singleton.get("gcs-" + googleCloudProjectId, () -> this.createGcsClient(googleCloudUri));
+	}
+
+	private GoogleCloudStorageClient createGcsClient(final GoogleCloudStorageURI googleCloudUri ) {
+
 		final GoogleCloudStorageClient storageClient;
 		if (googleCloudProjectId == null) {
 			final ResourceManager resourceManager = new GoogleCloudResourceManagerClient().create();
@@ -381,14 +425,7 @@ public class N5Factory implements Serializable {
 		} else
 			storageClient = new GoogleCloudStorageClient(googleCloudProjectId);
 
-		final Storage storage = storageClient.create();
-		final GoogleCloudStorageKeyValueAccess googleCloudBackend = new GoogleCloudStorageKeyValueAccess(storage, googleCloudUri.getBucket(), false);
-		if (lastExtension(uri).startsWith(".zarr")) {
-			return new ZarrKeyValueWriter(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder,
-					zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes );
-		} else {
-			return new N5KeyValueWriter(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder, cacheAttributes );
-		}
+		return storageClient;
 	}
 
 	/**
