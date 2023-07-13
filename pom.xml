@@ -121,7 +121,7 @@
 		<n5-google-cloud.version>3.3.3-SNAPSHOT</n5-google-cloud.version>
 		<n5-aws-s3.version>3.2.1-SNAPSHOT</n5-aws-s3.version>
 		<n5-zarr.version>0.0.9-SNAPSHOT</n5-zarr.version>
-		<n5-imglib2.version>5.0.1-SNAPSHOT</n5-imglib2.version>
+		<n5-imglib2.version>6.0.0-SNAPSHOT</n5-imglib2.version>
 	</properties>
 
 	<dependencies>
