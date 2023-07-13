@@ -289,11 +289,13 @@ public class N5Factory implements Serializable {
 		final GoogleCloudStorageClient storageClient = new GoogleCloudStorageClient();
 		final Storage storage = storageClient.create();
 
-		return new N5GoogleCloudStorageReader(
-				storage,
-				googleCloudUri.getBucket(),
-				googleCloudUri.getKey(),
-				gsonBuilder);
+		final GoogleCloudStorageKeyValueAccess googleCloudBackend = new GoogleCloudStorageKeyValueAccess(storage, googleCloudUri.getBucket(), false);
+		if( lastExtension(uri).startsWith(".zarr" )) {
+			return new ZarrKeyValueReader(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes );
+		}
+		else {
+			return new N5KeyValueReader(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder, cacheAttributes );
+		}
 	}
 
 	/**
@@ -378,12 +380,13 @@ public class N5Factory implements Serializable {
 			storageClient = new GoogleCloudStorageClient(googleCloudProjectId);
 
 		final Storage storage = storageClient.create();
-		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(url);
-		return new N5GoogleCloudStorageWriter(
-				storage,
-				googleCloudUri.getBucket(),
-				googleCloudUri.getKey(),
-				gsonBuilder);
+		final GoogleCloudStorageKeyValueAccess googleCloudBackend = new GoogleCloudStorageKeyValueAccess(storage, googleCloudUri.getBucket(), false);
+		if (lastExtension(uri).startsWith(".zarr")) {
+			return new ZarrKeyValueWriter(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder,
+					zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes );
+		} else {
+			return new N5KeyValueWriter(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder, cacheAttributes );
+		}
 	}
 
 	/**
