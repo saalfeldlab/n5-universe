@@ -281,6 +281,7 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param uri uri to the google cloud object
 	 * @return the N5GoogleCloudStorageReader
+	 * @throws URISyntaxException if uri is malformed
 	 */
 	public N5Reader openGoogleCloudReader(final String uri) throws URISyntaxException {
 
@@ -302,6 +303,7 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param uri uri to the amazon s3 object
 	 * @return the N5Reader
+	 * @throws URISyntaxException if uri is malformed
 	 */
 	public N5Reader openAWSS3Reader(final String uri) throws URISyntaxException {
 
@@ -364,6 +366,7 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param uri uri to the google cloud object
 	 * @return the N5GoogleCloudStorageWriter
+	 * @throws URISyntaxException if uri is malformed
 	 */
 	public N5Writer openGoogleCloudWriter(final String uri) throws URISyntaxException {
 

@@ -99,7 +99,7 @@ public class MetadataUtils
 	 * Gets a String from a {@link JsonElement} if possible, returning null if the
 	 * element is {@link JsonNull}.
 	 *
-	 * @param element
+	 * @param element the json element
 	 * @return a string
 	 */
 	public static String getStringNullable(JsonElement element) {

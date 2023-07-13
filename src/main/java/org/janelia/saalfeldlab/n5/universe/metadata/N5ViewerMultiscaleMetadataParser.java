@@ -29,13 +29,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.N5DatasetDiscoverer;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 
 public class N5ViewerMultiscaleMetadataParser implements N5MetadataParser< N5MultiScaleMetadata >
 {
 
   /**
-   * Called by the {@link org.janelia.saalfeldlab.n5.N5DatasetDiscoverer}
+   * Called by the {@link N5DatasetDiscoverer}
    * while discovering the N5 tree and filling the metadata for datasets or groups.
    *
    * @param reader the n5 reader
