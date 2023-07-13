@@ -494,7 +494,7 @@ public class N5Factory implements Serializable {
 		if (i >= 0)
 			return path.substring(path.lastIndexOf('.'));
 		else
-			return null;
+			return "";
 	}
 
 }
