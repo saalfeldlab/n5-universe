@@ -205,7 +205,7 @@ public class N5Factory implements Serializable {
 		return false;
 	}
 
-	private AmazonS3 createS3(final String url) {
+	private AmazonS3 createS3(final AmazonS3URI uri) {
 
 		AWSCredentials credentials = null;
 		final AWSStaticCredentialsProvider credentialsProvider;
@@ -227,7 +227,6 @@ public class N5Factory implements Serializable {
 				credentialsProvider = new AWSStaticCredentialsProvider(new AnonymousAWSCredentials());
 		}
 
-		final AmazonS3URI uri = new AmazonS3URI(url);
 		Regions region = Optional.ofNullable(uri.getRegion()).map(Regions::fromName)	// first try getting the region from the URL
 			.orElse( Optional.ofNullable(s3Region).map(Regions::fromName)				// next use whatever is passed in
 			.orElse(Regions.US_EAST_1));												// fallback to us-east-1
@@ -281,14 +280,14 @@ public class N5Factory implements Serializable {
 	/**
 	 * Open an {@link N5Reader} for Google Cloud.
 	 *
-	 * @param url url to the google cloud object
+	 * @param uri uri to the google cloud object
 	 * @return the N5GoogleCloudStorageReader
 	 */
-	public N5GoogleCloudStorageReader openGoogleCloudReader(final String url) {
+	public N5Reader openGoogleCloudReader(final String uri) throws URISyntaxException {
 
+		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(N5URI.encodeAsUri(uri));
 		final GoogleCloudStorageClient storageClient = new GoogleCloudStorageClient();
 		final Storage storage = storageClient.create();
-		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(url);
 
 		return new N5GoogleCloudStorageReader(
 				storage,
@@ -300,22 +299,21 @@ public class N5Factory implements Serializable {
 	/**
 	 * Open an {@link N5Reader} for AWS S3.
 	 *
-	 * @param url url to the amazon s3 object
+	 * @param uri uri to the amazon s3 object
 	 * @return the N5Reader
 	 */
-	public N5Reader openAWSS3Reader(final String url) {
+	public N5Reader openAWSS3Reader(final String uri) throws URISyntaxException {
 
-		final AmazonS3URI s3uri = new AmazonS3URI(url);
-		final AmazonS3 s3 = createS3(url);
+		final AmazonS3URI s3uri = new AmazonS3URI(N5URI.encodeAsUri(uri));
+		final AmazonS3 s3 = createS3(s3uri);
 
 		// when, if ever do we want to creat a bucket?
 		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, s3uri.getBucket(), false);
-		if( url.contains(".zarr" )) {
-			return new ZarrKeyValueReader(s3kv, s3uri.getURI().getPath(), gsonBuilder,
-					zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes );	
+		if( lastExtension(uri).startsWith(".zarr" )) {
+			return new ZarrKeyValueReader(s3kv, s3uri.getKey(), gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes );
 		}
 		else {
-			return new N5KeyValueReader(s3kv, s3uri.getURI().getPath(), gsonBuilder, cacheAttributes );	
+			return new N5KeyValueReader(s3kv, s3uri.getKey(), gsonBuilder, cacheAttributes );
 		}
 	}
 
@@ -363,11 +361,12 @@ public class N5Factory implements Serializable {
 	/**
 	 * Open an {@link N5Writer} for Google Cloud.
 	 *
-	 * @param url url to the google cloud object
+	 * @param uri uri to the google cloud object
 	 * @return the N5GoogleCloudStorageWriter
 	 */
-	public N5GoogleCloudStorageWriter openGoogleCloudWriter(final String url) {
+	public N5Writer openGoogleCloudWriter(final String uri) throws URISyntaxException {
 
+		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(N5URI.encodeAsUri(uri));
 		final GoogleCloudStorageClient storageClient;
 		if (googleCloudProjectId == null) {
 			final ResourceManager resourceManager = new GoogleCloudResourceManagerClient().create();
@@ -396,48 +395,47 @@ public class N5Factory implements Serializable {
 	public N5Writer openAWSS3Writer(final String url) {
 
 		final AmazonS3URI s3uri = new AmazonS3URI(url);
-		final AmazonS3 s3 = createS3(url);
+		final AmazonS3 s3 = createS3(s3uri);
 
 		// when, if ever do we want to creat a bucket?
 		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, s3uri.getBucket(), false);
 		if (lastExtension(url).startsWith(".zarr")) {
-			return new ZarrKeyValueWriter(s3kv, s3uri.getKey(), gsonBuilder, 
-					zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes );	
-		}
-		else {
-			return new N5KeyValueWriter(s3kv, s3uri.getKey(), gsonBuilder, cacheAttributes );	
+			return new ZarrKeyValueWriter(s3kv, s3uri.getKey(), gsonBuilder,
+					zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes );
+		} else {
+			return new N5KeyValueWriter(s3kv, s3uri.getKey(), gsonBuilder, cacheAttributes );
 		}
 	}
 
 	/**
 	 * Open an {@link N5Reader} based on some educated guessing from the url.
 	 *
-	 * @param url the location of the root location of the store
+	 * @param uri the location of the root location of the store
 	 * @return the N5Reader
 	 */
-	public N5Reader openReader(final String url) {
+	public N5Reader openReader(final String uri) {
 		try {
-			final URI uri = N5URI.from(url, null, null).getURI();
-			final String scheme = uri.getScheme();
+			final URI encodedUri = N5URI.encodeAsUri(uri);
+			final String scheme = encodedUri.getScheme();
 			if (scheme == null);
 			else if (scheme.equals("file")) {
 				try {
-					return openFileBasedN5Reader(Paths.get(uri).toFile().getCanonicalPath());
+					return openFileBasedN5Reader(Paths.get(encodedUri).toFile().getCanonicalPath());
 				} catch (IOException e) {
 					throw new N5Exception.N5IOException(e);
 				}
 			} else if (scheme.equals("s3"))
-				return openAWSS3Reader(url);
+				return openAWSS3Reader(uri);
 			else if (scheme.equals("gs"))
-				return openGoogleCloudReader(url);
-			else if (uri.getHost()!= null && scheme.equals("https") || scheme.equals("http")) {
-				if (uri.getHost().matches(".*s3\\.amazonaws\\.com"))
-					return openAWSS3Reader(url);
-				else if (uri.getHost().matches(".*cloud\\.google\\.com") || uri.getHost().matches(".*storage\\.googleapis\\.com"))
-					return openGoogleCloudReader(url);
+				return openGoogleCloudReader(uri);
+			else if (encodedUri.getHost()!= null && scheme.equals("https") || scheme.equals("http")) {
+				if (encodedUri.getHost().matches(".*s3\\.amazonaws\\.com"))
+					return openAWSS3Reader(uri);
+				else if (encodedUri.getHost().matches(".*cloud\\.google\\.com") || encodedUri.getHost().matches(".*storage\\.googleapis\\.com"))
+					return openGoogleCloudReader(uri);
 			}
 		} catch (final URISyntaxException ignored ) {}
-		return openFileBasedN5Reader( url );
+		return openFileBasedN5Reader( uri );
 	}
 
 	private N5Reader openFileBasedN5Reader( final String url ) {
@@ -451,31 +449,31 @@ public class N5Factory implements Serializable {
 	}
 
 	/**
-	 * Open an {@link N5Writer} based on some educated guessing from the url.
+	 * Open an {@link N5Writer} based on some educated guessing from the uri.
 	 *
-	 * @param url the location of the root location of the store
+	 * @param uri the location of the root location of the store
 	 * @return the N5Writer
 	 */
-	public N5Writer openWriter(final String url) {
+	public N5Writer openWriter(final String uri) {
 
 		try {
-			final URI uri = N5URI.from(url, null, null).getURI();
-			final String scheme = uri.getScheme();
+			final URI encodedUri = N5URI.encodeAsUri(uri);
+			final String scheme = encodedUri.getScheme();
 			if (scheme == null);
 			else if (scheme.equals("file"))
-				return openFileBasedN5Writer( uri.getPath() );
+				return openFileBasedN5Writer( encodedUri.getPath() );
 			else if (scheme.equals("s3"))
-				return openAWSS3Writer(url);
+				return openAWSS3Writer(uri);
 			else if (scheme.equals("gs"))
-				return openGoogleCloudWriter(url);
-			else if (uri.getHost() != null && scheme.equals("https") || scheme.equals("http")) {
-				if (uri.getHost().matches(".*s3\\.amazonaws\\.com"))
-					return openAWSS3Writer(url);
-				else if (uri.getHost().matches(".*cloud\\.google\\.com") || uri.getHost().matches(".*storage\\.googleapis\\.com"))
-					return openGoogleCloudWriter(url);
+				return openGoogleCloudWriter(uri);
+			else if (encodedUri.getHost() != null && scheme.equals("https") || scheme.equals("http")) {
+				if (encodedUri.getHost().matches(".*s3\\.amazonaws\\.com"))
+					return openAWSS3Writer(uri);
+				else if (encodedUri.getHost().matches(".*cloud\\.google\\.com") || encodedUri.getHost().matches(".*storage\\.googleapis\\.com"))
+					return openGoogleCloudWriter(uri);
 			}
 		} catch (final URISyntaxException e) {}
-		return openFileBasedN5Writer( url );
+		return openFileBasedN5Writer( uri );
 	}
 
 	private N5Writer openFileBasedN5Writer( final String url )
