@@ -394,17 +394,19 @@ public class N5Factory implements Serializable {
 	/**
 	 * Open an {@link N5Writer} for AWS S3.
 	 *
-	 * @param url url to the s3 object
+	 * @param uri uri to the s3 object
 	 * @return the N5Writer
+	 * @throws URISyntaxException if the URI is malformed
 	 */
-	public N5Writer openAWSS3Writer(final String url) {
+	public N5Writer openAWSS3Writer(final String uri) throws URISyntaxException {
 
-		final AmazonS3URI s3uri = new AmazonS3URI(url);
+		final URI encodedUri = N5URI.encodeAsUri(uri);
+		final AmazonS3URI s3uri = new AmazonS3URI(encodedUri);
 		final AmazonS3 s3 = createS3(s3uri);
 
 		// when, if ever do we want to creat a bucket?
 		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, s3uri.getBucket(), false);
-		if (lastExtension(url).startsWith(".zarr")) {
+		if (lastExtension(uri).startsWith(".zarr")) {
 			return new ZarrKeyValueWriter(s3kv, s3uri.getKey(), gsonBuilder,
 					zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes );
 		} else {
