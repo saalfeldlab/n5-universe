@@ -5,13 +5,13 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>34.1.0</version>
+		<version>36.0.0</version>
 		<relativePath />
 	</parent>
 
 	<groupId>org.janelia.saalfeldlab</groupId>
 	<artifactId>n5-universe</artifactId>
-	<version>0.1.1-SNAPSHOT</version>
+	<version>1.0.0-SNAPSHOT</version>
 
 	<name>N5-Universe</name>
 	<description>Utilities spanning all of the N5 repositories</description>
@@ -111,17 +111,12 @@
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
-		<imglib2.version>6.1.0</imglib2.version>
-		<imglib2-realtransform.version>4.0.0</imglib2-realtransform.version>
-		<imglib2-cache.version>1.0.0-beta-17</imglib2-cache.version>
-
-
-		<n5.version>3.0.0-SNAPSHOT</n5.version>
-		<n5-hdf5.version>1.5.0-SNAPSHOT</n5-hdf5.version>
-		<n5-google-cloud.version>3.3.3-SNAPSHOT</n5-google-cloud.version>
-		<n5-aws-s3.version>3.2.1-SNAPSHOT</n5-aws-s3.version>
-		<n5-zarr.version>0.0.9-SNAPSHOT</n5-zarr.version>
-		<n5-imglib2.version>6.0.0-SNAPSHOT</n5-imglib2.version>
+		<n5.version>3.0.0</n5.version>
+		<n5-hdf5.version>2.0.0</n5-hdf5.version>
+		<n5-google-cloud.version>4.0.0</n5-google-cloud.version>
+		<n5-aws-s3.version>4.0.0</n5-aws-s3.version>
+		<n5-zarr.version>1.0.0</n5-zarr.version>
+		<n5-imglib2.version>6.0.0</n5-imglib2.version>
 	</properties>
 
 	<dependencies>
