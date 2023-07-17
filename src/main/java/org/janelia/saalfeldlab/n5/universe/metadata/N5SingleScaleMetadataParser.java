@@ -1,17 +1,18 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.realtransform.Scale3D;
+
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5LabelMultisets;
+import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
+
+import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.realtransform.Scale3D;
 
 /**
  * Default {@link N5MetadataParser} for {@link N5SingleScaleMetadata}.
@@ -24,7 +25,7 @@ import org.janelia.saalfeldlab.n5.imglib2.N5LabelMultisets;
  * When <i>downsamplingFactors</i> are specified, this parser assumes downsampling was performed using
  * averaging and includes an offset to the resulting spatial transformation. Specifically, for a downsamplling
  * factor of <i>f</i>, this parser yields an offset of <i>(f-1)/2</i>.
- * 
+ *
  * @author Caleb Hulbert
  * @author John Bogovic
  */
@@ -82,12 +83,12 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 	  final long downscaleFactorPower = Long.parseLong(datasetNumber);
 	  final long f = (long)Math.pow(2, downscaleFactorPower);
 	  return Optional.of(new double[]{f, f, f});
-	} catch (Exception e) {
+	} catch (final Exception e) {
 	  return Optional.empty();
 	}
   }
 
-  private double[] ones( int nd )
+  private double[] ones( final int nd )
   {
 	  final double[] ones = new double[nd];
 	  Arrays.fill( ones, 1 );
@@ -112,7 +113,7 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 	  try {
 		voxdim = Optional.ofNullable(
 				n5.getAttribute(node.getPath(), PIXEL_RESOLUTION_KEY, FinalVoxelDimensions.class));
-	  } catch (Exception e) {
+	  } catch (final Exception e) {
 		voxdim = Optional.empty();
 	  }
 
@@ -129,7 +130,7 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 
 	  } else {
 
-		Optional<double[]> pixelResolutionOpt = Optional.ofNullable(
+		final Optional<double[]> pixelResolutionOpt = Optional.ofNullable(
 				n5.getAttribute(node.getPath(), PIXEL_RESOLUTION_KEY, double[].class));
 
 
@@ -154,7 +155,7 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 
 	  return Optional.of(new N5SingleScaleMetadata(node.getPath(), transform, downsamplingFactors, pixelResolution, offset, unit, attributes, isLabelMultiset));
 
-	} catch (IOException e) {
+	} catch (final N5Exception e) {
 	  return Optional.empty();
 	}
   }
@@ -162,26 +163,26 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
   /**
    * Checks whether the given group is an n5v scale level: /c[0-9]+/s[0-9]+,
    * and if so, returns a {@link FinalVoxelDimensions}.
-   * 
+   *
    * @param n5 the reader
    * @param group the group name
    * @return an optional containing voxelDimensions if they exists and is consistent
    */
-  public Optional<FinalVoxelDimensions> validateAndReturnN5vPixelResoution( 
+  public Optional<FinalVoxelDimensions> validateAndReturnN5vPixelResoution(
 		  final N5Reader n5, final String group )
   {
 	  if( !channelScaleLevelPattern.asPredicate().test(group))
 		  return Optional.empty();
 
-	  String baseGroup = group.substring(0, group.lastIndexOf( n5.getGroupSeparator()) );
+	  final String baseGroup = group.substring(0, group.lastIndexOf( n5.getGroupSeparator()) );
 	  FinalVoxelDimensions pixelResObj = null;
 
 	  try {
-		String[] children = n5.list(baseGroup);
-		for( String childPath : children )
+		final String[] children = n5.list(baseGroup);
+		for( final String childPath : children )
 		{
-			String path = baseGroup + n5.getGroupSeparator() + childPath;
-			FinalVoxelDimensions pro = getVoxDimObj( n5, path ); if( pro != null )
+			final String path = baseGroup + n5.getGroupSeparator() + childPath;
+			final FinalVoxelDimensions pro = getVoxDimObj( n5, path ); if( pro != null )
 			{
 				if( pixelResObj == null ) {
 					pixelResObj = pro;
@@ -192,10 +193,10 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 				continue;
 			}
 
-			double[] pra = getVoxDimArr( n5, path );
+			final double[] pra = getVoxDimArr( n5, path );
 			if( pra != null )
 			{
-				FinalVoxelDimensions pr = new FinalVoxelDimensions("pixel", pra);
+				final FinalVoxelDimensions pr = new FinalVoxelDimensions("pixel", pra);
 				if( pixelResObj == null )
 					pixelResObj = pr;
 				else if( !FinalVoxelDimensions.equals(pr, pixelResObj))
@@ -205,12 +206,12 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 				continue;
 			}
 		}
-	} catch (N5Exception e) {}
+	} catch (final N5Exception e) {}
 
 	return Optional.of( pixelResObj );
   }
 
-	private static boolean arrayEquals(double[] a, double[] b, double eps) {
+	private static boolean arrayEquals(final double[] a, final double[] b, final double eps) {
 		for (int i = 0; i < a.length; i++) {
 			if (Math.abs(a[i] - b[i]) > eps)
 				return false;
@@ -221,7 +222,7 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 	private FinalVoxelDimensions getVoxDimObj(final N5Reader n5, final String path) {
 		try {
 			return n5.getAttribute(path, "pixelResolution", FinalVoxelDimensions.class);
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			return null;
 		}
 	}
@@ -229,7 +230,7 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 	private double[] getVoxDimArr(final N5Reader n5, final String path) {
 		try {
 			return n5.getAttribute(path, "pixelResolution", double[].class);
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			return null;
 		}
 	}

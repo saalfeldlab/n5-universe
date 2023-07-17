@@ -1,14 +1,16 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.DoubleStream;
-import net.imglib2.realtransform.AffineTransform3D;
+
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.imglib2.N5LabelMultisets;
+import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
+
+import net.imglib2.realtransform.AffineTransform3D;
 
 /**
  * A parser for {@link N5SingleScaleMetadata} with whose keys
@@ -68,7 +70,7 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 
   public static Builder builder( final boolean useDefaults ) {
 
-	Builder builder = new Builder();
+	final Builder builder = new Builder();
 	if( useDefaults )
 	{
 		builder.minKey = DEFAULT_MIN;
@@ -97,37 +99,37 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 	private boolean unitStrict = false;
 	private boolean downsamplingFactorsStrict = false;
 
-	public Builder min(String key) {
+	public Builder min(final String key) {
 
 	  this.minKey = key;
 	  return this;
 	}
 
-	public Builder max(String key) {
+	public Builder max(final String key) {
 
 	  this.maxKey = key;
 	  return this;
 	}
 
-	public Builder resolution(String key) {
+	public Builder resolution(final String key) {
 
 	  this.resolutionKey = key;
 	  return this;
 	}
 
-	public Builder offset(String key) {
+	public Builder offset(final String key) {
 
 	  this.offsetKey = key;
 	  return this;
 	}
 
-	public Builder unit(String key) {
+	public Builder unit(final String key) {
 
 		  this.unitKey = key;
 		  return this;
 	}
 
-	public Builder downsamplingFactors(String key) {
+	public Builder downsamplingFactors(final String key) {
 
 	  this.downsamplingFactorsKey = key;
 	  return this;
@@ -165,7 +167,7 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 
 	public N5GenericSingleScaleMetadataParser build() {
 
-	  N5GenericSingleScaleMetadataParser p = new N5GenericSingleScaleMetadataParser(minKey, maxKey, resolutionKey, offsetKey, unitKey, downsamplingFactorsKey);
+	  final N5GenericSingleScaleMetadataParser p = new N5GenericSingleScaleMetadataParser(minKey, maxKey, resolutionKey, offsetKey, unitKey, downsamplingFactorsKey);
 	  p.resolutionKeyStrict = resolutionStrict;
 	  p.downsamplingFactorsKeyStrict = downsamplingFactorsStrict;
 	  p.offsetKeyStrict = offsetStrict;
@@ -177,7 +179,7 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
   }
 
   	@Override
-	public Optional<N5SingleScaleMetadata> parseMetadata(N5Reader n5, N5TreeNode node) {
+	public Optional<N5SingleScaleMetadata> parseMetadata(final N5Reader n5, final N5TreeNode node) {
 
 		try {
 			final DatasetAttributes attributes = n5.getDatasetAttributes(node.getPath());
@@ -187,14 +189,14 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 			final int nd = attributes.getNumDimensions();
 			final String path = node.getPath();
 
-		  Map<String, Class<?>> groupAttributeTypes = n5.listAttributes(node.getPath());
+		  final Map<String, Class<?>> groupAttributeTypes = n5.listAttributes(node.getPath());
 		  final double[] resolution;
 		  if (!resolutionKey.isEmpty() && groupAttributeTypes.containsKey(resolutionKey)) {
 			resolution = n5.getAttribute(node.getPath(), resolutionKey, double[].class);
 
 			if (resolution.length < attributes.getNumDimensions())
 			  return Optional.empty();
-		  } 
+		  }
 		  else if ( resolutionKeyStrict )
 		    return Optional.empty();
 		  else
@@ -251,10 +253,10 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 			  offset[i] = transform.get(i, 3);
 			}
 
-			N5SingleScaleMetadata metadata = new N5SingleScaleMetadata(path, transform, downsamplingFactors, resolution, offset, unit, attributes, min, max,
+			final N5SingleScaleMetadata metadata = new N5SingleScaleMetadata(path, transform, downsamplingFactors, resolution, offset, unit, attributes, min, max,
 					isLabelMultiset);
 			return Optional.of(metadata);
-		} catch (IOException e) {
+		} catch (final N5Exception e) {
 			return Optional.empty();
 		}
 	}

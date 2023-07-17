@@ -43,22 +43,22 @@ public class TranslatedN5Tests {
 	@Before
 	public void before()
 	{
-		URL configUrl = TransformTests.class.getResource( "/n5.jq" );
-		File baseDir = new File( configUrl.getFile() ).getParentFile();
+		final URL configUrl = TransformTests.class.getResource( "/n5.jq" );
+		final File baseDir = new File( configUrl.getFile() ).getParentFile();
 		containerDir = new File( baseDir, "n5Translation.n5" );
 
 		try {
 			n5 = new N5FSWriter( containerDir.getCanonicalPath() );
-			
-			Random rand = new Random( 945 );
+
+			final Random rand = new Random( 945 );
 			img = ArrayImgs.unsignedBytes(3, 4, 5);
-			ArrayCursor<UnsignedByteType> c = img.cursor();
+			final ArrayCursor<UnsignedByteType> c = img.cursor();
 			while( c.hasNext())
 				c.next().set( rand.nextInt() );
 
 			N5Utils.save( img, n5, "img", new int[] {3,4,5}, new RawCompression());
 
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 	}
@@ -67,17 +67,17 @@ public class TranslatedN5Tests {
 	public void after() {
 		try {
 			n5.remove();
-		} catch (N5Exception e) { }
+		} catch (final N5Exception e) { }
 	}
-	
+
 	@Test
 	public void testPathTranslation() {
 
 		try {
 			n5.createGroup("/pathXlation");
-			n5.createDataset("/pathXlation/src", 
+			n5.createDataset("/pathXlation/src",
 					new DatasetAttributes( new long[]{16,16}, new int[]{16,16}, DataType.UINT8, new RawCompression()));
-		} catch (N5Exception e) {
+		} catch (final N5Exception e) {
 			e.printStackTrace();
 		}
 		Assert.assertTrue("pathXlation src exists", n5.exists("/pathXlation/src"));
@@ -100,7 +100,7 @@ public class TranslatedN5Tests {
 
 			Assert.assertTrue("translated img correct", equal(img, imgFromXlated));
 
-		} catch (IOException e) {
+		} catch (final N5Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -121,7 +121,7 @@ public class TranslatedN5Tests {
 		{
 			return false;
 		}
-	}	
+	}
 
 
 }
