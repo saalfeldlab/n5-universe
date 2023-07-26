@@ -2,6 +2,8 @@ package org.janelia.saalfeldlab.n5.universe.metadata;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -178,7 +180,7 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 	}
   }
 
-  	@Override
+	@Override
 	public Optional<N5SingleScaleMetadata> parseMetadata(final N5Reader n5, final N5TreeNode node) {
 
 		try {
@@ -189,75 +191,66 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 			final int nd = attributes.getNumDimensions();
 			final String path = node.getPath();
 
-		  final Map<String, Class<?>> groupAttributeTypes = n5.listAttributes(node.getPath());
-		  final double[] resolution;
-		  if (!resolutionKey.isEmpty() && groupAttributeTypes.containsKey(resolutionKey)) {
-			resolution = n5.getAttribute(node.getPath(), resolutionKey, double[].class);
+			final double[] resolution = getAttribute(n5, path, resolutionKey, double[].class, resolutionKeyStrict,
+					x -> x.length == nd,
+					() -> DoubleStream.generate(() -> 1.0).limit(nd).toArray());
 
-			if (resolution.length < attributes.getNumDimensions())
-			  return Optional.empty();
-		  }
-		  else if ( resolutionKeyStrict )
-		    return Optional.empty();
-		  else
-			resolution = DoubleStream.generate(() -> 1.0).limit(nd).toArray();
+			final double[] downsamplingFactors = getAttribute(n5, path, downsamplingFactorsKey, double[].class,
+					downsamplingFactorsKeyStrict,
+					x -> x.length == nd,
+					() -> DoubleStream.generate(() -> 1.0).limit(nd).toArray());
 
-			final double[] downsamplingFactors ;
-		  if (!downsamplingFactorsKey.isEmpty() && groupAttributeTypes.containsKey(downsamplingFactorsKey)) {
-			downsamplingFactors = n5.getAttribute(node.getPath(), downsamplingFactorsKey, double[].class);
-			if (downsamplingFactors.length < attributes.getNumDimensions())
-			  return Optional.empty();
-		  else if ( downsamplingFactorsKeyStrict )
-			  return Optional.empty();
-		  } else
-			downsamplingFactors = DoubleStream.generate(() -> 1.0).limit(nd).toArray();
+			final String unit = getAttribute(n5, path, unitKey, String.class, unitKeyStrict,
+					x -> true, () -> "pixel");
 
-			final String unit;
-		  if (!unitKey.isEmpty() && groupAttributeTypes.containsKey(unitKey))
-			unit = n5.getAttribute(node.getPath(), unitKey, String.class);
-		  else if ( unitKeyStrict )
-			  return Optional.empty();
-		  else
-			unit = "pixel";
+			final double min = getAttribute(n5, path, minKey, double.class, minKeyStrict,
+					x -> true, () -> 0.0);
 
-			final double min;
-		  if (!minKey.isEmpty() && groupAttributeTypes.containsKey(minKey))
-			min = n5.getAttribute(node.getPath(), minKey, double.class);
-		  else if ( minKeyStrict )
-			  return Optional.empty();
-		  else
-			min = 0;
-
-			final double max;
-		  if (!maxKey.isEmpty() && groupAttributeTypes.containsKey(maxKey))
-			max = n5.getAttribute(node.getPath(), maxKey, double.class);
-		  else if ( maxKeyStrict )
-			  return Optional.empty();
-		  else
-			max = IntensityMetadata.maxForDataType(attributes.getDataType());
+			final double max = getAttribute(n5, path, maxKey, double.class, maxKeyStrict,
+					x -> true,
+					() -> IntensityMetadata.maxForDataType(attributes.getDataType()));
 
 			final Boolean isLabelMultiset = N5LabelMultisets.isLabelMultisetType(n5, node.getPath());
-
 			final AffineTransform3D transform = N5SingleScaleMetadataParser.buildTransform(downsamplingFactors, resolution, Optional.empty());
 
-			double[] offset;
-		  if (!offsetKey.isEmpty() && groupAttributeTypes.containsKey(offsetKey)) {
-			offset = n5.getAttribute(node.getPath(), offsetKey, double[].class);
-			for (int i = 0; i < offset.length; i++)
-			  transform.set(offset[i], i, 3);
-		  } else if ( offsetKeyStrict ) {
-			  return Optional.empty();
-		  } else {
-			offset = new double[3];
-			for (int i = 0; i < offset.length; i++)
-			  offset[i] = transform.get(i, 3);
+			double[] offset = getAttribute(n5, path, offsetKey, double[].class, offsetKeyStrict, 
+					x -> x.length == nd,
+					() -> DoubleStream.generate(() -> Double.NaN).limit(nd).toArray());
+
+			if (Double.isNaN(offset[0])) {
+				for (int i = 0; i < nd; i++)
+					offset[i] = transform.get(i, 3);
+			} else {
+				for (int i = 0; i < offset.length; i++)
+					transform.set(offset[i], i, 3);
 			}
 
-			final N5SingleScaleMetadata metadata = new N5SingleScaleMetadata(path, transform, downsamplingFactors, resolution, offset, unit, attributes, min, max,
-					isLabelMultiset);
+			final N5SingleScaleMetadata metadata = new N5SingleScaleMetadata(path, transform, downsamplingFactors,
+					resolution, offset, unit, attributes, min, max, isLabelMultiset);
+
 			return Optional.of(metadata);
 		} catch (final N5Exception e) {
 			return Optional.empty();
 		}
+	}
+
+	private static <T> Optional<T> getAttributeOptional(final N5Reader n5, final String path, final String key, Class<T> clazz) {
+
+		try {
+			return Optional.ofNullable(n5.getAttribute(path, key, clazz));
+		} catch (N5Exception e) {
+			return Optional.empty();
+		}
+	}
+
+	private static <T> T getAttribute(final N5Reader n5, final String path, final String key, Class<T> clazz,
+			final boolean strict, final Predicate<T> filter,
+			final Supplier<T> defaultValue) {
+
+		Optional<T> optAttr = getAttributeOptional( n5, path, key, clazz ).filter(filter);
+		if (strict)
+			return optAttr.orElseThrow(() -> new N5Exception("Missing or invalid attribute for key: " + key ));
+		else
+			return optAttr.orElseGet( defaultValue );
 	}
 }
