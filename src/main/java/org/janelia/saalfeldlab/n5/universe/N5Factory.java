@@ -72,6 +72,7 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -110,7 +111,7 @@ public class N5Factory implements Serializable {
 
 	private String s3Region = null;
 	private AWSCredentials s3Credentials = null;
-	private boolean s3Anonymous = false;
+	private boolean s3Anonymous = true;
 
 	private KeyValueAccess keyValueAccess;
 
@@ -226,15 +227,27 @@ public class N5Factory implements Serializable {
 				credentialsProvider = new AWSStaticCredentialsProvider(new AnonymousAWSCredentials());
 		}
 
-		Regions region = Optional.ofNullable(uri.getRegion()).map(Regions::fromName)	// first try getting the region from the URL
-			.orElse( Optional.ofNullable(s3Region).map(Regions::fromName)				// next use whatever is passed in
-			.orElse(Regions.US_EAST_1));												// fallback to us-east-1
+		AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard().withCredentials(credentialsProvider);
 
-		return AmazonS3ClientBuilder.standard()
-				.withCredentials(credentialsProvider)
-				.withRegion(region)
-				.build();
+		// is the endpoint not amazon hosted
+		if (!"s3".equalsIgnoreCase(uri.getURI().getScheme())) {
+			builder.withEndpointConfiguration(
+					new AwsClientBuilder.EndpointConfiguration(uri.getURI().getHost(), uri.getRegion()));
+		} else {
+			// skip region if endpoint is specified
+			final Regions region = Optional.ofNullable(
+					uri.getRegion()).map(Regions::fromName) 						// first try getting the
+					.orElse(Optional.ofNullable(s3Region).map(Regions::fromName)	// next use whatever is passed in
+					.orElse(Regions.US_EAST_1)); 									// fallback to us-east-1
+			try {
+				builder.withRegion(region);
+			} catch (Exception e) {
+			}
+		}
+
+		return builder.build();
 	}
+
 
 	/**
 	 * Open an {@link N5Reader} for N5 filesystem.
