@@ -113,7 +113,7 @@ public class N5Factory implements Serializable {
 
 	private String googleCloudProjectId = null;
 
-	private final String s3Region = null;
+	private String s3Region = null;
 	private AWSCredentials s3Credentials = null;
 	private boolean s3Anonymous = true;
 	private String s3Endpoint;
@@ -181,6 +181,12 @@ public class N5Factory implements Serializable {
 	public N5Factory s3Endpoint(final String s3Endpoint) {
 
 		this.s3Endpoint = s3Endpoint;
+		return this;
+	}
+
+	public N5Factory s3Region(final String s3Region) {
+
+		this.s3Region = s3Region;
 		return this;
 	}
 
