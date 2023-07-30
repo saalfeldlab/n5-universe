@@ -297,11 +297,15 @@ public class N5Factory implements Serializable {
 		AwsClientBuilder.EndpointConfiguration endpointConfiguration = null;
 		if (!"s3".equalsIgnoreCase(uri.getURI().getScheme())) {
 
-			final Matcher matcher = AWS_ENDPOINT_PATTERN.matcher(uri.getURI().getHost());
-			if (matcher.find())
-				endpointConfiguration = new EndpointConfiguration(matcher.group(2), uri.getRegion());
-			else
-				endpointConfiguration = new EndpointConfiguration(uri.getURI().getHost(), uri.getRegion());
+			if (s3Endpoint != null)
+				endpointConfiguration = new EndpointConfiguration(s3Endpoint, null);
+			else {
+				final Matcher matcher = AWS_ENDPOINT_PATTERN.matcher(uri.getURI().getHost());
+				if (matcher.find())
+					endpointConfiguration = new EndpointConfiguration(matcher.group(2), uri.getRegion());
+				else
+					endpointConfiguration = new EndpointConfiguration(uri.getURI().getHost(), uri.getRegion());
+			}
 		}
 		return createS3(getS3Credentials(), endpointConfiguration, getS3Region(uri));
 	}
