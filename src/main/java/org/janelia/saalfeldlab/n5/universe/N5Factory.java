@@ -62,6 +62,7 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -71,6 +72,8 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.AmazonS3URI;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
 import com.google.cloud.resourcemanager.Project;
 import com.google.cloud.resourcemanager.ResourceManager;
 import com.google.cloud.storage.Storage;
@@ -108,6 +111,7 @@ public class N5Factory implements Serializable {
 	private String s3Region = null;
 	private AWSCredentials s3Credentials = null;
 	private boolean s3Anonymous = true;
+	private boolean s3RetryWithCredentials = false;
 	private String s3Endpoint;
 
 	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
@@ -170,6 +174,18 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
+	public N5Factory s3UseCredentials(final AWSCredentials credentials) {
+
+		this.s3Credentials = credentials;
+		return this;
+	}
+
+	public N5Factory s3RetryWithCredentials() {
+
+		s3RetryWithCredentials = true;
+		return this;
+	}
+
 	public N5Factory s3Endpoint(final String s3Endpoint) {
 
 		this.s3Endpoint = s3Endpoint;
@@ -179,12 +195,6 @@ public class N5Factory implements Serializable {
 	public N5Factory s3Region(final String s3Region) {
 
 		this.s3Region = s3Region;
-		return this;
-	}
-
-	public N5Factory s3UseCredentials(final AWSCredentials credentials) {
-
-		this.s3Credentials = credentials;
 		return this;
 	}
 
@@ -224,16 +234,17 @@ public class N5Factory implements Serializable {
 			try {
 				final URI buri = new URI(uri);
 				final URI endpointUrl = new URI(buri.getScheme(), buri.getHost(), null, null);
-				return createS3(getS3Credentials(),
-						new AwsClientBuilder.EndpointConfiguration(endpointUrl.toString(), null), null);
+				return createS3(getS3Credentials(), new AwsClientBuilder.EndpointConfiguration(endpointUrl.toString(), null), null, getS3Bucket(uri));
 			} catch (final URISyntaxException e1) {}
 		}
 		throw new N5Exception("Could not create s3 client from uri: " + uri);
 	}
 
 	private AmazonS3 createS3(
-			final AWSStaticCredentialsProvider credentialsProvider,
-			final AwsClientBuilder.EndpointConfiguration endpointConfiguration, final Regions region) {
+			final AWSCredentialsProvider credentialsProvider,
+			final AwsClientBuilder.EndpointConfiguration endpointConfiguration,
+			final Regions region,
+			final String bucketName ) {
 
 		final boolean isAmazon = endpointConfiguration == null || AWS_ENDPOINT_PATTERN.matcher(endpointConfiguration.getServiceEndpoint()).find();
 		final AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
@@ -249,7 +260,35 @@ public class N5Factory implements Serializable {
 		else if (region != null)
 			builder.withRegion(region);
 
-		return builder.build();
+
+		AmazonS3 s3 = builder.build();
+		// if we used anonymous credentials and the factory requests a retry with credentials:
+		if( s3RetryWithCredentials && areAnonymous(credentialsProvider)) {
+
+			// I initially tried checking whether the bucket exists, but
+			// that, apparently, returns even when the client does not have access
+			if (!canListBucket(s3, bucketName)) {
+				// bucket not detected with anonymous credentials, try detecting credentials
+				// and return it even if it can't detect the bucket, since there's nothing else to do
+				s3 = createS3(new DefaultAWSCredentialsProviderChain(), endpointConfiguration, region, null  );
+			}
+		}
+		return s3;
+	}
+
+	private boolean canListBucket( final AmazonS3 s3, final String bucket) {
+
+		final ListObjectsV2Request request = new ListObjectsV2Request();
+		request.setBucketName(bucket);
+		request.setMaxKeys(1);
+
+		try {
+			// list objects will throw an AmazonS3Exception (Access Denied) if this client does not have access
+			s3.listObjectsV2(request);
+			return true;
+		} catch (final AmazonS3Exception e) {
+			return false;
+		}
 	}
 
 	private AWSStaticCredentialsProvider getS3Credentials() {
@@ -276,6 +315,16 @@ public class N5Factory implements Serializable {
 		return credentialsProvider;
 	}
 
+	private boolean areAnonymous(final AWSCredentialsProvider credsProvider) {
+
+		final AWSCredentials creds = credsProvider.getCredentials();
+		// AnonymousAWSCredentials do not have an equals method
+		if (creds.getClass().equals(AnonymousAWSCredentials.class))
+			return true;
+
+		return creds.getAWSAccessKeyId() == null && creds.getAWSSecretKey() == null;
+	}
+
 	private Regions getS3Region(final AmazonS3URI uri) {
 
 		final Regions region = Optional.ofNullable(uri.getRegion()).map(Regions::fromName) // get the region from the uri
@@ -299,7 +348,8 @@ public class N5Factory implements Serializable {
 					endpointConfiguration = new EndpointConfiguration(uri.getURI().getHost(), uri.getRegion());
 			}
 		}
-		return createS3(getS3Credentials(), endpointConfiguration, getS3Region(uri));
+
+		return createS3(getS3Credentials(), endpointConfiguration, getS3Region(uri), uri.getBucket());
 	}
 
 	private String getS3Bucket(final String uri) {
