@@ -26,4 +26,14 @@ public class Axis {
 	public String getUnit() {
 		return unit;
 	}
+
+	@Override
+	public boolean equals(Object other) {
+
+		if (other instanceof Axis) {
+			final Axis axis = (Axis) other;
+			return label.equals(axis.label) && type.equals(axis.type) && unit.equals(axis.unit);
+		}
+		return false;
+	}
 }
