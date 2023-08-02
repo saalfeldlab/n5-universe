@@ -12,15 +12,7 @@
  * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIG	 * @param mapN5DatasetAttributes 
-	 * 	  If true, getAttributes and variants of getAttribute methods will
-	 * 	  contain keys used by n5 datasets, and whose values are those for
-	 *    their corresponding zarr fields. For example, if true, the key "dimensions"
-	 *    (from n5) may be used to obtain the value of the key "shape" (from zarr). 
-	 * @param mergeAttributes 
-	 * 	  If true, fields from .zgroup, .zarray, and .zattrs will be merged
-	 *    when calling getAttributes, and variants of getAttribute
-	 * @param cacheMeta cache attributes and meta dataHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
