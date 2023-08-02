@@ -40,28 +40,31 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataGroup;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import se.sawano.java.text.AlphanumericComparator;
 
 /**
  * This class aids in detecting and parsing datsets in an N5 container.
  * <p>
- * An N5DatasetDiscoverer specifies the types of {@link N5MetadataParser}s 
- * to attempt, and an {@link ExecutorService} that enables parsing in parallel. 
+ * An N5DatasetDiscoverer specifies the types of {@link N5MetadataParser}s
+ * to attempt, and an {@link ExecutorService} that enables parsing in parallel.
  * The parsers are passed to the constructor in a list.
  * Group parsers are called after all others are called, and should
  * be used when a parsers result depends on its children.
- * <p> 
+ * <p>
  * The {@link discoverAndParseRecursive} method returns a {@link N5TreeNode}
  * containing all child nodes, each of which contains pased metadata.
  * For each group/dataset, the parsers will be called in order,
- * and will return the first non-empty result.  As such 
+ * and will return the first non-empty result.  As such
  * parsers should be ordered from most- to least-strict.
- * 
+ *
  * @author Caleb Hulbert
  * @author John Bogovic
  *
@@ -371,7 +374,7 @@ public class N5DatasetDiscoverer {
 	return discoverAndParseRecursive(base, x -> {});
   }
 
-	public N5TreeNode discoverAndParseRecursive(final String base, Consumer<N5TreeNode> callback ) throws IOException {
+	public N5TreeNode discoverAndParseRecursive(final String base, final Consumer<N5TreeNode> callback ) throws IOException {
 
 		groupSeparator = n5.getGroupSeparator();
 		root = new N5TreeNode(base);
@@ -383,7 +386,7 @@ public class N5DatasetDiscoverer {
 	  return discoverAndParseRecursive( root, x -> {})  ;
   }
 
-  public N5TreeNode discoverAndParseRecursive(final N5TreeNode root, Consumer<N5TreeNode> callback ) throws IOException {
+  public N5TreeNode discoverAndParseRecursive(final N5TreeNode root, final Consumer<N5TreeNode> callback ) throws IOException {
 
 	groupSeparator = n5.getGroupSeparator();
 
@@ -391,7 +394,7 @@ public class N5DatasetDiscoverer {
 	try {
 	  datasetPaths = n5.deepList(root.getPath(), executor);
 	  N5TreeNode.fromFlatList(root, datasetPaths, groupSeparator);
-	} catch (Exception e) {
+	} catch (final Exception e) {
 	  return null;
 	}
 	callback.accept(root);
@@ -424,17 +427,17 @@ public class N5DatasetDiscoverer {
 	// Go through all parsers to populate metadata
 	for (final N5MetadataParser<?> parser : metadataParsers) {
 	  try {
-		Optional<? extends N5Metadata> metadata = parser.apply(n5, node);
+		final Optional<? extends N5Metadata> metadata = parser.apply(n5, node);
 		if (metadata.isPresent()) {
 		  node.setMetadata(metadata.get());
 		  break;
 		}
-	  } catch (Exception e) {
+	  } catch (final Exception e) {
 	  }
 	}
 	return node;
   }
-  
+
   public void sortAndTrimRecursive(final N5TreeNode node) {
 	  sortAndTrimRecursive( node, x -> { });
   }
@@ -477,14 +480,14 @@ public class N5DatasetDiscoverer {
    * @param rootNode the root node
    * @param callback the callback function
    */
-  public void parseMetadataRecursive(final N5TreeNode rootNode, Consumer<N5TreeNode> callback) {
+  public void parseMetadataRecursive(final N5TreeNode rootNode, final Consumer<N5TreeNode> callback) {
 	/* depth first, check if we have children */
-	List<N5TreeNode> children = rootNode.childrenList();
+	final List<N5TreeNode> children = rootNode.childrenList();
 	final ArrayList<Future<?>> childrenFutures = new ArrayList<Future<?>>();
 	if (!children.isEmpty()) {
 	  /* If possible, parallelize the metadata parsing. */
 	  if (executor instanceof ThreadPoolExecutor) {
-		ThreadPoolExecutor threadPoolExec = (ThreadPoolExecutor)this.executor;
+		final ThreadPoolExecutor threadPoolExec = (ThreadPoolExecutor)this.executor;
 		for (final N5TreeNode child : children) {
 		  final boolean useExec;
 		  synchronized (executor) {
@@ -505,7 +508,7 @@ public class N5DatasetDiscoverer {
 	  }
 	}
 
-	for (Future<?> childrenFuture : childrenFutures) {
+	for (final Future<?> childrenFuture : childrenFutures) {
 	  try {
 		childrenFuture.get();
 	  } catch (InterruptedException | ExecutionException e) {
@@ -516,11 +519,25 @@ public class N5DatasetDiscoverer {
 
 	try {
 	  N5DatasetDiscoverer.parseMetadata(n5, rootNode, metadataParsers, groupParsers);
-	} catch (IOException e) {
+	} catch (final IOException e) {
 	}
 	LOG.debug("parsed metadata for: {}:\t found: {}", rootNode.getPath(), rootNode.getMetadata() == null ? "NONE" : rootNode.getMetadata().getClass().getSimpleName());
 
 	callback.accept(rootNode);
+
+	if( rootNode.getMetadata() instanceof N5MetadataGroup ) {
+
+		// spatial metadata groups may update their children metadata, and to be safe,
+		// run the callback on its children
+		@SuppressWarnings("unchecked")
+		final N5MetadataGroup<? extends N5Metadata> grpMeta = (N5MetadataGroup<N5Metadata>)rootNode.getMetadata();
+		for( final N5Metadata child : grpMeta.getChildrenMetadata() )
+		{
+			rootNode.getDescendant(child.getPath()).ifPresent( x -> {
+				callback.accept( x );
+			});
+		}
+	}
   }
 
   public static final List<N5MetadataParser<?>> fromParsers(final N5MetadataParser<?>[] parsers) {
