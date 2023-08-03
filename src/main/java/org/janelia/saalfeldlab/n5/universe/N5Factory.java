@@ -225,7 +225,7 @@ public class N5Factory implements Serializable {
 		return false;
 	}
 
-	public AmazonS3 createS3(final String uri) {
+	private AmazonS3 createS3(final String uri) {
 
 		try {
 			return createS3(new AmazonS3URI(uri));
@@ -234,7 +234,7 @@ public class N5Factory implements Serializable {
 			try {
 				final URI buri = new URI(uri);
 				final URI endpointUrl = new URI(buri.getScheme(), buri.getHost(), null, null);
-				return createS3(getS3Credentials(), new AwsClientBuilder.EndpointConfiguration(endpointUrl.toString(), null), null, getS3Bucket(uri));
+				return createS3(getS3Credentials(), new EndpointConfiguration(endpointUrl.toString(), null), null, getS3Bucket(uri));
 			} catch (final URISyntaxException e1) {}
 		}
 		throw new N5Exception("Could not create s3 client from uri: " + uri);
@@ -242,7 +242,7 @@ public class N5Factory implements Serializable {
 
 	private AmazonS3 createS3(
 			final AWSCredentialsProvider credentialsProvider,
-			final AwsClientBuilder.EndpointConfiguration endpointConfiguration,
+			final EndpointConfiguration endpointConfiguration,
 			final Regions region,
 			final String bucketName ) {
 
@@ -259,7 +259,8 @@ public class N5Factory implements Serializable {
 			builder.withEndpointConfiguration(endpointConfiguration);
 		else if (region != null)
 			builder.withRegion(region);
-
+		else
+			builder.withRegion("us-east-1");
 
 		AmazonS3 s3 = builder.build();
 		// if we used anonymous credentials and the factory requests a retry with credentials:
