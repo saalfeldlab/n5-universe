@@ -29,16 +29,21 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.stream.DoubleStream;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TransformationUtils;
+import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 
 import com.google.gson.JsonObject;
 
+import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform3D;
 
 /**
@@ -59,7 +64,7 @@ public class OmeNgffMultiScaleMetadata {
 	public final CoordinateTransformation<?>[] coordinateTransformations;
 
 	public transient String path;
-	public transient N5SingleScaleMetadata[] childrenMetadata;
+	public transient NgffSingleScaleAxesMetadata[] childrenMetadata;
 	public transient DatasetAttributes[] childrenAttributes;
 
 	public OmeNgffMultiScaleMetadata( final int nd, final String path, final String name,
@@ -68,11 +73,14 @@ public class OmeNgffMultiScaleMetadata {
 			final CoordinateTransformation<?>[] coordinateTransformations,
 			final OmeNgffDownsamplingMetadata metadata )
 	{
+		if( !allSameAxisOrder(childrenAttributes))
+			throw new RuntimeException("All ome-zarr arrays must have same array order");
 
 		this.name = name;
 		this.type = type;
 		this.version = version;
 		this.axes = axes;
+
 		this.datasets = datasets;
 		this.coordinateTransformations = coordinateTransformations;
 		this.metadata = metadata;
@@ -80,14 +88,14 @@ public class OmeNgffMultiScaleMetadata {
 		this.childrenMetadata = buildMetadata( nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes );
 	}
 
-	public static N5SingleScaleMetadata[] buildMetadata( final int nd, final String path,
+	public static NgffSingleScaleAxesMetadata[] buildMetadata( final int nd, final String path,
 			final DatasetAttributes[] childrenAttributes,
 			final OmeNgffMultiScaleMetadata multiscales ) {
 
 		return buildMetadata(nd, path, multiscales.datasets, childrenAttributes, multiscales.coordinateTransformations, multiscales.metadata, multiscales.axes);
 	}
 
-	private static N5SingleScaleMetadata[] buildMetadata(
+	private static NgffSingleScaleAxesMetadata[] buildMetadata(
 			final int nd, final String path, final OmeNgffDataset[] datasets,
 			final DatasetAttributes[] childrenAttributes,
 			final CoordinateTransformation<?>[] transforms,
@@ -95,53 +103,61 @@ public class OmeNgffMultiScaleMetadata {
 			final Axis[] axes )
 	{
 		final int N = datasets.length;
-		final double[] dsFactors = DoubleStream.generate( () -> 1 ).limit( nd ).toArray();
 
-		final N5SingleScaleMetadata[] childrenMetadata = new N5SingleScaleMetadata[ N ];
+		final NgffSingleScaleAxesMetadata[] childrenMetadata = new NgffSingleScaleAxesMetadata[ N ];
 		for ( int i = 0; i < N; i++ )
 		{
-			final AffineTransform3D affineTransform = TransformationUtils.tranformsToAffine(datasets[i], transforms);
+			AffineGet affineTransform = TransformationUtils.tranformsToAffine(datasets[i], transforms);
+			if( affineTransform == null )
+				affineTransform = new AffineTransform( nd );
+
 			final double[] offset = DoubleStream.generate( () -> 0 ).limit( nd ).toArray();
 			offsetFromAffine(affineTransform, offset);
 
 			final double[] scale = DoubleStream.generate( () -> 1 ).limit( nd ).toArray();
 			scaleFromAffine(affineTransform, scale);
 
-			N5SingleScaleMetadata meta;
-			if( childrenAttributes == null )
-			{
-				meta = new N5SingleScaleMetadata(MetadataUtils.canonicalPath(path, datasets[i].path),
-						affineTransform, dsFactors, scale, offset, axes[0].getUnit(), null );
-			}
-			else {
-				meta = new N5SingleScaleMetadata(MetadataUtils.canonicalPath(path, datasets[i].path),
-						affineTransform, dsFactors, scale, offset, axes[0].getUnit(), childrenAttributes[i] );
+			NgffSingleScaleAxesMetadata meta;
+			if (childrenAttributes == null) {
+				meta = new NgffSingleScaleAxesMetadata(MetadataUtils.canonicalPath(path, datasets[i].path),
+						scale, offset, axes, null);
+			} else {
+				meta = new NgffSingleScaleAxesMetadata(MetadataUtils.canonicalPath(path, datasets[i].path),
+						scale, offset, axes, childrenAttributes[i]);
 			}
 			childrenMetadata[i] = meta;
 		}
 		return childrenMetadata;
 	}
 
-	private static void offsetFromAffine(final AffineTransform3D affine, final double[] offset) {
-
-		offset[0] = affine.get(0, 3);
-		offset[1] = affine.get(1, 3);
-		offset[2] = affine.get(2, 3);
+	public Axis[] getAxes() {
+		// reverse the axes if necessary
+		if (childrenAttributes == null)
+			return axes;
+		else
+			return reverseIfCorder(childrenAttributes[0], axes);
 	}
 
-	private static void scaleFromAffine(final AffineTransform3D affine, final double[] scale) {
+	private static void offsetFromAffine(final AffineGet affine, final double[] offset) {
 
-		scale[0] = affine.get(0, 0);
-		scale[1] = affine.get(1, 1);
-		scale[2] = affine.get(2, 2);
+		final int nd = affine.numTargetDimensions();
+		for( int i = 0; i < nd; i++ )
+			offset[i] = affine.get(i, nd);
 	}
 
-	public N5SingleScaleMetadata[] buildChildren( final int nd,
+	private static void scaleFromAffine(final AffineGet affine, final double[] scale) {
+
+		final int nd = affine.numTargetDimensions();
+		for (int i = 0; i < nd; i++)
+			scale[i] = affine.get(i, i);
+	}
+
+	public NgffSingleScaleAxesMetadata[] buildChildren( final int nd,
 			final DatasetAttributes[] datasetAttributes,
 			final CoordinateTransformation<?>[] coordinateTransformations,
-			final Axis[] unit )
+			final Axis[] axes )
 	{
-		return buildMetadata(nd, path, datasets, datasetAttributes, coordinateTransformations, metadata, unit);
+		return buildMetadata(nd, path, datasets, datasetAttributes, coordinateTransformations, metadata, axes);
 	}
 
 	public N5SingleScaleMetadata buildChild( final int nd, final N5DatasetMetadata datasetMeta )
@@ -181,7 +197,7 @@ public class OmeNgffMultiScaleMetadata {
 		}).toArray(String[]::new);
 	}
 
-	public N5SingleScaleMetadata[] getChildrenMetadata()
+	public NgffSingleScaleAxesMetadata[] getChildrenMetadata()
 	{
 		return this.childrenMetadata;
 	}
@@ -212,4 +228,45 @@ public class OmeNgffMultiScaleMetadata {
 		public String args;
 		public JsonObject kwargs;
 	}
+
+	public static <T> T[] reverseIfCorder( final DatasetAttributes datasetAttributes, final T[] arr ) {
+
+		if( datasetAttributes == null )
+			return arr;
+
+		if (datasetAttributes instanceof ZarrDatasetAttributes) {
+
+			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes;
+			if (zattrs.isRowMajor()) {
+				final T[] arrCopy = Arrays.copyOf(arr, arr.length);
+				ArrayUtils.reverse(arrCopy);
+				return arrCopy;
+			}
+		}
+		return arr;
+	}
+
+	public static boolean allSameAxisOrder(final DatasetAttributes[] multiscaleDatasetAttributes) {
+
+		if( multiscaleDatasetAttributes == null )
+			return true;
+
+		boolean unknown = true;
+		boolean cOrder = true;
+		for (final DatasetAttributes ds : multiscaleDatasetAttributes) {
+			if (ds instanceof ZarrDatasetAttributes) {
+				final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)ds;
+
+				if (unknown) {
+					cOrder = zattrs.isRowMajor();
+					unknown = true;
+				} else if ( cOrder != zattrs.isRowMajor() ){
+					return false;
+				}
+			}
+		}
+		return true;
+
+	}
+
 }

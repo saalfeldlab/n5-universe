@@ -12,14 +12,14 @@ import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
-import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformationAdapter;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-
 
 public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>, N5MetadataWriter<OmeNgffMetadata> {
 
@@ -30,9 +30,20 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		gson = gsonBuilder().create();
 	}
 
+//	public static void main( final String[] args )
+//	{
+//		final Gson gson = gsonBuilder().create();
+//
+//		final OmeNgffDataset d = new OmeNgffDataset();
+//		d.path = "road";
+//		d.coordinateTransformations = new CoordinateTransformation<?>[0];
+//	}
+
 	public static GsonBuilder gsonBuilder() {
 		return new GsonBuilder()
 				.registerTypeAdapter(CoordinateTransformation.class, new CoordinateTransformationAdapter())
+				.registerTypeAdapter(OmeNgffDataset.class, new DatasetAdapter())
+				.registerTypeAdapter(Axis.class, new AxisAdapter())
 				.registerTypeAdapter(OmeNgffMultiScaleMetadata.class, new MultiscalesAdapter());
 	}
 
@@ -44,6 +55,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			final JsonElement base = n5.getAttribute(node.getPath(), "multiscales", JsonElement.class);
 			multiscales = gson.fromJson(base, OmeNgffMultiScaleMetadata[].class);
 		} catch (final Exception e) {
+			e.printStackTrace();
 			return Optional.empty();
 		}
 
@@ -72,13 +84,14 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			ms.path = node.getPath();
 			final String[] paths = ms.getPaths();
 			final DatasetAttributes[] attrs = new DatasetAttributes[ ms.getPaths().length ];
+
 			final N5DatasetMetadata[] dsetMeta = new N5DatasetMetadata[ paths.length ];
 			for( int i = 0; i < paths.length; i++ ) {
 				dsetMeta[ i ] = ((N5DatasetMetadata)scaleLevelNodes.get( MetadataUtils.canonicalPath( node, paths[ i ] ) ).getMetadata());
 				attrs[ i ] = dsetMeta[ i ].getAttributes();
 			}
 
-			final N5SingleScaleMetadata[] msChildrenMeta = ms.buildChildren( nd, attrs, ms.coordinateTransformations, ms.axes );
+			final NgffSingleScaleAxesMetadata[] msChildrenMeta = ms.buildChildren( nd, attrs, ms.coordinateTransformations, ms.axes );
 			MetadataUtils.updateChildrenMetadata( node, msChildrenMeta );
 			ms.childrenAttributes = attrs;
 			ms.childrenMetadata = msChildrenMeta;
@@ -87,12 +100,12 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales ));
 	}
 
+
 	@Override
 	public void writeMetadata(final OmeNgffMetadata t, final N5Writer n5, final String path) throws Exception {
 
 		final OmeNgffMultiScaleMetadata[] ms = t.multiscales;
 		n5.setAttribute(path, "multiscales", ms);
-
 	}
 
 }
