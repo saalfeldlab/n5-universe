@@ -540,9 +540,23 @@ public class N5DatasetDiscoverer {
 	}
   }
 
-  public static final List<N5MetadataParser<?>> fromParsers(final N5MetadataParser<?>[] parsers) {
+	public static final List<N5MetadataParser<?>> fromParsers(final N5MetadataParser<?>[] parsers) {
 
-	return Arrays.asList(parsers);
-  }
+		return Arrays.asList(parsers);
+	}
+
+	public static N5TreeNode discover(final N5Reader n5, final List<N5MetadataParser<?>> parsers, final List<N5MetadataParser<?>> groupParsers) {
+
+		final N5DatasetDiscoverer discoverer = new N5DatasetDiscoverer(n5, parsers, groupParsers);
+		try {
+			return discoverer.discoverAndParseRecursive("");
+		} catch (final IOException e) {}
+		return null;
+	}
+
+	public static N5TreeNode discover(final N5Reader n5, final List<N5MetadataParser<?>> parsers ) {
+
+		return discover( n5, parsers);
+	}
 
 }
