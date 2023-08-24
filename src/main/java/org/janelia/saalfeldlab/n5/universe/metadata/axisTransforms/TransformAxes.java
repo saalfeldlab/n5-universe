@@ -8,6 +8,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.Arrays;
 import net.imglib2.realtransform.RealTransform;
+
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.IndexedAxis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.IndexedAxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.transforms.IdentitySpatialTransform;
@@ -16,50 +18,50 @@ import org.janelia.saalfeldlab.n5.universe.metadata.transforms.SpatialTransform;
 import org.janelia.saalfeldlab.n5.universe.translation.JqUtils;
 
 /**
- * A transformation whose axes are labeled. 
+ * A transformation whose axes are labeled.
  * The number of input and output dimensions must be the same.
- * 
+ *
  * @author John Bogovic
  */
 public class TransformAxes implements SpatialTransform, IndexedAxisMetadata {
-	
+
 	private SpatialTransform transform;
 
 	private IndexedAxis[] inputAxes;
 
 	private IndexedAxis[] outputAxes;
-	
-	public TransformAxes( SpatialTransform transform, 
-			IndexedAxis[] inputAxes, 
-			IndexedAxis[] outputAxes ) {
+
+	public TransformAxes( final SpatialTransform transform,
+			final IndexedAxis[] inputAxes,
+			final IndexedAxis[] outputAxes ) {
 
 		this.transform = transform;
 		this.inputAxes = inputAxes;
 		this.outputAxes = outputAxes;
 	}
 
-	public TransformAxes( SpatialTransform transform, String... labels ) {
+	public TransformAxes( final SpatialTransform transform, final String... labels ) {
 		this( transform, IndexedAxis.dataAxes( labels.length ), IndexedAxis.axesFromLabels( labels ));
 	}
 
-	public TransformAxes( int[] indexes, String... labels ) {
-		this( new IdentitySpatialTransform(), 
+	public TransformAxes( final int[] indexes, final String... labels ) {
+		this( new IdentitySpatialTransform(),
 				IndexedAxis.dataAxes( labels.length ),
 				IndexedAxis.axesFromLabels( labels, indexes, "none" ));
 	}
 
-	public TransformAxes( String... labels ) {
-		this( new IdentitySpatialTransform(), 
+	public TransformAxes( final String... labels ) {
+		this( new IdentitySpatialTransform(),
 				IndexedAxis.dataAxes( labels.length ),
 				IndexedAxis.axesFromLabels( labels, "none" ));
 	}
 
-	protected void setDefaults( int firstIndex ) {
+	protected void setDefaults( final int firstIndex ) {
 		int nd = -1;
 		if( transform != null )
 			nd = transform.getTransform().numSourceDimensions();
 
-		// ugly - Identity transformations can return 0 dimension 
+		// ugly - Identity transformations can return 0 dimension
 		// (since they can apply to points of any size)
 		if( nd < 1 && outputAxes != null )
 			nd = outputAxes.length;
@@ -77,11 +79,11 @@ public class TransformAxes implements SpatialTransform, IndexedAxisMetadata {
 			this.outputAxes = IndexedAxis.defaultAxes(nd, firstIndex);
 
 		int i = firstIndex;
-		for (IndexedAxis ia : inputAxes)
+		for (final IndexedAxis ia : inputAxes)
 			ia.setDefaults(true, i++);
 
 		i = firstIndex;
-		for (IndexedAxis oa : outputAxes)
+		for (final IndexedAxis oa : outputAxes)
 			oa.setDefaults(false, i++);
 	}
 
@@ -94,18 +96,9 @@ public class TransformAxes implements SpatialTransform, IndexedAxisMetadata {
 	}
 
 	@Override
-	public String[] getAxisLabels() {
-		return Arrays.stream(outputAxes).map(IndexedAxis::getLabel).toArray(String[]::new);
-	}
+	public Axis[] getAxes() {
 
-	@Override
-	public String[] getAxisTypes() {
-		return Arrays.stream(outputAxes).map(IndexedAxis::getType).toArray(String[]::new);
-	}
-
-	@Override
-	public String[] getUnits() {
-		return Arrays.stream(outputAxes).map(IndexedAxis::getUnit).toArray(String[]::new);
+		return getOutputAxes();
 	}
 
 	@Override
@@ -118,7 +111,7 @@ public class TransformAxes implements SpatialTransform, IndexedAxisMetadata {
 		return transform.getTransform();
 	}
 
-	public static void main( String[] args ) throws JsonSyntaxException, JsonIOException, FileNotFoundException {
+	public static void main( final String[] args ) throws JsonSyntaxException, JsonIOException, FileNotFoundException {
 
 		final Gson gson = JqUtils.buildGson(null);
 		final ScaleSpatialTransform xfm = new ScaleSpatialTransform( new double[] {2, 3, 4});
@@ -135,8 +128,8 @@ public class TransformAxes implements SpatialTransform, IndexedAxisMetadata {
 //		TransformAxesMetadata xfmAxis = new TransformAxes( xfm, "z","y","c");
 //		System.out.println( gson.toJson( xfmAxis ));
 
-		File f = new File("/home/john/dev/n5/n5-imglib2-translation/src/test/resources/transforms/transformsWithAxes.json");
-		TransformAxes tam = gson.fromJson( new FileReader( f ), TransformAxes.class );
+		final File f = new File("/home/john/dev/n5/n5-imglib2-translation/src/test/resources/transforms/transformsWithAxes.json");
+		final TransformAxes tam = gson.fromJson( new FileReader( f ), TransformAxes.class );
 		System.out.println( tam );
 
 	}

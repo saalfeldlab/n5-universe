@@ -3,6 +3,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.canonical;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.ColorMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 
 public class CanonicalSpatialDatasetMetadata extends CanonicalDatasetMetadata implements CanonicalMetadata, N5DatasetMetadata, AxisMetadata {
@@ -50,6 +51,12 @@ public class CanonicalSpatialDatasetMetadata extends CanonicalDatasetMetadata im
 	@Override
 	public String[] getUnits() {
 		return spatialTransform.getUnits();
+	}
+
+	@Override
+	public Axis[] getAxes() {
+
+		return spatialTransform.getAxes();
 	}
 
 }
