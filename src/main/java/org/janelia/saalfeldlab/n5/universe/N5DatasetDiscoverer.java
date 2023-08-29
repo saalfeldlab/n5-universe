@@ -580,6 +580,11 @@ public class N5DatasetDiscoverer {
 
 	public static N5TreeNode discover(final N5Reader n5, final List<N5MetadataParser<?>> parsers) {
 
+		return discover(n5, parsers, null);
+	}
+
+	public static N5TreeNode discover(final N5Reader n5 ) {
+
 		return discover(n5,
 				Arrays.asList(DEFAULT_PARSERS),
 				Arrays.asList(DEFAULT_GROUP_PARSERS));
