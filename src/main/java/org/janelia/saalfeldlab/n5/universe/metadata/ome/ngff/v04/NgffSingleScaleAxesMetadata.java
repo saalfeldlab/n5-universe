@@ -9,23 +9,30 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5SpatialDatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
 
 public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatasetMetadata {
 
+	public static final String AXIS_KEY = "axes";
+
+	public static final String COORDINATETRANSFORMATIONS_KEY = "coordinateTransformations";
+
 	private final String path;
 
 	private final Axis[] axes;
 
-	private final DatasetAttributes datasetAttributes;
+	private final CoordinateTransformation<?>[] coordinateTransformations;
 
-	private final double[] scale;
+	private transient final DatasetAttributes datasetAttributes;
 
-	private final double[] translation;
+	private transient final double[] scale;
 
-	private final AffineGet transform;
+	private transient final double[] translation;
+
+	private transient final AffineGet transform;
 
 	public NgffSingleScaleAxesMetadata(final String path, final double[] scale, final double[] translation,
 			final DatasetAttributes datasetAttributes) {
@@ -46,17 +53,24 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 
 		this.datasetAttributes = datasetAttributes;
 
+		// TODO generalize for translation first
+		coordinateTransformations = MetadataUtils.buildScaleTranslationTransformList(scale, translation);
 		this.transform = MetadataUtils.scaleTranslationTransforms(scale, translation);
 	}
 
 	@Override
 	public Axis[] getAxes() {
 
-		// reverse the axes if necessary
-		if (datasetAttributes == null)
+		// reverse final the axes if necessary
+//		if (datasetAttributes == null)
 			return axes;
-		else
-			return OmeNgffMultiScaleMetadata.reverseIfCorder(datasetAttributes, axes);
+//		else
+//			return OmeNgffMultiScaleMetadata.reverseIfCorder(datasetAttributes, axes);
+	}
+
+	public CoordinateTransformation<?>[] getCoordinateTransformations() {
+
+		return coordinateTransformations;
 	}
 
 	@Override

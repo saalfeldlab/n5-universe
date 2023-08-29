@@ -1,9 +1,11 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -16,30 +18,32 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformationAdapter;
+import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
 public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>, N5MetadataWriter<OmeNgffMetadata> {
 
 	private final Gson gson;
 
-	public OmeNgffMetadataParser() {
+	private boolean reverse = false;
+
+	public OmeNgffMetadataParser(final boolean reverse) {
 
 		gson = gsonBuilder().create();
+		this.reverse = reverse;
 	}
 
-//	public static void main( final String[] args )
-//	{
-//		final Gson gson = gsonBuilder().create();
-//
-//		final OmeNgffDataset d = new OmeNgffDataset();
-//		d.path = "road";
-//		d.coordinateTransformations = new CoordinateTransformation<?>[0];
-//	}
+	public OmeNgffMetadataParser() {
+
+		this(false);
+	}
 
 	public static GsonBuilder gsonBuilder() {
+
 		return new GsonBuilder()
 				.registerTypeAdapter(CoordinateTransformation.class, new CoordinateTransformationAdapter())
 				.registerTypeAdapter(OmeNgffDataset.class, new DatasetAdapter())
@@ -77,35 +81,62 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			return Optional.empty();
 
 		/*
-		 * Need to replace all children with new children with the
-		 * metadata from this object
+		 * Need to replace all children with new children with the metadata from
+		 * this object
 		 */
-		for ( final OmeNgffMultiScaleMetadata ms : multiscales ) {
+		boolean cOrder = false;
+		for (int j = 0; j < multiscales.length; j++) {
+
+			final OmeNgffMultiScaleMetadata ms = multiscales[j];
+
 			ms.path = node.getPath();
 			final String[] paths = ms.getPaths();
-			final DatasetAttributes[] attrs = new DatasetAttributes[ ms.getPaths().length ];
+			final DatasetAttributes[] attrs = new DatasetAttributes[ms.getPaths().length];
 
-			final N5DatasetMetadata[] dsetMeta = new N5DatasetMetadata[ paths.length ];
-			for( int i = 0; i < paths.length; i++ ) {
-				dsetMeta[ i ] = ((N5DatasetMetadata)scaleLevelNodes.get( MetadataUtils.canonicalPath( node, paths[ i ] ) ).getMetadata());
-				attrs[ i ] = dsetMeta[ i ].getAttributes();
+			final N5DatasetMetadata[] dsetMeta = new N5DatasetMetadata[paths.length];
+			for (int i = 0; i < paths.length; i++) {
+				dsetMeta[i] = ((N5DatasetMetadata)scaleLevelNodes.get(MetadataUtils.canonicalPath(node, paths[i])).getMetadata());
+				attrs[i] = dsetMeta[i].getAttributes();
+				cOrder = cOrder || cOrder(attrs[i]);
 			}
 
-			final NgffSingleScaleAxesMetadata[] msChildrenMeta = ms.buildChildren( nd, attrs, ms.coordinateTransformations, ms.axes );
-			MetadataUtils.updateChildrenMetadata( node, msChildrenMeta );
+			if (cOrder)
+				ArrayUtils.reverse(ms.axes);
+
+			final NgffSingleScaleAxesMetadata[] msChildrenMeta = ms.buildChildren(nd, attrs, ms.coordinateTransformations, ms.axes);
+			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta);
 			ms.childrenAttributes = attrs;
 			ms.childrenMetadata = msChildrenMeta;
 		}
 
-		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales ));
+		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales));
 	}
-
 
 	@Override
 	public void writeMetadata(final OmeNgffMetadata t, final N5Writer n5, final String path) throws Exception {
 
 		final OmeNgffMultiScaleMetadata[] ms = t.multiscales;
-		n5.setAttribute(path, "multiscales", ms);
+		final JsonElement jsonElem = gson.toJsonTree(ms);
+
+//		// need to reverse axes
+//		if (reverse) {
+//
+//			for (final JsonElement e : jsonElem.getAsJsonArray().asList()) {
+//				final JsonArray axes = e.getAsJsonObject().get("axes").getAsJsonArray();
+//				Collections.reverse(axes.asList());
+//			}
+//		}
+
+		n5.setAttribute(path, "multiscales", jsonElem);
+	}
+
+	public static boolean cOrder(final DatasetAttributes datasetAttributes) {
+
+		if (datasetAttributes instanceof ZarrDatasetAttributes) {
+			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes;
+			return zattrs.isRowMajor();
+		}
+		return false;
 	}
 
 }

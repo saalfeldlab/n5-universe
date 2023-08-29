@@ -131,11 +131,7 @@ public class OmeNgffMultiScaleMetadata {
 	}
 
 	public Axis[] getAxes() {
-		// reverse the axes if necessary
-		if (childrenAttributes == null)
-			return axes;
-		else
-			return reverseIfCorder(childrenAttributes[0], axes);
+		return axes;
 	}
 
 	private static void offsetFromAffine(final AffineGet affine, final double[] offset) {
@@ -229,9 +225,18 @@ public class OmeNgffMultiScaleMetadata {
 		public JsonObject kwargs;
 	}
 
+	public static boolean cOrder( final DatasetAttributes datasetAttributes ) {
+
+		if (datasetAttributes instanceof ZarrDatasetAttributes) {
+			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes;
+			return zattrs.isRowMajor();
+		}
+		return false;
+	}
+
 	public static <T> T[] reverseIfCorder( final DatasetAttributes datasetAttributes, final T[] arr ) {
 
-		if( datasetAttributes == null )
+		if (datasetAttributes == null || arr == null)
 			return arr;
 
 		if (datasetAttributes instanceof ZarrDatasetAttributes) {
@@ -239,6 +244,23 @@ public class OmeNgffMultiScaleMetadata {
 			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes;
 			if (zattrs.isRowMajor()) {
 				final T[] arrCopy = Arrays.copyOf(arr, arr.length);
+				ArrayUtils.reverse(arrCopy);
+				return arrCopy;
+			}
+		}
+		return arr;
+	}
+
+	public static double[] reverseIfCorder( final DatasetAttributes datasetAttributes, final double[] arr ) {
+
+		if (datasetAttributes == null || arr == null)
+			return arr;
+
+		if (datasetAttributes instanceof ZarrDatasetAttributes) {
+
+			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes;
+			if (zattrs.isRowMajor()) {
+				final double[] arrCopy = Arrays.copyOf(arr, arr.length);
 				ArrayUtils.reverse(arrCopy);
 				return arrCopy;
 			}

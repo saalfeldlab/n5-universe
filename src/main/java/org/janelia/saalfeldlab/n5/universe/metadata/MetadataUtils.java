@@ -7,12 +7,15 @@ import java.util.HashMap;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 
 import net.imglib2.realtransform.AffineGet;
-import net.imglib2.realtransform.InvertibleRealTransformSequence;
 import net.imglib2.realtransform.Scale;
 import net.imglib2.realtransform.Scale2D;
 import net.imglib2.realtransform.Scale3D;
@@ -21,8 +24,76 @@ import net.imglib2.realtransform.Translation;
 import net.imglib2.realtransform.Translation2D;
 import net.imglib2.realtransform.Translation3D;
 
-public class MetadataUtils
-{
+public class MetadataUtils {
+
+
+	public static double[] mul(final double[] a, final double[] b) {
+
+		final double[] out = new double[ a.length ];
+		for( int i = 0; i <  a.length; i++ )
+			out[i] = a[i] * b[i];
+
+		return out;
+	}
+
+	public static double[] mul(final double[] a, final long[] b) {
+
+		final double[] out = new double[ a.length ];
+		for( int i = 0; i <  a.length; i++ )
+			out[i] = a[i] * b[i];
+
+		return out;
+	}
+
+	public static long[] downsamplingFactors(final long factor, final long[] dimensions, final String[] types) {
+
+		final int nd = dimensions.length;
+		final long[] factors = new long[nd];
+		for (int i = 0; i < nd; i++) {
+
+			if (dimensions[i] > factor && !types[i].equals(Axis.CHANNEL))
+				factors[i] = factor;
+			else
+				factors[i] = 1;
+
+		}
+		return factors;
+	}
+
+	public static long[] updateDownsamplingFactors(final long factor, final long[] baseFactors, final long[] dimensions, final String[] types) {
+
+		final int nd = dimensions.length;
+		final long[] factors = new long[nd];
+		for (int i = 0; i < nd; i++) {
+
+			if (dimensions[i] > factor && !types[i].equals(Axis.CHANNEL))
+				factors[i] = factor * baseFactors[i];
+			else
+				factors[i] = baseFactors[i];
+
+		}
+		return factors;
+	}
+
+	public static CoordinateTransformation<?>[] buildScaleTranslationTransformList( final double[] scale, final double[] translation ) {
+		int nTforms = 0;
+		if( scale != null )
+			nTforms++;
+
+		if( translation != null )
+			nTforms++;
+
+		final CoordinateTransformation<?>[] coordinateTransformations = new CoordinateTransformation<?>[nTforms];
+
+		int i = 0;
+		if( scale != null )
+			coordinateTransformations[i++] = new ScaleCoordinateTransformation(scale);
+
+		if( translation != null )
+			coordinateTransformations[i++] = new TranslationCoordinateTransformation(translation);
+
+		return coordinateTransformations;
+	}
 
 	/**
 	 * Returns a new {@link N5SingleScaleMetadata} equal to the baseMetadata, but with
