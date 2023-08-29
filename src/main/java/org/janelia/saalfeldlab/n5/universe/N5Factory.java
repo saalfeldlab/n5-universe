@@ -100,7 +100,7 @@ public class N5Factory implements Serializable {
 	private boolean hdf5OverrideBlockSize = false;
 
 	private GsonBuilder gsonBuilder = new GsonBuilder();
-	private boolean cacheAttributes = false;
+	private boolean cacheAttributes = true;
 
 	private String zarrDimensionSeparator = ".";
 	private boolean zarrMapN5DatasetAttributes = true;
