@@ -1,7 +1,10 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.axes;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import net.imglib2.RandomAccessibleInterval;
@@ -50,6 +53,23 @@ public class AxisUtils {
 				return null;
 		}
 		return p;
+	}
+
+	public static <T> List<T> permute(final List<T> in, final int[] p) {
+
+		final ArrayList<T> out = new ArrayList<T>(p.length);
+		for (int i = 0; i < p.length; i++)
+			out.add(in.get(p[i]));
+
+		return out;
+	}
+
+	public static Axis[] buildAxes( final String... labels )
+	{
+		return Arrays.stream(labels).map( x -> {
+			final String type = getDefaultType( x );
+			return new Axis(x, type, "", type.equals(Axis.CHANNEL));
+		}).toArray( Axis[]::new );
 	}
 
 	/**
@@ -249,6 +269,33 @@ public class AxisUtils {
 			else
 				return "unknown";
 		}
+	}
+
+
+	/**
+	 * Returns true if any elements of array are contained in the set
+	 * @param set the set
+	 * @param array the array
+	 * @return
+	 */
+	public static <T> boolean containsAny( final Set<T> set, final T[] array )
+	{
+		for( final T t : array )
+			if( set.contains( t ))
+				return true;
+
+		return false;
+	}
+
+	/**
+	 * Returns true if any elements of array  equal t
+	 * @param t some element
+	 * @param array the array
+	 * @return true if array contains t
+	 */
+	public static <T> boolean contains( final T t, final T[] array )
+	{
+		return Arrays.stream(array).anyMatch( x -> x.equals(t) );
 	}
 
 }
