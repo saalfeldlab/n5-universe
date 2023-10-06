@@ -32,8 +32,8 @@ public class CoordinateSystem
 		return axes.length;
 	}
 
-	public String[] getAxisLabels() {
-		return Arrays.stream(axes).map( Axis::getLabel).toArray(String[]::new);
+	public String[] getAxisNames() {
+		return Arrays.stream(axes).map( Axis::getName).toArray(String[]::new);
 	}
 
 	public String[] getAxisTypes() {
@@ -49,7 +49,7 @@ public class CoordinateSystem
 	}
 
 	public boolean hasAxis( final String label ) {
-		return Arrays.stream(axes).map(Axis::getLabel).anyMatch(l -> l.equals(label));
+		return Arrays.stream(axes).map(Axis::getName).anyMatch(l -> l.equals(label));
 	}
 
 	/**
@@ -69,12 +69,12 @@ public class CoordinateSystem
 	}
 
 	public boolean isSuperspaceOf( final CoordinateSystem other ) {
-		return isSuperspaceOf(other.getAxisLabels());
+		return isSuperspaceOf(other.getAxisNames());
 	}
 
 	public boolean isSuperspaceOf( final String[] axisLabels )
 	{
-		final String[] mylabels = getAxisLabels();
+		final String[] mylabels = getAxisNames();
 		for( final String l : axisLabels )
 			if( !contains( l, mylabels ))
 				return false;
@@ -84,7 +84,7 @@ public class CoordinateSystem
 
 	public boolean isSubspaceOf( final CoordinateSystem other )
 	{
-		return isSubspaceOf(other.getAxisLabels());
+		return isSubspaceOf(other.getAxisNames());
 	}
 
 	/**
@@ -105,7 +105,7 @@ public class CoordinateSystem
 
 	public boolean isSubspaceOf( final String[] axisLabels )
 	{
-		for( final String l : getAxisLabels() )
+		for( final String l : getAxisNames() )
 			if( !contains( l, axisLabels ))
 				return false;
 
@@ -115,7 +115,7 @@ public class CoordinateSystem
 	public CoordinateSystem subSpace( final String name, final String... axisLabels )
 	{
 		return new CoordinateSystem( name,
-				Arrays.stream(axes).filter( x -> {return AxisUtils.contains(x.getLabel(), axisLabels);})
+				Arrays.stream(axes).filter( x -> {return AxisUtils.contains(x.getName(), axisLabels);})
 				.toArray( Axis[]::new ));
 	}
 
@@ -130,7 +130,7 @@ public class CoordinateSystem
 
 	public CoordinateSystem intersection( final String name, final CoordinateSystem space )
 	{
-		return subSpace( name, space.getAxisLabels() );
+		return subSpace( name, space.getAxisNames() );
 	}
 
 	/**
@@ -143,9 +143,9 @@ public class CoordinateSystem
 	 */
 	public CoordinateSystem diff( final String name, final CoordinateSystem space )
 	{
-		final String[] axisLabels = space.getAxisLabels();
+		final String[] axisLabels = space.getAxisNames();
 		return new CoordinateSystem( name,
-				Arrays.stream(axes).filter( x -> {return !AxisUtils.contains(x.getLabel(), axisLabels);})
+				Arrays.stream(axes).filter( x -> {return !AxisUtils.contains(x.getName(), axisLabels);})
 				.toArray( Axis[]::new ));
 	}
 
@@ -158,7 +158,7 @@ public class CoordinateSystem
 	 */
 	public boolean axesEquals( final CoordinateSystem other ) {
 
-		return axesEquals(other.getAxisLabels());
+		return axesEquals(other.getAxisNames());
 	}
 
 	/**
@@ -169,7 +169,7 @@ public class CoordinateSystem
 	 * @return contain same axes
 	 */
 	public boolean axesEquals( final String[] axes ) {
-		if( axes.length != this.getAxisLabels().length )
+		if( axes.length != numDimensions() )
 			return false;
 
 		return isSubspaceOf(axes);
@@ -185,15 +185,15 @@ public class CoordinateSystem
 	}
 
 	public boolean axesLabelsMatch( final String[] labels ) {
-		return Arrays.equals(labels, getAxisLabels());
+		return Arrays.equals(labels, getAxisNames());
 	}
 
 	public boolean hasAllLabels( final String[] labels ) {
-		if( getAxisLabels().length != labels.length )
+		if( numDimensions() != labels.length )
 			return false;
 
 		for( final String l : labels )
-			if( ! Arrays.stream(axes).map( Axis::getLabel).anyMatch( x -> x.equals(l)))
+			if( ! Arrays.stream(axes).map( Axis::getName).anyMatch( x -> x.equals(l)))
 				return false;
 
 		return true;
@@ -205,8 +205,8 @@ public class CoordinateSystem
 	 * @return the first index corresponding to that label
 	 */
 	public int indexOf(final String label) {
-		for (int i = 0; i < getAxisLabels().length; i++)
-			if (getAxisLabels()[i].equals(label))
+		for (int i = 0; i < numDimensions(); i++)
+			if (getAxisNames()[i].equals(label))
 				return i;
 
 		return -1;
@@ -214,7 +214,7 @@ public class CoordinateSystem
 
 	public int[] indexesOfType( final String type ) {
 		final String[] types = getAxisTypes();
-		return IntStream.range(0, getAxisTypes().length )
+		return IntStream.range(0, numDimensions() )
 			.filter( i -> types[i].equals(type))
 			.toArray();
 	}

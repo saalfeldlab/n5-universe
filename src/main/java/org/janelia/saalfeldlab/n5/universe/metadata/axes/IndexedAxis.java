@@ -29,16 +29,16 @@ public class IndexedAxis extends Axis {
 			index = idx;
 	}
 	protected void setDefaultLabel( final boolean data ) {
-		if( label == null )
+		if( name == null )
 			if( data )
-				label = String.format( "data_%d", index );
+				name = String.format( "data_%d", index );
 			else
-				label = String.format( "dim_%d", index );
+				name = String.format( "dim_%d", index );
 	}
 
 	protected void setDefaultType() {
 		if( type == null )
-			type = AxisUtils.getDefaultType(label);
+			type = AxisUtils.getDefaultType(name);
 	}
 
 	protected void setDefaultUnit() {

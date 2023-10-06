@@ -10,31 +10,31 @@ public class Axis {
 
 	protected String type;
 
-	protected String label;
+	protected String name;
 
 	protected String unit;
 
 	protected boolean discrete;
 
-	public Axis( final String type, final String label, final String unit, final boolean discrete )
+	public Axis( final String type, final String name, final String unit, final boolean discrete )
 	{
 		this.type = type;
-		this.label = label;
+		this.name = name;
 		this.unit = unit;
 		this.discrete = discrete;
 	}
 
-	public Axis( final String type, final String label, final String unit )
+	public Axis( final String type, final String name, final String unit )
 	{
-		this( type, label, unit, false );
+		this( type, name, unit, false );
 	}
 
 	public String getType() {
 		return type;
 	}
 
-	public String getLabel() {
-		return label;
+	public String getName() {
+		return name;
 	}
 
 	public String getUnit() {
@@ -46,7 +46,7 @@ public class Axis {
 
 		if (other instanceof Axis) {
 			final Axis axis = (Axis) other;
-			return label.equals(axis.label) && type.equals(axis.type) && unit.equals(axis.unit);
+			return name.equals(axis.name) && type.equals(axis.type) && unit.equals(axis.unit);
 		}
 		return false;
 	}
@@ -54,7 +54,7 @@ public class Axis {
 	@Override
 	public String toString() {
 
-		return String.format("axis %s: \"%s\" (%s)", type, label, unit );
+		return String.format("axis %s: \"%s\" (%s)", type, name, unit );
 	}
 
 	public static Axis defaultArray(final int index) {

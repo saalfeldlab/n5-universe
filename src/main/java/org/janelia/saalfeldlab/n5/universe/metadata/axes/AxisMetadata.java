@@ -20,7 +20,7 @@ public interface AxisMetadata {
 
 	public default String[] getAxisLabels() {
 
-		return Arrays.stream(getAxes()).map(Axis::getLabel).toArray(String[]::new);
+		return Arrays.stream(getAxes()).map(Axis::getName).toArray(String[]::new);
 	}
 
 	public default String[] getAxisTypes() {

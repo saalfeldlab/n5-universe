@@ -33,7 +33,7 @@ public class AxisAdapter implements JsonSerializer<Axis>, JsonDeserializer<Axis>
 
 		final JsonObject obj = new JsonObject();
 		obj.addProperty("type", src.getType());
-		obj.addProperty("name", src.getLabel());
+		obj.addProperty("name", src.getName());
 		obj.addProperty("unit", src.getUnit());
 
 		return obj;
