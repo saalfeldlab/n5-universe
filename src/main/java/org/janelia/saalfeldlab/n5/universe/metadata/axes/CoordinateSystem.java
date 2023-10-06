@@ -55,9 +55,9 @@ public class CoordinateSystem
 	/**
 	 * Is a a super set of b.
 	 *
-	 * @param a
-	 * @param b
-	 * @return
+	 * @param a an array of strings
+	 * @param b an array of strings
+	 * @return true if every element of b is in a
 	 */
 	public static boolean isSuperspaceOf( final String[] a, final String[] b )
 	{

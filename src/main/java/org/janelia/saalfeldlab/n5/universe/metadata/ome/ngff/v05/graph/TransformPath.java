@@ -10,11 +10,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.SequenceCoordinateTransform;
 
-import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.RealTransform;
 import net.imglib2.realtransform.RealTransformSequence;
-import net.imglib2.realtransform.ScaleAndTranslation;
 
 public class TransformPath {
 
@@ -62,7 +60,7 @@ public class TransformPath {
 	/**
 	 * Does this path run through the given space.
 	 *
-	 * @param space the space
+	 * @param cs the coordinate system
 	 * @return true if this path contains space
 	 */
 	public boolean hasSpace( final CoordinateSystem cs )
@@ -85,7 +83,6 @@ public class TransformPath {
 
 	public RealTransform totalTransform( final N5Reader n5, final TransformGraph g )
 	{
-		// TODO clean up
 		final RealTransformSequence total = new RealTransformSequence();
 		flatTransforms().forEach( t ->  {
 				if( t instanceof SequenceCoordinateTransform)
@@ -145,7 +142,6 @@ public class TransformPath {
 	{
 		final LinkedList<String> flatSpace = new LinkedList<>();
 		flatSpace( flatSpace );
-//		if( parentPath == null )
 		flatSpace.addFirst( start );
 		return flatSpace;
 	}
@@ -180,10 +176,5 @@ public class TransformPath {
 
 		return out.toString();
 	}
-
-//	public void add(Space s, Transform t) {
-//		spaces.add( s );
-//		transforms.add( t );
-//	}
 
 }

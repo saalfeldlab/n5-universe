@@ -193,6 +193,7 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 	 *
 	 * @param n5 n5 reader
 	 * @param group group
+	 * @param output the name of the output coordinate system
 	 * @return a transformation or null
 	 */
 	public static CoordinateTransform<?> findPixelToPhysicalTransformCheckSelfRef(final N5Reader n5, final String group, final String output ) {

@@ -6,8 +6,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -46,25 +44,12 @@ public class TransformGraph
 		gson = SpacesTransforms.buildGson();
 		this.spaces = spaces;
 		this.transforms = new ArrayList<>();
-//		this.transforms.addAll(transforms);
-//		this.transforms = transforms = new ArrayList<>();;
 		inferSpacesFromAxes();
 
 		spacesToNodes = new HashMap< CoordinateSystem, CTNode >();
 		for( final CoordinateTransform<?> t : transforms )
-		{
 			addTransform(t);
 
-//			final Space src = getInputSpace( t );
-//			if( spacesToNodes.containsKey( src ))
-//				spacesToNodes.get( src ).edges().add( t );
-//			else
-//			{
-//				SpaceNode node = new SpaceNode( src );
-//				node.edges().add( t );
-//				spacesToNodes.put( src, node );
-//			}
-		}
 		updateTransforms();
 	}
 
@@ -102,7 +87,6 @@ public class TransformGraph
 	}
 
 	public CoordinateSystem getInput( final CoordinateTransform<?> t ) {
-//		return namesToSpaces.get( t.getInputSpace());
 		return spaces.getSpace(t.getInput());
 	}
 
@@ -134,8 +118,6 @@ public class TransformGraph
 		}
 		else
 		{
-			System.out.println( "adding despite missing space: " + t );
-//			spaces.makeDefault( t.getInputAxes() )
 			transforms.add( t );
 		}
 
@@ -147,11 +129,6 @@ public class TransformGraph
 	{
 		getCoordinateSystems().updateTransforms( getTransforms().stream() );
 	}
-
-//	private void addInverse( InvertibleCoordinateTransform<?> ict )
-//	{
-//		addTransform( new InverseCT(ict));
-//	}
 
 	public void addSpace( final CoordinateSystem space )
 	{
@@ -166,18 +143,18 @@ public class TransformGraph
 		g.transforms.stream().forEach( t -> addTransform(t));
 	}
 
-	/**				final CoordinateTransformation<?> ct = n5.getAttribute(dataset, attribute, CoordinateTransformation.class);
-				final CoordinateTransformation<?> nct = CoordinateTransformation.create(ct);
-
-	 * Returns all transforms that have all input axis in the from space
-	 * and all output axis in their to space.
+	/**
+	 * Returns all transforms that have all input axis in the "input" {@link CoordinateSystem}
+	 * and all output axis in the "output" CoordinateSystem.
 	 *
-	 * @return
+	 * @param input the input coordinate system
+	 * @param output the output coordinate system
+	 * @return the "sub-transformations"
 	 */
-	public List<CoordinateTransform<?>> subTransforms( final CoordinateSystem from, final CoordinateSystem to) {
+	public List<CoordinateTransform<?>> subTransforms( final CoordinateSystem input, final CoordinateSystem output) {
 		return getTransforms().stream().filter( t ->
 			{
-				return spaces.inputIsSubspace( t, from ) && spaces.outputIsSubspace( t, to );
+				return spaces.inputIsSubspace( t, input ) && spaces.outputIsSubspace( t, output );
 			}
 		).collect( Collectors.toList());
 	}
@@ -224,8 +201,6 @@ public class TransformGraph
 
 	public CoordinateTransform<?> buildImpliedTransform( final CoordinateSystem from, final CoordinateSystem to )
 	{
-//		final List<CoordinateTransform<?>> tList = subTransforms( from, to );
-
 		final List<CoordinateTransform<?>> tList = new ArrayList<>();
 
 		// order list
@@ -266,15 +241,6 @@ public class TransformGraph
 		else if( from.equals(to))
 			return Optional.of( new TransformPath(
 					new IdentityCoordinateTransform("identity", from.getName(), to.getName())));
-
-
-//		return allPaths( from ).stream().filter( p -> p.getEnd().equals(to))
-//				.reduce( (x,y) -> {
-//					if( x.getCost() < y.getCost() )
-//						return x;
-//					else
-//						return y;
-//				});
 
 		return allPaths( from ).stream().filter( p -> spaces.getSpace(p.getEnd()).equals(to)).findAny();
 	}

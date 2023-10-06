@@ -274,9 +274,10 @@ public class AxisUtils {
 
 	/**
 	 * Returns true if any elements of array are contained in the set
+	 * @param <T> the type
 	 * @param set the set
 	 * @param array the array
-	 * @return
+	 * @return true if any elements of the array are contained in the set.
 	 */
 	public static <T> boolean containsAny( final Set<T> set, final T[] array )
 	{
@@ -289,6 +290,7 @@ public class AxisUtils {
 
 	/**
 	 * Returns true if any elements of array  equal t
+	 * @param <T> the type
 	 * @param t some element
 	 * @param array the array
 	 * @return true if array contains t
