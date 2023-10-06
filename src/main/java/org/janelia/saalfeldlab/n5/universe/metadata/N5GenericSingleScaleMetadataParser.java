@@ -213,15 +213,16 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 			final Boolean isLabelMultiset = N5LabelMultisets.isLabelMultisetType(n5, node.getPath());
 			final AffineTransform3D transform = N5SingleScaleMetadataParser.buildTransform(downsamplingFactors, resolution, Optional.empty());
 
-			double[] offset = getAttribute(n5, path, offsetKey, double[].class, offsetKeyStrict, 
+			final double[] offset = getAttribute(n5, path, offsetKey, double[].class, offsetKeyStrict,
 					x -> x.length == nd,
 					() -> DoubleStream.generate(() -> Double.NaN).limit(nd).toArray());
 
+			final int N = nd > 3 ? 3 : nd;
 			if (Double.isNaN(offset[0])) {
-				for (int i = 0; i < nd; i++)
+				for (int i = 0; i < N; i++)
 					offset[i] = transform.get(i, 3);
 			} else {
-				for (int i = 0; i < offset.length; i++)
+				for (int i = 0; i < N; i++)
 					transform.set(offset[i], i, 3);
 			}
 
@@ -234,20 +235,20 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 		}
 	}
 
-	private static <T> Optional<T> getAttributeOptional(final N5Reader n5, final String path, final String key, Class<T> clazz) {
+	private static <T> Optional<T> getAttributeOptional(final N5Reader n5, final String path, final String key, final Class<T> clazz) {
 
 		try {
 			return Optional.ofNullable(n5.getAttribute(path, key, clazz));
-		} catch (N5Exception e) {
+		} catch (final N5Exception e) {
 			return Optional.empty();
 		}
 	}
 
-	private static <T> T getAttribute(final N5Reader n5, final String path, final String key, Class<T> clazz,
+	private static <T> T getAttribute(final N5Reader n5, final String path, final String key, final Class<T> clazz,
 			final boolean strict, final Predicate<T> filter,
 			final Supplier<T> defaultValue) {
 
-		Optional<T> optAttr = getAttributeOptional( n5, path, key, clazz ).filter(filter);
+		final Optional<T> optAttr = getAttributeOptional( n5, path, key, clazz ).filter(filter);
 		if (strict)
 			return optAttr.orElseThrow(() -> new N5Exception("Missing or invalid attribute for key: " + key ));
 		else

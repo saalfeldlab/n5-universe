@@ -1,35 +1,44 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.axes;
 
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 /**
- * Metadata that labels and assigns types to axes. 
+ * Metadata that labels and assigns types to axes.
  *
  * @author John Bogovic
  *
  */
 public interface AxisMetadata {
 
-	public String[] getAxisLabels();
+	public Axis[] getAxes();
 
-	public String[] getAxisTypes();
+	public default Axis getAxis(final int i) {
 
-	public String[] getUnits();
-
-	public default Axis getAxis( int i ) {
-		return new Axis(getAxisTypes()[i], getAxisLabels()[i], getUnits()[i]);
+		return getAxes()[i];
 	}
 
-	public default Axis[] getAxes() {
-		return IntStream.range(0, getAxisTypes().length ).mapToObj( i -> getAxis(i)).toArray( Axis[]::new );
+	public default String[] getAxisLabels() {
+
+		return Arrays.stream(getAxes()).map(Axis::getName).toArray(String[]::new);
+	}
+
+	public default String[] getAxisTypes() {
+
+		return Arrays.stream(getAxes()).map(Axis::getType).toArray(String[]::new);
+	}
+
+	public default String[] getUnits() {
+
+		return Arrays.stream(getAxes()).map(Axis::getUnit).toArray(String[]::new);
 	}
 
 	/**
-	 * 
+	 *
 	 * @param label the label
 	 * @return index corresponding to that label
 	 */
-	public default int indexOf(String label) {
+	public default int indexOf(final String label) {
 		for (int i = 0; i < getAxisLabels().length; i++)
 			if (getAxisLabels()[i].equals(label))
 				return i;
@@ -38,7 +47,7 @@ public interface AxisMetadata {
 	}
 
 	public default int[] indexesOfType( final String type ) {
-		String[] types = getAxisTypes();
+		final String[] types = getAxisTypes();
 		return IntStream.range(0, getAxisTypes().length )
 			.filter( i -> types[i].equals(type))
 			.toArray();

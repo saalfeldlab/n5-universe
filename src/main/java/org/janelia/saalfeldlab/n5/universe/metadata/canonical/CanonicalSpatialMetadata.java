@@ -3,6 +3,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.canonical;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.AbstractN5Metadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.IntensityMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalDatasetMetadata.IntensityLimits;
 
@@ -63,8 +64,14 @@ public class CanonicalSpatialMetadata extends AbstractN5Metadata implements Cano
 	 */
 	@Override
 	public double maxIntensity() {
-		return intensityLimits == null ? 
+		return intensityLimits == null ?
 				IntensityMetadata.maxForDataType(getAttributes().getDataType()) :
 					intensityLimits.max;
+	}
+
+	@Override
+	public Axis[] getAxes() {
+
+		return spatialTransform.getAxes();
 	}
 }

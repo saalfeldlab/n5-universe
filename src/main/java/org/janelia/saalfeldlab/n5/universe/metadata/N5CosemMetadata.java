@@ -31,126 +31,150 @@ import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.ScaleAndTranslation;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 
 /**
  * Janelia COSEM's implementation of a {@link N5SingleScaleMetadata}.
- * 
- * @see <a href="https://www.janelia.org/project-team/cosem">https://www.janelia.org/project-team/cosem</a>
- * 
+ *
+ * @see <a href=
+ *      "https://www.janelia.org/project-team/cosem">https://www.janelia.org/project-team/cosem</a>
+ *
  * @author John Bogovic
  */
 public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetadata {
 
-  private final CosemTransform cosemTransformMeta;
+	private final CosemTransform cosemTransformMeta;
 
-  public N5CosemMetadata(final String path, final CosemTransform transform, final DatasetAttributes attributes) {
+	private final Axis[] axes;
 
-	super(
-			path,
-			transform.toAffineTransform3d(),
-			new double[]{1.0, 1.0, 1.0},
-			transform.fOrderedScale(),
-			transform.fOrderedTranslation(),
-			transform.units[0],
-			attributes);
-	this.cosemTransformMeta = transform;
-  }
+	public N5CosemMetadata(final String path, final CosemTransform transform, final DatasetAttributes attributes) {
 
-  public CosemTransform getCosemTransform() {
+		super(
+				path,
+				transform.toAffineTransform3d(),
+				new double[]{1.0, 1.0, 1.0},
+				transform.fOrderedScale(),
+				transform.fOrderedTranslation(),
+				transform.units[0],
+				attributes);
 
-	return cosemTransformMeta;
-  }
+		this.cosemTransformMeta = transform;
+		axes = transform.buildAxes();
+	}
+
+	public CosemTransform getCosemTransform() {
+
+		return cosemTransformMeta;
+	}
 
 	@Override
 	public String[] getAxisLabels() {
-		return reverse( cosemTransformMeta.axes );
+
+		return reverse(cosemTransformMeta.axes);
 	}
 
 	@Override
 	public String[] getAxisTypes() {
-		return Stream.generate( () -> "space").limit( cosemTransformMeta.scale.length )
-				.toArray( String[]::new );
+
+		return Stream.generate(() -> "space").limit(cosemTransformMeta.scale.length)
+				.toArray(String[]::new);
 	}
 
 	@Override
 	public String[] getUnits() {
-		return reverse( cosemTransformMeta.units );
+
+		return reverse(cosemTransformMeta.units);
 	}
 
-	private String[] reverse( String[] in )
-	{
-		final String[] out = new String[ in.length ];
+	@Override
+	public Axis[] getAxes() {
+
+		return axes;
+	}
+
+	private String[] reverse(final String[] in) {
+
+		final String[] out = new String[in.length];
 		int j = 0;
-		for( int i = in.length - 1; i >= 0; i-- )
+		for (int i = in.length - 1; i >= 0; i--)
 			out[j++] = in[i];
 
 		return out;
 	}
 
-  public static class CosemTransform {
+	public static class CosemTransform {
 
-	// COSEM scales and translations are in c-order
-	public transient static final String KEY = "transform";
-	public final String[] axes;
-	public final double[] scale;
-	public final double[] translate;
-	public final String[] units;
+		// COSEM scales and translations are in c-order
+		public transient static final String KEY = "transform";
+		public final String[] axes;
+		public final double[] scale;
+		public final double[] translate;
+		public final String[] units;
 
-	public CosemTransform(final String[] axes, final double[] scale, final double[] translate, final String[] units) {
+		public CosemTransform(final String[] axes, final double[] scale, final double[] translate, final String[] units) {
 
-	  this.axes = axes;
-	  this.scale = scale;
-	  this.translate = translate;
-	  this.units = units;
+			this.axes = axes;
+			this.scale = scale;
+			this.translate = translate;
+			this.units = units;
+		}
+
+		public AffineGet getAffine() {
+
+			assert (scale.length == 3 && translate.length == 3);
+
+			// COSEM scales and translations are in c-order
+			final double[] scaleRev = new double[scale.length];
+			final double[] translateRev = new double[translate.length];
+
+			int j = scale.length - 1;
+			for (int i = 0; i < scale.length; i++) {
+				scaleRev[i] = scale[j];
+				translateRev[i] = translate[j];
+				j--;
+			}
+
+			return new ScaleAndTranslation(scaleRev, translateRev);
+		}
+
+		public AffineTransform3D toAffineTransform3d() {
+
+			assert (scale.length == 3 && translate.length == 3);
+
+			// COSEM scales and translations are in c-order
+			final AffineTransform3D transform = new AffineTransform3D();
+			transform.set(scale[2], 0, 0, translate[2],
+					0, scale[1], 0, translate[1],
+					0, 0, scale[0], translate[0]);
+			return transform;
+		}
+
+		/**
+		 * @return scale with fortran ordering (x, y, z)
+		 */
+		public double[] fOrderedScale() {
+
+			return IntStream.range(0, scale.length).mapToDouble(i -> scale[scale.length - i - 1]).toArray();
+		}
+
+		/**
+		 * @return translation with fortran ordering (x, y, z)
+		 */
+		public double[] fOrderedTranslation() {
+
+			return IntStream.range(0, translate.length).mapToDouble(i -> translate[translate.length - i - 1]).toArray();
+		}
+
+		public Axis[] buildAxes() {
+
+			final Axis[] out = new Axis[ axes.length];
+			for( int i = 0; i < axes.length; i++ )
+				out[i] = new Axis("space", axes[i], units[i]);
+
+			return out;
+		}
+
 	}
-
-	public AffineGet getAffine() {
-
-	  assert (scale.length == 3 && translate.length == 3);
-
-	  // COSEM scales and translations are in c-order
-	  double[] scaleRev = new double[scale.length];
-	  double[] translateRev = new double[translate.length];
-
-	  int j = scale.length - 1;
-	  for (int i = 0; i < scale.length; i++) {
-		scaleRev[i] = scale[j];
-		translateRev[i] = translate[j];
-		j--;
-	  }
-
-	  return new ScaleAndTranslation(scaleRev, translateRev);
-	}
-
-	public AffineTransform3D toAffineTransform3d() {
-
-	  assert (scale.length == 3 && translate.length == 3);
-
-	  // COSEM scales and translations are in c-order
-	  final AffineTransform3D transform = new AffineTransform3D();
-	  transform.set(scale[2], 0, 0, translate[2],
-			  0, scale[1], 0, translate[1],
-			  0, 0, scale[0], translate[0]);
-	  return transform;
-	}
-
-	/**
-	 * @return scale with fortran ordering (x, y, z)
-	 */
-	public double[] fOrderedScale() {
-
-	  return IntStream.range(0, scale.length).mapToDouble(i -> scale[scale.length - i - 1]).toArray();
-	}
-
-	/**
-	 * @return translation with fortran ordering (x, y, z)
-	 */
-	public double[] fOrderedTranslation() {
-
-	  return IntStream.range(0, translate.length).mapToDouble(i -> translate[translate.length - i - 1]).toArray();
-	}
-  }
-
 
 }

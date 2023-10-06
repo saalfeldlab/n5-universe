@@ -12,25 +12,14 @@ public class IndexedAxisListMetadata implements IndexedAxisMetadata {
 
 	protected IndexedAxis[] axes;
 
-	public IndexedAxisListMetadata( IndexedAxis[] axes ) {
+	public IndexedAxisListMetadata( final IndexedAxis[] axes ) {
 		this.axes = axes;
 	}
 
-	// consder moving the overriding methods to an abstract class
-
 	@Override
-	public String[] getAxisLabels() {
-		return Arrays.stream(axes).map(IndexedAxis::getLabel).toArray(String[]::new);
-	}
+	public Axis[] getAxes() {
 
-	@Override
-	public String[] getAxisTypes() {
-		return Arrays.stream(axes).map(IndexedAxis::getType).toArray(String[]::new);
-	}
-
-	@Override
-	public String[] getUnits() {
-		return Arrays.stream(axes).map(IndexedAxis::getUnit).toArray(String[]::new);
+		return axes;
 	}
 
 	@Override

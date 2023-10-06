@@ -42,9 +42,16 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadataParser;
+import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.N5GenericSingleScaleMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataGroup;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
+import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadataParser;
+import org.janelia.saalfeldlab.n5.universe.metadata.N5ViewerMultiscaleMetadataParser;
+import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalMetadataParser;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadataParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +79,21 @@ import se.sawano.java.text.AlphanumericComparator;
 public class N5DatasetDiscoverer {
 
   private static final Logger LOG = LoggerFactory.getLogger(N5DatasetDiscoverer.class);
+
+
+  public static final N5MetadataParser<?>[] DEFAULT_PARSERS = new N5MetadataParser<?>[] {
+		new N5CosemMetadataParser(),
+		new N5SingleScaleMetadataParser(),
+		new CanonicalMetadataParser(),
+		new N5GenericSingleScaleMetadataParser()
+  };
+
+  public static final N5MetadataParser<?>[] DEFAULT_GROUP_PARSERS = new N5MetadataParser<?>[] {
+		new OmeNgffMetadataParser(),
+		new N5CosemMultiScaleMetadata.CosemMultiScaleParser(),
+		new N5ViewerMultiscaleMetadataParser(),
+		new CanonicalMetadataParser(),
+  };
 
   private final List<N5MetadataParser<?>> metadataParsers;
   private final List<N5MetadataParser<?>> groupParsers;
@@ -519,7 +541,7 @@ public class N5DatasetDiscoverer {
 
 	try {
 	  N5DatasetDiscoverer.parseMetadata(n5, rootNode, metadataParsers, groupParsers);
-	} catch (final IOException e) {
+	} catch (final Exception e) {
 	}
 	LOG.debug("parsed metadata for: {}:\t found: {}", rootNode.getPath(), rootNode.getMetadata() == null ? "NONE" : rootNode.getMetadata().getClass().getSimpleName());
 
@@ -540,9 +562,32 @@ public class N5DatasetDiscoverer {
 	}
   }
 
-  public static final List<N5MetadataParser<?>> fromParsers(final N5MetadataParser<?>[] parsers) {
+	public static final List<N5MetadataParser<?>> fromParsers(final N5MetadataParser<?>[] parsers) {
 
-	return Arrays.asList(parsers);
-  }
+		return Arrays.asList(parsers);
+	}
+
+	public static N5TreeNode discover(final N5Reader n5, final List<N5MetadataParser<?>> parsers, final List<N5MetadataParser<?>> groupParsers) {
+
+		final N5DatasetDiscoverer discoverer = new N5DatasetDiscoverer(n5,
+				Executors.newCachedThreadPool(),
+				parsers, groupParsers);
+		try {
+			return discoverer.discoverAndParseRecursive("");
+		} catch (final IOException e) {}
+		return null;
+	}
+
+	public static N5TreeNode discover(final N5Reader n5, final List<N5MetadataParser<?>> parsers) {
+
+		return discover(n5, parsers, null);
+	}
+
+	public static N5TreeNode discover(final N5Reader n5 ) {
+
+		return discover(n5,
+				Arrays.asList(DEFAULT_PARSERS),
+				Arrays.asList(DEFAULT_GROUP_PARSERS));
+	}
 
 }

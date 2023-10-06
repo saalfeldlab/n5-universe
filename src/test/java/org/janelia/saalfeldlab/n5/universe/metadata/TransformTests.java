@@ -1,5 +1,8 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -31,6 +34,11 @@ import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.basictypeaccess.array.ByteArray;
 import net.imglib2.img.basictypeaccess.array.DoubleArray;
+import net.imglib2.realtransform.AbstractScale;
+import net.imglib2.realtransform.AbstractTranslation;
+import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.ScaleAndTranslation;
+import net.imglib2.realtransform.ScaleGet;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.DoubleType;
 
@@ -43,15 +51,15 @@ public class TransformTests {
 
 	private ArrayImg<UnsignedByteType, ByteArray> img;
 
-	private double[] translation = new double[] { 100, 200, 300 };
+	private final double[] translation = new double[] { 100, 200, 300 };
 
-	private double[] scale = new double[] { 1.1, 2.2, 3.3 };
+	private final double[] scale = new double[] { 1.1, 2.2, 3.3 };
 
-	private double[] so = new double[] { 1.9, 0.1, 2.8, 0.2, 3.7, 0.3 };
-	private double[] soScale = new double[] { 1.9, 2.8, 3.7 };
-	private double[] soOffset = new double[] { 0.1, 0.2, 0.3 };
+	private final double[] so = new double[] { 1.9, 0.1, 2.8, 0.2, 3.7, 0.3 };
+	private final double[] soScale = new double[] { 1.9, 2.8, 3.7 };
+	private final double[] soOffset = new double[] { 0.1, 0.2, 0.3 };
 
-	private double[] affine = new double[] { 
+	private final double[] affine = new double[] {
 			1.1, 0.1, 0.2, -10,
 			0.3, 2.2, 0.4, -20,
 			0.5, 0.6, 3.3, -30 };
@@ -59,8 +67,8 @@ public class TransformTests {
 	@Before
 	public void before()
 	{
-		URL configUrl = TransformTests.class.getResource( "/n5.jq" );
-		File baseDir = new File( configUrl.getFile() ).getParentFile();
+		final URL configUrl = TransformTests.class.getResource( "/n5.jq" );
+		final File baseDir = new File( configUrl.getFile() ).getParentFile();
 		System.out.println( "baseDir: " + baseDir );
 		containerDir = new File( baseDir, "transforms.n5" );
 
@@ -69,11 +77,11 @@ public class TransformTests {
 
 			int v = 0;
 			img = ArrayImgs.unsignedBytes( 3, 4, 5);
-			ArrayCursor<UnsignedByteType> c = img.cursor();
+			final ArrayCursor<UnsignedByteType> c = img.cursor();
 			while( c.hasNext())
 				c.next().set( v++ );
 
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 	}
@@ -83,40 +91,58 @@ public class TransformTests {
 	{
 		try {
 			n5.remove();
-		} catch (N5Exception e) { }
+		} catch (final N5Exception e) { }
+	}
+
+	@Test
+	public void testScaleTranslation()
+	{
+		final double[] scale = new double[] { 2.0, 3.0 };
+		final double[] translation = new double[] { 10.0, 100.0 };
+
+		assertNull(MetadataUtils.scaleTranslationTransforms(null, null));
+
+		final AffineGet st = MetadataUtils.scaleTranslationTransforms(scale, translation);
+		assertTrue(st instanceof ScaleAndTranslation);
+
+		final AffineGet s = MetadataUtils.scaleTranslationTransforms(scale, null);
+		assertTrue(s instanceof AbstractScale);
+
+		final AffineGet t = MetadataUtils.scaleTranslationTransforms(null, translation);
+		assertTrue(t instanceof AbstractTranslation);
 	}
 
 	@Test
 	public void testParametrizedTransforms() throws IOException {
 
 		// translation
-		ArrayImg<DoubleType, DoubleArray> translationParams = ArrayImgs.doubles( translation, 3 );
+		final ArrayImg<DoubleType, DoubleArray> translationParams = ArrayImgs.doubles( translation, 3 );
 		N5Utils.save( translationParams, n5, "translation", new int[]{3}, new GzipCompression());
 
 		// scale
-		ArrayImg<DoubleType, DoubleArray> scaleParams = ArrayImgs.doubles( scale, 3 );
+		final ArrayImg<DoubleType, DoubleArray> scaleParams = ArrayImgs.doubles( scale, 3 );
 		N5Utils.save( scaleParams, n5, "scale", new int[]{3}, new GzipCompression());
 
 		// scale-offset
-		ArrayImg<DoubleType, DoubleArray> scaleOffsetParams = ArrayImgs.doubles( so, 2, 3 );
+		final ArrayImg<DoubleType, DoubleArray> scaleOffsetParams = ArrayImgs.doubles( so, 2, 3 );
 		N5Utils.save( scaleOffsetParams, n5, "scale_offset", new int[]{3,3}, new GzipCompression());
 
 		// affine
-		ArrayImg<DoubleType, DoubleArray> affineParams = ArrayImgs.doubles( affine, 12 );
+		final ArrayImg<DoubleType, DoubleArray> affineParams = ArrayImgs.doubles( affine, 12 );
 		N5Utils.save( affineParams, n5, "affine", new int[]{12}, new GzipCompression());
 
 		final ScaleSpatialTransform scaleTransform = new ScaleSpatialTransform( "scale" );
 		final TranslationSpatialTransform translationTransform = new TranslationSpatialTransform( "translation" );
 		final AffineSpatialTransform affineTransform = new AffineSpatialTransform( "affine" );
 		final ScaleOffsetSpatialTransform scaleOffsetTransform = new ScaleOffsetSpatialTransform( "scale_offset" );
-		final SequenceSpatialTransform seq = new SequenceSpatialTransform( 
+		final SequenceSpatialTransform seq = new SequenceSpatialTransform(
 				new SpatialTransform[]{ affineTransform, scaleTransform, scaleOffsetTransform, translationTransform });
 
 		// make an image
 		N5Utils.save( img, n5, "imgParam", new int[] {5, 5, 5}, new GzipCompression());
 
 		// set the transform metadata
-		SpatialMetadataCanonical transform = new SpatialMetadataCanonical(null, seq, "pixel", null);
+		final SpatialMetadataCanonical transform = new SpatialMetadataCanonical(null, seq, "pixel", null);
 		n5.setAttribute("imgParam", "spatialTransform", transform);
 
 		testParsedTransformSeq("/imgParam");
@@ -129,34 +155,34 @@ public class TransformTests {
 		final TranslationSpatialTransform translationTransform = new TranslationSpatialTransform( translation );
 		final ScaleOffsetSpatialTransform scaleOffsetTransform = new ScaleOffsetSpatialTransform(soScale, soOffset);
 		final AffineSpatialTransform affineTransform = new AffineSpatialTransform( affine );
-		final SequenceSpatialTransform seq = new SequenceSpatialTransform( 
+		final SequenceSpatialTransform seq = new SequenceSpatialTransform(
 				new SpatialTransform[]{ affineTransform, scaleTransform, scaleOffsetTransform, translationTransform });
 
 		// make an image
 		N5Utils.save( img, n5, "img", new int[] {5, 5, 5}, new GzipCompression());
 
 		// set the transform metadata
-		SpatialMetadataCanonical transform = new SpatialMetadataCanonical(null, seq, "pixel", null);
+		final SpatialMetadataCanonical transform = new SpatialMetadataCanonical(null, seq, "pixel", null);
 		n5.setAttribute("img", "spatialTransform", transform);
 
 		testParsedTransformSeq("img");
 	}
 
-	private void testParsedTransformSeq( String dataset )
+	private void testParsedTransformSeq( final String dataset )
 	{
 		// canonical parser
 		final CanonicalMetadataParser parser = new CanonicalMetadataParser();
-		Optional<CanonicalMetadata> metaOpt = parser.parseMetadata(n5, dataset);
-		CanonicalMetadata meta = metaOpt.get();
+		final Optional<CanonicalMetadata> metaOpt = parser.parseMetadata(n5, dataset);
+		final CanonicalMetadata meta = metaOpt.get();
 		Assert.assertTrue("meta parsed as CanonicalSpatialDatasetMetadata", meta instanceof CanonicalSpatialDatasetMetadata );
-		SpatialMetadataCanonical parsedXfm = ((CanonicalSpatialDatasetMetadata)meta).getSpatialTransform();
+		final SpatialMetadataCanonical parsedXfm = ((CanonicalSpatialDatasetMetadata)meta).getSpatialTransform();
 
 		Assert.assertTrue("parsed as sequence", parsedXfm.transform() instanceof SequenceSpatialTransform);
-		SequenceSpatialTransform parsedSeq = (SequenceSpatialTransform)parsedXfm.transform();
-		SpatialTransform transform0 = parsedSeq.getTransformations()[0];
-		SpatialTransform transform1 = parsedSeq.getTransformations()[1];
-		SpatialTransform transform2 = parsedSeq.getTransformations()[2];
-		SpatialTransform transform3 = parsedSeq.getTransformations()[3];
+		final SequenceSpatialTransform parsedSeq = (SequenceSpatialTransform)parsedXfm.transform();
+		final SpatialTransform transform0 = parsedSeq.getTransformations()[0];
+		final SpatialTransform transform1 = parsedSeq.getTransformations()[1];
+		final SpatialTransform transform2 = parsedSeq.getTransformations()[2];
+		final SpatialTransform transform3 = parsedSeq.getTransformations()[3];
 
 		Assert.assertTrue("transform0 is affine", transform0 instanceof AffineSpatialTransform);
 		Assert.assertArrayEquals( "parsed affine parameters", affine, ((AffineSpatialTransform)transform0).affine, 1e-9 );

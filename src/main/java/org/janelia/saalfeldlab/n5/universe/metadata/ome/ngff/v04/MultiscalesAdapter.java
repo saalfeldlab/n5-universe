@@ -3,10 +3,12 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 import java.lang.reflect.Type;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -18,7 +20,7 @@ import com.google.gson.JsonSerializer;
 public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMetadata >, JsonSerializer< OmeNgffMultiScaleMetadata >
 {
 	@Override
-	public OmeNgffMultiScaleMetadata deserialize( JsonElement json, Type typeOfT, JsonDeserializationContext context ) throws JsonParseException
+	public OmeNgffMultiScaleMetadata deserialize( final JsonElement json, final Type typeOfT, final JsonDeserializationContext context ) throws JsonParseException
 	{
 		if (!json.isJsonObject())
 			return null;
@@ -44,7 +46,7 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 	}
 
 	@Override
-	public JsonElement serialize( OmeNgffMultiScaleMetadata src, Type typeOfSrc, JsonSerializationContext context )
+	public JsonElement serialize( final OmeNgffMultiScaleMetadata src, final Type typeOfSrc, final JsonSerializationContext context )
 	{
 		final JsonObject obj = new JsonObject();
 		obj.addProperty("name", src.name);
@@ -54,7 +56,12 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 		obj.add("datasets", context.serialize(src.datasets));
 
 		if( src.coordinateTransformations != null )
-			obj.add("coordinateTransformations", context.serialize(src.coordinateTransformations));
+			if( src.coordinateTransformations.length == 0 )
+				obj.add("coordinateTransformations", context.serialize(new JsonArray())); // empty array
+			else
+				obj.add("coordinateTransformations", context.serialize(src.coordinateTransformations));
+		else
+			obj.add("coordinateTransformations", context.serialize(new JsonArray())); // empty array
 
 		if( src.metadata != null )
 			obj.add("metadata", context.serialize(src.metadata));

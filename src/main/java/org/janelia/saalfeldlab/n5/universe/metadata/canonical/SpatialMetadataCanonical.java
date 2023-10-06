@@ -12,7 +12,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.transforms.SpatialTransform;
 /**
  * Interface for metadata describing how spatial data are oriented in physical
  * space.
- * 
+ *
  * @author Caleb Hulbert
  * @author John Bogovic
  */
@@ -72,7 +72,7 @@ public class SpatialMetadataCanonical implements SpatialMetadata, AxisMetadata {
 	@Override
 	public String[] getAxisLabels() {
 
-		return Arrays.stream(axes).map(Axis::getLabel).toArray(String[]::new);
+		return Arrays.stream(axes).map(Axis::getName).toArray(String[]::new);
 	}
 
 	@Override

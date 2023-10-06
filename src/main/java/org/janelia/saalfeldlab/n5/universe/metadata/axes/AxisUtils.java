@@ -1,7 +1,12 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.axes;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.IntStream;
+
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.transform.integer.MixedTransform;
 import net.imglib2.view.IntervalView;
@@ -23,22 +28,22 @@ public class AxisUtils {
 	public static final DefaultAxisTypes defaultAxisTypes = DefaultAxisTypes.getInstance();
 
 
-	/** 
+	/**
 	 * Finds and returns a permutation p such that source[p[i]] equals target[i]
-	 * 
+	 *
 	 * @param <T> the object type
 	 * @param source the source objects
 	 * @param target the target objects
 	 * @return the permutation array
 	 */
 	public static <T> int[] findPermutation( final T[] source, final T[] target ) {
-		
-		int[] p = new int[ target.length ];
+
+		final int[] p = new int[ target.length ];
 		for( int i = 0; i < target.length; i++ ) {
-			T t = target[ i ];
+			final T t = target[ i ];
 			boolean found = false;
 			for( int j = 0; j < source.length; j++ ) {
-				if( source[j].equals(t) ) { 
+				if( source[j].equals(t) ) {
 					p[i] = j;
 					found = true;
 					break;
@@ -50,9 +55,26 @@ public class AxisUtils {
 		return p;
 	}
 
+	public static <T> List<T> permute(final List<T> in, final int[] p) {
+
+		final ArrayList<T> out = new ArrayList<T>(p.length);
+		for (int i = 0; i < p.length; i++)
+			out.add(in.get(p[i]));
+
+		return out;
+	}
+
+	public static Axis[] buildAxes( final String... labels )
+	{
+		return Arrays.stream(labels).map( x -> {
+			final String type = getDefaultType( x );
+			return new Axis(x, type, "", type.equals(Axis.CHANNEL));
+		}).toArray( Axis[]::new );
+	}
+
 	/**
 	 * Finds and returns a permutation p such that source[p[i]] equals target[i]
-	 * 
+	 *
 	 * @param <A> the axis type
 	 * @param axisMetadata the axis metadata
 	 * @return the permutation
@@ -61,15 +83,15 @@ public class AxisUtils {
 		return findImagePlusPermutation( axisMetadata.getAxisLabels());
 	}
 
-	/** 
+	/**
 	 * Finds and returns a permutation p such that source[p[i]] equals xyczt
-	 * 
+	 *
 	 * @param axisLabels the axis labels
 	 * @return the permutation array
 	 */
 	public static int[] findImagePlusPermutation( final String[] axisLabels ) {
-		
-		int[] p = new int[ 5 ];
+
+		final int[] p = new int[ 5 ];
 		p[0] = indexOf( axisLabels, "x" );
 		p[1] = indexOf( axisLabels, "y" );
 		p[2] = indexOf( axisLabels, "c" );
@@ -77,20 +99,20 @@ public class AxisUtils {
 		p[4] = indexOf( axisLabels, "t" );
 		return p;
 	}
-	
+
 	/**
 	 * Replaces "-1"s in the input permutation array
 	 * with the largest value.
-	 * 
+	 *
 	 * @param p the permutation
 	 */
-	public static void fillPermutation( int[] p ) {
+	public static void fillPermutation( final int[] p ) {
 		int j = Arrays.stream(p).max().getAsInt() + 1;
 		for (int i = 0; i < p.length; i++)
 			if (p[i] < 0)
 				p[i] = j++;
 	}
-	
+
 	public static boolean isIdentityPermutation( final int[] p )
 	{
 		for( int i = 0; i < p.length; i++ )
@@ -99,13 +121,15 @@ public class AxisUtils {
 
 		return true;
 	}
-	
+
 	public static <T> RandomAccessibleInterval<T> permuteForImagePlus(
 			final RandomAccessibleInterval<T> img,
 			final AxisMetadata meta ) {
 
-		int[] p = findImagePlusPermutation( meta );
+		final int[] p = findImagePlusPermutation( meta );
 		fillPermutation( p );
+
+		// TODO under what conditions can I return the image directly?
 
 		RandomAccessibleInterval<T> imgTmp = img;
 		while( imgTmp.numDimensions() < 5 )
@@ -117,7 +141,7 @@ public class AxisUtils {
 		return permute(imgTmp, invertPermutation(p));
 	}
 
-	private static final <T> int indexOf( T[] arr, T tgt ) {
+	private static final <T> int indexOf( final T[] arr, final T tgt ) {
 		for( int i = 0; i < arr.length; i++ ) {
 			if( arr[i].equals(tgt))
 				return i;
@@ -128,14 +152,14 @@ public class AxisUtils {
     /**
      * Permutes the dimensions of a {@link RandomAccessibleInterval}
      * using the given permutation vector, where the ith value in p
-     * gives destination of the ith input dimension in the output. 
+     * gives destination of the ith input dimension in the output.
      *
      * @param <T> the image type
      * @param source the source data
      * @param p the permutation
      * @return the permuted source
      */
-	public static final < T > IntervalView< T > permute( RandomAccessibleInterval< T > source, int[] p )
+	public static final < T > IntervalView< T > permute( final RandomAccessibleInterval< T > source, final int[] p )
 	{
 		final int n = source.numDimensions();
 
@@ -150,10 +174,10 @@ public class AxisUtils {
 		final MixedTransform t = new MixedTransform( n, n );
 		t.setComponentMapping( p );
 
-		IntervalView<T> out = Views.interval( new MixedTransformView< T >( source, t ), min, max );
+		final IntervalView<T> out = Views.interval( new MixedTransformView< T >( source, t ), min, max );
 		return out;
 	}
-	
+
 	public static int[] invertPermutation( final int[] p )
 	{
 		final int[] inv = new int[ p.length ];
@@ -162,13 +186,50 @@ public class AxisUtils {
 
 		return inv;
 	}
-	
+
+	public static Axis[] defaultAxes( final int N ) {
+
+		return IntStream.range(0, N).mapToObj(i -> {
+			return defaultAxis(defaultLabel(i));
+		}).toArray(Axis[]::new);
+	}
+
+	public static Axis[] defaultAxes( final String... labels) {
+
+		final Axis[] axes = new Axis[labels.length];
+		for (int i = 0; i < labels.length; i++)
+			axes[i] = defaultAxis(labels[i]);
+
+		return axes;
+	}
+
+	public static Axis defaultAxis(final String label) {
+
+		return new Axis(getDefaultType(label), label, "");
+	}
+
 	public static String[] getDefaultTypes( final String[] labels ) {
 		return Arrays.stream(labels).map( l -> defaultAxisTypes.get(l)).toArray( String[]::new );
 	}
 
 	public static String getDefaultType( final String label ) {
 		return defaultAxisTypes.get(label);
+	}
+
+	public static String defaultLabel(final int i) {
+
+		if (i == 0)
+			return xLabel;
+		else if (i == 1)
+			return yLabel;
+		else if (i == 2)
+			return cLabel;
+		else if (i == 3)
+			return zLabel;
+		else if (i == 4)
+			return tLabel;
+		else
+			return String.format("dim_%d", i);
 	}
 
 	// implemented as a singleton
@@ -199,8 +260,8 @@ public class AxisUtils {
 
 			return INSTANCE;
 		}
-		
-		public String get( String label ) {
+
+		public String get( final String label ) {
 			if( labelToType.containsKey(label))
 				return labelToType.get(label);
 			else if( label.toLowerCase().startsWith("data"))
@@ -209,5 +270,34 @@ public class AxisUtils {
 				return "unknown";
 		}
 	}
-	
+
+
+	/**
+	 * Returns true if any elements of array are contained in the set
+	 * @param <T> the type
+	 * @param set the set
+	 * @param array the array
+	 * @return true if any elements of the array are contained in the set.
+	 */
+	public static <T> boolean containsAny( final Set<T> set, final T[] array )
+	{
+		for( final T t : array )
+			if( set.contains( t ))
+				return true;
+
+		return false;
+	}
+
+	/**
+	 * Returns true if any elements of array  equal t
+	 * @param <T> the type
+	 * @param t some element
+	 * @param array the array
+	 * @return true if array contains t
+	 */
+	public static <T> boolean contains( final T t, final T[] array )
+	{
+		return Arrays.stream(array).anyMatch( x -> x.equals(t) );
+	}
+
 }
