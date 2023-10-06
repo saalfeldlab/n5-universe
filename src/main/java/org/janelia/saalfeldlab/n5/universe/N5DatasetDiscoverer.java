@@ -541,7 +541,7 @@ public class N5DatasetDiscoverer {
 
 	try {
 	  N5DatasetDiscoverer.parseMetadata(n5, rootNode, metadataParsers, groupParsers);
-	} catch (final IOException e) {
+	} catch (final Exception e) {
 	}
 	LOG.debug("parsed metadata for: {}:\t found: {}", rootNode.getPath(), rootNode.getMetadata() == null ? "NONE" : rootNode.getMetadata().getClass().getSimpleName());
 
