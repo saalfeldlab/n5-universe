@@ -90,14 +90,14 @@ public class CoordinateSystem
 	/**
 	 * Is a a subset of b.
 	 *
-	 * @param a
-	 * @param b
-	 * @return
+	 * @param a an array of strings
+	 * @param b an array of strings
+	 * @return true if every element of a is in b
 	 */
 	public static boolean isSubspaceOf( final String[] a, final String[] b )
 	{
-		for( final String l : b )
-			if( !contains( l, a ))
+		for( final String l : a )
+			if( !contains( l, b ))
 				return false;
 
 		return true;
