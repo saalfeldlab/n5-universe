@@ -184,7 +184,7 @@ public class MetadataUtils {
 	 * @return a string
 	 */
 	public static String getStringNullable(final JsonElement element) {
-		if (element.isJsonNull())
+		if (element == null || element.isJsonNull())
 			return null;
 		else
 			return element.getAsString();
