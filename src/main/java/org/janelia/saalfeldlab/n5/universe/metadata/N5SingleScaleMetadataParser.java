@@ -64,8 +64,8 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 	Scale3D scale = null;
 	if( pixelResolution.length == 2 )
 		scale = new Scale3D(pixelResolution[0], pixelResolution[1], 1);
-	else if( pixelResolution.length == 3 )
-		scale = new Scale3D(pixelResolution);
+	else
+		scale = new Scale3D(pixelResolution[0], pixelResolution[1], pixelResolution[2]);
 
 	final AffineTransform3D transform = new AffineTransform3D();
 	if( scale != null )
@@ -122,7 +122,9 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 	  if (voxdim.isPresent()) {
 
 		pixelResolution = voxdim.map(x -> {
-		  final double[] res = new double[nd];
+		  // allow for x to have fewer dimensions than the array
+	      // (e.g., if the voxdims only cover spatial dimensions, and the array includes time)
+		  final double[] res = new double[x.numDimensions()];
 		  x.dimensions(res);
 		  return res;
 		}).orElseGet(() -> ones(nd));
@@ -148,7 +150,7 @@ public class N5SingleScaleMetadataParser implements N5MetadataParser<N5SingleSca
 	  double[] offset = new double[ nd ];
 	  if( nd == 2 )
 		  offset = new double[]{transform.get(0, 3), transform.get(1, 3) };
-	  else if ( nd == 3 )
+	  else
 		  offset = new double[]{transform.get(0, 3), transform.get(1, 3), transform.get(2, 3)};
 
 	  final boolean isLabelMultiset = N5LabelMultisets.isLabelMultisetType(n5, node.getPath());
