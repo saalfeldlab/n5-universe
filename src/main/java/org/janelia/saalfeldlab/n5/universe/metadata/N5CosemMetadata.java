@@ -25,6 +25,7 @@
  */
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
+import java.util.Arrays;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import net.imglib2.realtransform.AffineGet;
@@ -33,6 +34,7 @@ import net.imglib2.realtransform.ScaleAndTranslation;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 
 /**
  * Janelia COSEM's implementation of a {@link N5SingleScaleMetadata}.
@@ -140,13 +142,33 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 
 		public AffineTransform3D toAffineTransform3d() {
 
-			assert (scale.length == 3 && translate.length == 3);
+			assert (scale.length >= 2 && translate.length >= 2);
+
+			final int[] spaceIndexes = new int[3];
+			Arrays.fill(spaceIndexes, -1);
 
 			// COSEM scales and translations are in c-order
+			// but detect the axis types to be extra safe
+			for( int i = 0; i < axes.length; i++ )
+			{
+				if( axes[i].equals("x"))
+					spaceIndexes[0] = i;
+				else if( axes[i].equals("y"))
+					spaceIndexes[1] = i;
+				else if( axes[i].equals("z"))
+					spaceIndexes[2] = i;
+			}
+
 			final AffineTransform3D transform = new AffineTransform3D();
-			transform.set(scale[2], 0, 0, translate[2],
-					0, scale[1], 0, translate[1],
-					0, 0, scale[0], translate[0]);
+			for( int i = 0; i < 3; i++ )
+			{
+				if( spaceIndexes[i] > -1)
+				{
+					transform.set(scale[spaceIndexes[i]], i, i);
+					transform.set(translate[spaceIndexes[i]], i, 3);
+				}
+			}
+
 			return transform;
 		}
 
@@ -170,7 +192,7 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 
 			final Axis[] out = new Axis[ axes.length];
 			for( int i = 0; i < axes.length; i++ )
-				out[i] = new Axis("space", axes[i], units[i]);
+				out[i] = new Axis(AxisUtils.getDefaultType(axes[i]), axes[i], units[i]);
 
 			return out;
 		}
