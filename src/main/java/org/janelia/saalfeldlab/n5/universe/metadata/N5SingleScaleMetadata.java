@@ -27,6 +27,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata;
 
 import java.util.Objects;
 import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform3D;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 
@@ -36,7 +37,7 @@ import org.janelia.saalfeldlab.n5.DatasetAttributes;
  * @author Caleb Hulbert
  * @author John Bogovic
  */
-public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata implements IntensityMetadata {
+public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata implements IntensityMetadata, SpatialModifiable<N5SingleScaleMetadata> {
 
   private final AffineTransform3D transform;
   private final String unit;
@@ -141,4 +142,28 @@ public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata impl
 
 	return isLabelMultiset;
   }
+
+	@Override
+	public N5SingleScaleMetadata modifySpatialTransform(AffineGet relativeTransformation) {
+
+		final int nd = relativeTransformation.numDimensions();
+
+		final AffineTransform3D newTransform = new AffineTransform3D();
+		newTransform.preConcatenate(spatialTransform());
+		newTransform.preConcatenate(relativeTransformation);
+
+		final double[] newScale = new double[nd];
+		final double[] newTranslation = new double[nd];
+		int j = 0;
+		for (int i = 0; i < nd; i++) {
+			newScale[i] = newTransform.get(j, j);
+			newTranslation[i] = newTransform.get(j, nd);
+			j++;
+		}
+
+		return new N5SingleScaleMetadata(
+				getPath(), newTransform, downsamplingFactors, newScale, newTranslation, unit,
+				getAttributes(), minIntensity, maxIntensity, isLabelMultiset);
+	}
+
 }

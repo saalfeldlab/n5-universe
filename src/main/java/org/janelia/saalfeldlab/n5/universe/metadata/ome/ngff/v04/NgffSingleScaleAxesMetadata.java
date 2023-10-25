@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SpatialDatasetMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.SpatialModifiable;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
@@ -14,7 +15,8 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTrans
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
 
-public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatasetMetadata {
+public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatasetMetadata,
+	SpatialModifiable<NgffSingleScaleAxesMetadata> {
 
 	public static final String AXIS_KEY = "axes";
 
@@ -148,6 +150,29 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 		}
 
 		return transform3d;
+	}
+
+	@Override
+	public NgffSingleScaleAxesMetadata modifySpatialTransform(AffineGet relativeTransformation) {
+
+		final int nd = relativeTransformation.numDimensions();
+
+		final AffineTransform3D newTransform = new AffineTransform3D();
+		newTransform.preConcatenate(spatialTransform());
+		newTransform.preConcatenate(relativeTransformation);
+
+		final double[] newScale = new double[nd];
+		final double[] newTranslation = new double[nd];
+		int j = 0;
+		for (int i = 0; i < nd; i++) {
+			newScale[i] = newTransform.get(j, j);
+			newTranslation[i] = newTransform.get(j, nd);
+			j++;
+		}
+
+		return new NgffSingleScaleAxesMetadata( path,
+				newScale, newTranslation,
+				axes, datasetAttributes);
 	}
 
 }

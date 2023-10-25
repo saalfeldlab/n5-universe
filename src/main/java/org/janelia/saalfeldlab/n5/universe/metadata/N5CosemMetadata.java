@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.ScaleAndTranslation;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -197,6 +198,30 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 			return out;
 		}
 
+	}
+
+	@Override
+	public N5CosemMetadata modifySpatialTransform(final AffineGet relativeTransformation) {
+
+		final int nd = axes.length;
+		final int tformN = relativeTransformation.numDimensions();
+
+		final AffineTransform newTransform = new AffineTransform();
+		newTransform.preConcatenate(spatialTransform());
+		newTransform.preConcatenate(relativeTransformation);
+
+		final double[] newScale = new double[nd];
+		final double[] newTranslation = new double[nd];
+		int j = 0;
+		for (int i = 0; i < nd; i++) {
+			newScale[i] = newTransform.get(j, j);
+			newTranslation[i] = newTransform.get(j, tformN);
+			j++;
+		}
+
+		return new N5CosemMetadata(getPath(),
+				new N5CosemMetadata.CosemTransform(getCosemTransform().axes, newScale, newTranslation, getCosemTransform().units),
+				getAttributes());
 	}
 
 }
