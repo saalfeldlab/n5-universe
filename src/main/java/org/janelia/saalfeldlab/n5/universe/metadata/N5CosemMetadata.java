@@ -206,7 +206,7 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 		final int nd = axes.length;
 		final int tformN = relativeTransformation.numDimensions();
 
-		final AffineTransform newTransform = new AffineTransform();
+		final AffineTransform newTransform = new AffineTransform( nd );
 		newTransform.preConcatenate(spatialTransform());
 		newTransform.preConcatenate(relativeTransformation);
 
