@@ -5,11 +5,11 @@ import net.imglib2.realtransform.ScaleAndTranslation;
 
 public interface SpatialModifiable<T extends SpatialMetadata> {
 
-	public T modifySpatialTransform(final AffineGet relativeTransformation);
+	public T modifySpatialTransform(final String newPath, final AffineGet relativeTransformation);
 
-	public default T modifySpatialTransform(final double[] relativeScale, final double[] relativeTranslation) {
+	public default T modifySpatialTransform(final String newPath, final double[] relativeScale, final double[] relativeTranslation) {
 
-		return modifySpatialTransform(new ScaleAndTranslation(relativeScale, relativeTranslation));
+		return modifySpatialTransform(newPath, new ScaleAndTranslation(relativeScale, relativeTranslation));
 	}
 
 }

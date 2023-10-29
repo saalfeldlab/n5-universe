@@ -2,12 +2,10 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
@@ -24,7 +22,6 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 
 public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>, N5MetadataWriter<OmeNgffMetadata> {
 
@@ -105,8 +102,10 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 			final NgffSingleScaleAxesMetadata[] msChildrenMeta = ms.buildChildren(nd, attrs, ms.coordinateTransformations, ms.axes);
 			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta);
-			ms.childrenAttributes = attrs;
-			ms.childrenMetadata = msChildrenMeta;
+//			ms.childrenAttributes = attrs;
+//			ms.childrenMetadata = msChildrenMeta;
+
+			multiscales[j] = new OmeNgffMultiScaleMetadata( ms, msChildrenMeta );
 		}
 
 		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales));

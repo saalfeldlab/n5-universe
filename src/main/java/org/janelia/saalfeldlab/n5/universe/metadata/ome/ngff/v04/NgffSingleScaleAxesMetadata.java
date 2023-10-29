@@ -13,6 +13,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 
 import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform3D;
 
 public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatasetMetadata,
@@ -36,7 +37,8 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 
 	private transient final AffineGet transform;
 
-	public NgffSingleScaleAxesMetadata(final String path, final double[] scale, final double[] translation,
+	public NgffSingleScaleAxesMetadata(final String path,
+			final double[] scale, final double[] translation,
 			final DatasetAttributes datasetAttributes) {
 
 		this(path, scale, translation,
@@ -44,7 +46,10 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 				datasetAttributes);
 	}
 
-	public NgffSingleScaleAxesMetadata(final String path, final double[] scale, final double[] translation, final Axis[] axes,
+	public NgffSingleScaleAxesMetadata(final String path,
+			final double[] scale,
+			final double[] translation,
+			final Axis[] axes,
 			final DatasetAttributes datasetAttributes) {
 
 		this.path = path;
@@ -153,13 +158,12 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 	}
 
 	@Override
-	public NgffSingleScaleAxesMetadata modifySpatialTransform(AffineGet relativeTransformation) {
+	public NgffSingleScaleAxesMetadata modifySpatialTransform(final String newPath, final AffineGet relativeTransformation) {
 
-		final int nd = relativeTransformation.numDimensions();
-
-		final AffineTransform3D newTransform = new AffineTransform3D();
-		newTransform.preConcatenate(spatialTransform());
+		final int nd = this.axes.length;
+		final AffineTransform newTransform = new AffineTransform(nd);
 		newTransform.preConcatenate(relativeTransformation);
+		newTransform.preConcatenate(spatialTransform());
 
 		final double[] newScale = new double[nd];
 		final double[] newTranslation = new double[nd];
@@ -170,7 +174,7 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 			j++;
 		}
 
-		return new NgffSingleScaleAxesMetadata( path,
+		return new NgffSingleScaleAxesMetadata( newPath,
 				newScale, newTranslation,
 				axes, datasetAttributes);
 	}

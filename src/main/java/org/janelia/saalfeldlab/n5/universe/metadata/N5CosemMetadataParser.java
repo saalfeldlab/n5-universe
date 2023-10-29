@@ -1,6 +1,5 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
-import java.io.IOException;
 import java.util.Optional;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Exception;
@@ -10,9 +9,9 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 
 /**
  * The {@link N5MetadataParser} for {@link N5CosemMetadata}.
- * 
+ *
  * @see <a href="https://www.janelia.org/project-team/cosem">https://www.janelia.org/project-team/cosem</a>
- * 
+ *
  * @author John Bogovic
  *
  */
@@ -31,7 +30,7 @@ public class N5CosemMetadataParser implements N5MetadataParser<N5CosemMetadata>,
 			  node.getPath(), N5CosemMetadata.CosemTransform.KEY, N5CosemMetadata.CosemTransform.class));
 
 	  return cosemTransform.map(t -> new N5CosemMetadata(path, t, attributes));
-	} catch (N5Exception e) {
+	} catch (final N5Exception e) {
 	  return Optional.empty();
 	}
   }
@@ -42,4 +41,6 @@ public class N5CosemMetadataParser implements N5MetadataParser<N5CosemMetadata>,
 	if (t.getCosemTransform() != null)
 	  n5.setAttribute(group, N5CosemMetadata.CosemTransform.KEY, t.getCosemTransform());
   }
+
+
 }

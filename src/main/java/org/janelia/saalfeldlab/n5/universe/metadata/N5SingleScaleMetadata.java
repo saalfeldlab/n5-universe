@@ -144,13 +144,13 @@ public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata impl
   }
 
 	@Override
-	public N5SingleScaleMetadata modifySpatialTransform(AffineGet relativeTransformation) {
+	public N5SingleScaleMetadata modifySpatialTransform( final String newPath, final AffineGet relativeTransformation) {
 
 		final int nd = relativeTransformation.numDimensions();
 
 		final AffineTransform3D newTransform = new AffineTransform3D();
-		newTransform.preConcatenate(spatialTransform());
 		newTransform.preConcatenate(relativeTransformation);
+		newTransform.preConcatenate(spatialTransform());
 
 		final double[] newScale = new double[nd];
 		final double[] newTranslation = new double[nd];
@@ -161,8 +161,8 @@ public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata impl
 			j++;
 		}
 
-		return new N5SingleScaleMetadata(
-				getPath(), newTransform, downsamplingFactors, newScale, newTranslation, unit,
+		return new N5SingleScaleMetadata( newPath,
+				newTransform, downsamplingFactors, newScale, newTranslation, unit,
 				getAttributes(), minIntensity, maxIntensity, isLabelMultiset);
 	}
 

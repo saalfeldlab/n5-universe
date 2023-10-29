@@ -201,14 +201,14 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 	}
 
 	@Override
-	public N5CosemMetadata modifySpatialTransform(final AffineGet relativeTransformation) {
+	public N5CosemMetadata modifySpatialTransform(final String newPath, final AffineGet relativeTransformation) {
 
 		final int nd = axes.length;
 		final int tformN = relativeTransformation.numDimensions();
 
 		final AffineTransform newTransform = new AffineTransform( nd );
-		newTransform.preConcatenate(spatialTransform());
 		newTransform.preConcatenate(relativeTransformation);
+		newTransform.preConcatenate(spatialTransform());
 
 		final double[] newScale = new double[nd];
 		final double[] newTranslation = new double[nd];
@@ -219,7 +219,7 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 			j++;
 		}
 
-		return new N5CosemMetadata(getPath(),
+		return new N5CosemMetadata( newPath,
 				new N5CosemMetadata.CosemTransform(getCosemTransform().axes, newScale, newTranslation, getCosemTransform().units),
 				getAttributes());
 	}
