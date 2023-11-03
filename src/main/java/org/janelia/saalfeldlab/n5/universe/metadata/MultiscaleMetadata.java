@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 /**
  * An abstract class for a {@link SpatialMetadataGroup} whose children contain
  * the same data sampled at different resolutions.
- * 
+ *
  * @author Caleb Hulbert
  * @author John Bogovic
  *
@@ -19,7 +19,7 @@ public abstract class MultiscaleMetadata<T extends N5DatasetMetadata & SpatialMe
 
   static final Predicate<String> scaleLevelPredicate = Pattern.compile("^s\\d+$").asPredicate();
 
-  final private String basePath;
+  protected final String basePath;
 
   final private String[] paths;
 
@@ -40,7 +40,7 @@ public abstract class MultiscaleMetadata<T extends N5DatasetMetadata & SpatialMe
 	units = new String[N];
 
 	int i = 0;
-	for (T meta : childrenMetadata) {
+	for (final T meta : childrenMetadata) {
 	  Objects.requireNonNull(meta);
 	  paths[i] = meta.getPath();
 	  units[i] = meta.unit();
