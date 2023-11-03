@@ -30,6 +30,7 @@ import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform3D;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
 
 /**
  * Metadata representing an N5Dataset that implements {@link SpatialMetadata} and {@link IntensityMetadata}.
@@ -148,8 +149,15 @@ public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata impl
 
 		final int nd = relativeTransformation.numDimensions();
 
+		// if relative transformation is 4d, it means the last dimension contains time
+		final AffineGet transform;
+		if( nd == 4 )
+			transform = TransformUtils.subAffine(relativeTransformation, new int[]{0,1,2});
+		else
+			transform = relativeTransformation;
+
 		final AffineTransform3D newTransform = new AffineTransform3D();
-		newTransform.preConcatenate(relativeTransformation);
+		newTransform.preConcatenate(transform);
 		newTransform.preConcatenate(spatialTransform());
 
 		final double[] newScale = new double[nd];

@@ -3,6 +3,10 @@ package org.janelia.saalfeldlab.n5.universe.metadata;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
+
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
 
@@ -37,7 +41,26 @@ public interface SpatialMetadataGroup<T extends SpatialMetadata> extends N5Metad
 		transforms.add(new AffineTransform3D());
 	  } else if (transform instanceof AffineTransform3D)
 		transforms.add((AffineTransform3D)transform);
+	  else if (transform.numSourceDimensions() == 3 ) {
+		final AffineTransform3D affine3d = new AffineTransform3D();
+		affine3d.set( transform.getRowPackedCopy());
+		transforms.add(affine3d);
+	  }
 	  else {
+
+
+		final int[] indexes;
+		if( getChildrenMetadata()[0] instanceof AxisMetadata )
+		{
+			indexes = new int[3];
+			final AxisMetadata ax = (AxisMetadata)getChildrenMetadata()[0];
+			int j = 0;
+			for( int i = 0; i < ax.getAxes().length; i++ )
+				if( ax.getAxisTypes()[i].equals(Axis.SPACE))
+					indexes[j++] = i;
+		} else
+			indexes = new int[]{ 0, 1, 2 };
+
 		final int N = transform.numSourceDimensions();
 
 		int k = 0;
@@ -46,14 +69,14 @@ public interface SpatialMetadataGroup<T extends SpatialMetadata> extends N5Metad
 		for (int i = 0; i < 3; i++) {
 		  for (int j = 0; j < 3; j++) {
 			if (i < N && j < N)
-			  params[k] = transform.get(i, j);
+			  params[k] = transform.get(indexes[i], indexes[j]);
 
 			k++;
 		  }
 
 		  // j == 4
 		  if (i < N)
-			params[k] = transform.get(i, N);
+			params[k] = transform.get(indexes[i], N);
 
 		  k++;
 		}
