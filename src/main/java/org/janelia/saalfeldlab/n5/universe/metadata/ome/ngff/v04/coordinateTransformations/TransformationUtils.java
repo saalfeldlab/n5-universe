@@ -107,11 +107,11 @@ public class TransformationUtils {
 			final double[] t = new double[ n ];
 			for ( int d = 0; d < n; d++ )
 			{
-				t[ d ] = affineGet.get( d, n );
 				s[ d ] = affineGet.get( d, d );
+				t[ d ] = affineGet.get( d, n );
 			}
 
-			return new ScaleAndTranslation( t, s );
+			return new ScaleAndTranslation( s, t );
 
 		}
 		return ( AffineGet ) affineGet.copy();
