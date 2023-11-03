@@ -20,8 +20,8 @@ public class AxisUtils {
 
 	public static final String xLabel = "x";
 	public static final String yLabel = "y";
-	public static final String cLabel = "z";
-	public static final String zLabel = "c";
+	public static final String cLabel = "c";
+	public static final String zLabel = "z";
 	public static final String tLabel = "t";
 
 	public static final String spaceType = "space";
