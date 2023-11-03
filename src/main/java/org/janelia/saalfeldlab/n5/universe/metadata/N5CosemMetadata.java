@@ -59,7 +59,7 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 				new double[]{1.0, 1.0, 1.0},
 				transform.fOrderedScale(),
 				transform.fOrderedTranslation(),
-				transform.units[0],
+				firstSpatialUnit( transform ),
 				attributes);
 
 		this.cosemTransformMeta = transform;
@@ -96,7 +96,22 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 		return axes;
 	}
 
-	private String[] reverse(final String[] in) {
+	@Override
+	public AffineGet spatialTransform() {
+
+		return new ScaleAndTranslation( cosemTransformMeta.scale, cosemTransformMeta.translate );
+	}
+
+	private static String firstSpatialUnit( CosemTransform cosemTform ) {
+
+		for (int i = 0; i < cosemTform.axes.length; i++) {
+			if (cosemTform.axes[i].equals("x") || cosemTform.axes[i].equals("y") || cosemTform.axes[i].equals("z"))
+				return cosemTform.units[i];
+		}
+		return "pixel";
+	}
+
+	private static String[] reverse(final String[] in) {
 
 		final String[] out = new String[in.length];
 		int j = 0;
