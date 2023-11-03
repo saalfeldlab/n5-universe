@@ -22,12 +22,12 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 	public OmeNgffMultiScaleMetadataMutable() {
 
-		this("");
+		this("", ArrayOrder.UKNOWN);
 	}
 
-	public OmeNgffMultiScaleMetadataMutable( final String path ) {
+	public OmeNgffMultiScaleMetadataMutable( final String path, final ArrayOrder byteOrder ) {
 
-		super(-1, path, null, null, null, null, new OmeNgffDataset[]{}, new DatasetAttributes[]{}, null, null);
+		super(-1, path, null, null, null, null, new OmeNgffDataset[]{}, new DatasetAttributes[]{}, null, null, byteOrder );
 
 //		final int nd, final String path, final String name,
 //		final String type, final String version, final Axis[] axes,
@@ -109,11 +109,7 @@ public void setPath(final String path) {
 
 		final OmeNgffDataset dset = new OmeNgffDataset();
 		// paths are relative to this object
-		System.out.println( Paths.get(path) );
-		System.out.println( Paths.get(child.getPath()));
-
 		dset.path = Paths.get(path).relativize(Paths.get(child.getPath())).toString();
-		System.out.println( dset.path );
 
 		dset.coordinateTransformations = child.getCoordinateTransformations();
 		if (idx < 0)
@@ -140,6 +136,9 @@ public void setPath(final String path) {
 	@Override
 	public NgffSingleScaleAxesMetadata[] getChildrenMetadata()
 	{
+		if( children == null )
+			return null;
+
 		return children.toArray(new NgffSingleScaleAxesMetadata[children.size()]);
 	}
 
