@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,9 +18,16 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 	private Axis[] axes;
 
+	private String path;
+
 	public OmeNgffMultiScaleMetadataMutable() {
 
-		super(-1, "", null, null, null, null, new OmeNgffDataset[]{}, new DatasetAttributes[]{}, null, null);
+		this("");
+	}
+
+	public OmeNgffMultiScaleMetadataMutable( final String path ) {
+
+		super(-1, path, null, null, null, null, new OmeNgffDataset[]{}, new DatasetAttributes[]{}, null, null);
 
 //		final int nd, final String path, final String name,
 //		final String type, final String version, final Axis[] axes,
@@ -26,6 +35,7 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 //		final CoordinateTransformation<?>[] coordinateTransformations,
 //		final OmeNgffDownsamplingMetadata metadata
 
+		setPath( path );
 		datasets = new ArrayList<>();
 		attributes = new ArrayList<>();
 		children = new ArrayList<>();
@@ -79,6 +89,17 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 //		}
 //	}
 
+@Override
+public String getPath() {
+
+	return path;
+}
+
+public void setPath(final String path) {
+
+	this.path = path;
+}
+
 	public void addChild(final NgffSingleScaleAxesMetadata child) {
 
 		addChild(-1, child);
@@ -87,7 +108,13 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 	public void addChild(final int idx, final NgffSingleScaleAxesMetadata child) {
 
 		final OmeNgffDataset dset = new OmeNgffDataset();
-		dset.path = child.getPath();
+		// paths are relative to this object
+		System.out.println( Paths.get(path) );
+		System.out.println( Paths.get(child.getPath()));
+
+		dset.path = Paths.get(path).relativize(Paths.get(child.getPath())).toString();
+		System.out.println( dset.path );
+
 		dset.coordinateTransformations = child.getCoordinateTransformations();
 		if (idx < 0)
 		{
