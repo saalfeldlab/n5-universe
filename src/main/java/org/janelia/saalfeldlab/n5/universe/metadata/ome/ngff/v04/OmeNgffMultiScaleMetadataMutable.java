@@ -1,6 +1,5 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,12 +21,12 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 	public OmeNgffMultiScaleMetadataMutable() {
 
-		this("", ArrayOrder.UKNOWN);
+		this("");
 	}
 
-	public OmeNgffMultiScaleMetadataMutable( final String path, final ArrayOrder byteOrder ) {
+	public OmeNgffMultiScaleMetadataMutable( final String path) {
 
-		super(-1, path, null, null, null, null, new OmeNgffDataset[]{}, new DatasetAttributes[]{}, null, null, byteOrder );
+		super(-1, path, null, null, null, null, new OmeNgffDataset[]{}, new DatasetAttributes[]{}, null, null, false);
 
 //		final int nd, final String path, final String name,
 //		final String type, final String version, final Axis[] axes,

@@ -11,7 +11,6 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata.ArrayOrder;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
@@ -28,12 +27,9 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 	private final Gson gson;
 
-	private boolean reverse = false;
-
 	public OmeNgffMetadataParser(final boolean reverse) {
 
 		gson = gsonBuilder().create();
-		this.reverse = reverse;
 	}
 
 	public OmeNgffMetadataParser() {
@@ -82,7 +78,6 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		 * Need to replace all children with new children with the metadata from
 		 * this object
 		 */
-		boolean cOrder = false;
 		for (int j = 0; j < multiscales.length; j++) {
 
 			final OmeNgffMultiScaleMetadata ms = multiscales[j];
@@ -95,16 +90,13 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			for (int i = 0; i < paths.length; i++) {
 				dsetMeta[i] = ((N5DatasetMetadata)scaleLevelNodes.get(MetadataUtils.canonicalPath(node, paths[i])).getMetadata());
 				attrs[i] = dsetMeta[i].getAttributes();
-				cOrder = cOrder || cOrder(attrs[i]);
 			}
 
-			final ArrayOrder byteOrder = cOrder ? ArrayOrder.C : ArrayOrder.F;
-			final NgffSingleScaleAxesMetadata[] msChildrenMeta = ms.buildChildren(nd, attrs, ms.coordinateTransformations, ms.axes, byteOrder );
+			final NgffSingleScaleAxesMetadata[] msChildrenMeta = ms.buildChildren(nd, attrs, ms.coordinateTransformations, ms.axes);
 			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta);
 
 			// axes need to be flipped after the child is created
-			if (cOrder)
-				ArrayUtils.reverse(ms.axes);
+			ArrayUtils.reverse(ms.axes);
 
 			multiscales[j] = new OmeNgffMultiScaleMetadata( ms, msChildrenMeta );
 		}

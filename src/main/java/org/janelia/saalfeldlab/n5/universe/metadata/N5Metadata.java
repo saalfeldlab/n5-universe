@@ -8,8 +8,6 @@ package org.janelia.saalfeldlab.n5.universe.metadata;
  */
 public interface N5Metadata {
 
-  static enum ArrayOrder { C, F, UKNOWN };
-
   /**
    * @return the path to this metadata, with respect to the base of the container
    */

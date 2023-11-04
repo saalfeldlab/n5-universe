@@ -35,7 +35,6 @@ import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
@@ -68,7 +67,6 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 	public transient String path;
 	public transient DatasetAttributes[] childrenAttributes;
-	public transient final ArrayOrder byteOrder;
 
 	public OmeNgffMultiScaleMetadata( final OmeNgffMultiScaleMetadata other, final NgffSingleScaleAxesMetadata[] children )
 	{
@@ -78,45 +76,38 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		this.version = other.version;
 		this.axes = other.axes;
 
-//		this.datasets = other.getDatasets();
-//		this.datasets = buildDatasets( getChildrenMetadata() );
-
 		final OmeNgffDataset[] dset = buildDatasets( other.path, getChildrenMetadata() );
 		this.datasets = dset != null ? dset : other.datasets;
 
 		this.coordinateTransformations = other.coordinateTransformations;
 		this.metadata = other.metadata;
 		this.childrenAttributes = other.childrenAttributes;
-		this.byteOrder = other.byteOrder;
 	}
 
-	public OmeNgffMultiScaleMetadata( final int nd, final String path, final String name,
+	public OmeNgffMultiScaleMetadata(final int nd, final String path, final String name,
+			final String type, final String version, final Axis[] axes,
+			final OmeNgffDataset[] datasets, final DatasetAttributes[] childrenAttributes,
+			final CoordinateTransformation<?>[] coordinateTransformations,
+			final OmeNgffDownsamplingMetadata metadata) {
+
+		this(nd, path, name, type, version, axes, datasets, childrenAttributes, coordinateTransformations, metadata, true);
+	}
+
+	public OmeNgffMultiScaleMetadata(final int nd, final String path, final String name,
 			final String type, final String version, final Axis[] axes,
 			final OmeNgffDataset[] datasets, final DatasetAttributes[] childrenAttributes,
 			final CoordinateTransformation<?>[] coordinateTransformations,
 			final OmeNgffDownsamplingMetadata metadata,
-			final ArrayOrder byteOrder )
-	{
-		this( nd, path, name, type, version, axes, datasets, childrenAttributes,
-				coordinateTransformations, metadata, byteOrder, true);
-	}
+			final boolean buildDatasetsFromChildren) {
 
-	public OmeNgffMultiScaleMetadata( final int nd, final String path, final String name,
-			final String type, final String version, final Axis[] axes,
-			final OmeNgffDataset[] datasets, final DatasetAttributes[] childrenAttributes,
-			final CoordinateTransformation<?>[] coordinateTransformations,
-			final OmeNgffDownsamplingMetadata metadata,
-			final ArrayOrder byteOrder,
-			final boolean buildDatasetsFromChildren )
-	{
-		super( path, buildMetadata( nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes, byteOrder ));
-		if( !allSameAxisOrder(childrenAttributes))
+		super(path, buildMetadata(nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes));
+		if (!allSameAxisOrder(childrenAttributes))
 			throw new RuntimeException("All ome-zarr arrays must have same array order");
 
 		this.name = name;
 		this.type = type;
 		this.version = version;
-		this.axes = OmeNgffMultiScaleMetadata.reverseIfCorder( childrenAttributes, byteOrder, axes );
+		this.axes = axes;
 
 		if( buildDatasetsFromChildren )
 		{
@@ -129,16 +120,14 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		this.coordinateTransformations = coordinateTransformations;
 		this.metadata = metadata;
 		this.childrenAttributes = childrenAttributes;
-		this.byteOrder = byteOrder;
 	}
 
 	public static NgffSingleScaleAxesMetadata[] buildMetadata( final int nd, final String path,
 			final DatasetAttributes[] childrenAttributes,
-			final OmeNgffMultiScaleMetadata multiscales,
-			final ArrayOrder byteOrder ) {
+			final OmeNgffMultiScaleMetadata multiscales) {
 
 		return buildMetadata(nd, path, multiscales.datasets, childrenAttributes, multiscales.coordinateTransformations, multiscales.metadata,
-				multiscales.axes, byteOrder );
+				multiscales.axes);
 	}
 
 	private static OmeNgffDataset[] buildDatasets( final String path, final NgffSingleScaleAxesMetadata[] children) {
@@ -163,19 +152,8 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final OmeNgffDownsamplingMetadata metadata,
 			final Axis[] axes)
 	{
-		return buildMetadata( nd, path, datasets, childrenAttributes, transforms, metadata, axes, N5Metadata.ArrayOrder.UKNOWN );
-	}
-
-	private static NgffSingleScaleAxesMetadata[] buildMetadata(
-			final int nd, final String path, final OmeNgffDataset[] datasets,
-			final DatasetAttributes[] childrenAttributes,
-			final CoordinateTransformation<?>[] transforms,
-			final OmeNgffDownsamplingMetadata metadata,
-			final Axis[] axes,
-			final ArrayOrder byteOrder )
-	{
 		final int N = datasets.length;
-		final Axis[] axesToWrite = OmeNgffMultiScaleMetadata.reverseIfCorder( childrenAttributes, byteOrder, axes );
+		final Axis[] axesToWrite = axes != null ? reverseCopy(axes) : null;
 
 		final NgffSingleScaleAxesMetadata[] childrenMetadata = new NgffSingleScaleAxesMetadata[ N ];
 		for ( int i = 0; i < N; i++ )
@@ -184,14 +162,14 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			if( affineTransform == null )
 				affineTransform = new AffineTransform( nd );
 
-			final double[] offsetTmp = DoubleStream.generate( () -> 0 ).limit( nd ).toArray();
-			offsetFromAffine(affineTransform, offsetTmp);
+			final double[] offset = DoubleStream.generate( () -> 0 ).limit( nd ).toArray();
+			offsetFromAffine(affineTransform, offset);
+			ArrayUtils.reverse(offset);
 
-			final double[] scaleTmp = DoubleStream.generate( () -> 1 ).limit( nd ).toArray();
-			scaleFromAffine(affineTransform, scaleTmp);
+			final double[] scale = DoubleStream.generate( () -> 1 ).limit( nd ).toArray();
+			scaleFromAffine(affineTransform, scale);
+			ArrayUtils.reverse(scale);
 
-			final double[] scale = reverseIfCorder(childrenAttributes, cOrder(byteOrder), scaleTmp);
-			final double[] offset = reverseIfCorder(childrenAttributes, cOrder(byteOrder), offsetTmp);
 
 			NgffSingleScaleAxesMetadata meta;
 			if (childrenAttributes == null) {
@@ -229,16 +207,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final CoordinateTransformation<?>[] coordinateTransformations,
 			final Axis[] axes)
 	{
-		return buildMetadata(nd, path, datasets, datasetAttributes, coordinateTransformations, metadata, axes, N5Metadata.ArrayOrder.UKNOWN);
-	}
-
-	public NgffSingleScaleAxesMetadata[] buildChildren( final int nd,
-			final DatasetAttributes[] datasetAttributes,
-			final CoordinateTransformation<?>[] coordinateTransformations,
-			final Axis[] axes,
-			final ArrayOrder byteOrder )
-	{
-		return buildMetadata(nd, path, datasets, datasetAttributes, coordinateTransformations, metadata, axes, byteOrder);
+		return buildMetadata(nd, path, datasets, datasetAttributes, coordinateTransformations, metadata, axes);
 	}
 
 	public N5SingleScaleMetadata buildChild( final int nd, final N5DatasetMetadata datasetMeta )
@@ -328,27 +297,6 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		return false;
 	}
 
-	public static boolean cOrder( final ArrayOrder byteOrder ) {
-
-		return byteOrder.equals(N5Metadata.ArrayOrder.C);
-	}
-
-	public static <T> T[] reverseIfCorder( final DatasetAttributes[] datasetAttributes, final ArrayOrder byteOrder, final T[] arr ) {
-
-		if( arr == null )
-			return null;
-
-		if (datasetAttributes == null || datasetAttributes.length == 0 )
-			return reverseIfCorder(cOrder(byteOrder), arr);
-
-		if (datasetAttributes[0] instanceof ZarrDatasetAttributes) {
-
-			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes[0];
-			return reverseIfCorder(zattrs.isRowMajor(), arr);
-		}
-		return arr;
-	}
-
 	public static <T> T[] reverseIfCorder( final DatasetAttributes datasetAttributes, final T[] arr ) {
 
 		if (datasetAttributes == null || arr == null)
@@ -413,6 +361,19 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		}
 
 		return arr;
+	}
+
+
+	public static double[] reverseCopy(final double[] arr) {
+		final double[] arrCopy = Arrays.copyOf(arr, arr.length);
+		ArrayUtils.reverse(arrCopy);
+		return arrCopy;
+	}
+
+	public static <T> T[] reverseCopy(final T[] arr) {
+		final T[] arrCopy = Arrays.copyOf(arr, arr.length);
+		ArrayUtils.reverse(arrCopy);
+		return arrCopy;
 	}
 
 	public static boolean allSameAxisOrder(final DatasetAttributes[] multiscaleDatasetAttributes) {

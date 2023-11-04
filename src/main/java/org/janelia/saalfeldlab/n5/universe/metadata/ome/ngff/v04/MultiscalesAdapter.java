@@ -3,7 +3,6 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 import java.lang.reflect.Type;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
@@ -43,7 +42,7 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 				OmeNgffDownsamplingMetadata.class);
 
 		return new OmeNgffMultiScaleMetadata(axes.length, "", name, type, version, axes, datasets, null,
-				coordinateTransformations, metadata, N5Metadata.ArrayOrder.UKNOWN, false);
+				coordinateTransformations, metadata, false);
 	}
 
 	@Override
