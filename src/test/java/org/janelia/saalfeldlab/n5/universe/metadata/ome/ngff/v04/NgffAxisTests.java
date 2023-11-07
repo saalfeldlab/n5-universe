@@ -50,16 +50,17 @@ public class NgffAxisTests {
 		// 3D
 		final double[] scale3d = new double[] { 2.0, 3.0, 4.0 };
 		final double[] translation3d = new double[] { 10.0, 100.0, 1000.0 };
+		final Axis[] spaceAxes = AxisUtils.defaultAxes("x", "y", "z");
 
-		final AffineTransform3D st3 = new NgffSingleScaleAxesMetadata("", scale3d, translation3d, null).spatialTransform3d();
+		final AffineTransform3D st3 = new NgffSingleScaleAxesMetadata("", scale3d, translation3d, spaceAxes, null).spatialTransform3d();
 		assertArrayEquals("3d scale translation", new double[] { 2, 0, 0, 10, 0, 3, 0, 100, 0, 0, 4, 1000 },
 				st3.getRowPackedCopy(), 1e-9);
 
-		final AffineTransform3D s3 = new NgffSingleScaleAxesMetadata("", scale3d, null, null).spatialTransform3d();
+		final AffineTransform3D s3 = new NgffSingleScaleAxesMetadata("", scale3d, null, spaceAxes, null).spatialTransform3d();
 		assertArrayEquals("3d scale", new double[] { 2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4, 0 },
 				s3.getRowPackedCopy(), 1e-9);
 
-		final AffineTransform3D t3 = new NgffSingleScaleAxesMetadata("", null, translation3d, null).spatialTransform3d();
+		final AffineTransform3D t3 = new NgffSingleScaleAxesMetadata("", null, translation3d, spaceAxes, null).spatialTransform3d();
 		assertArrayEquals("3d scale translation", new double[] { 1, 0, 0, 10, 0, 1, 0, 100, 0, 0, 1, 1000 },
 				t3.getRowPackedCopy(), 1e-9);
 
