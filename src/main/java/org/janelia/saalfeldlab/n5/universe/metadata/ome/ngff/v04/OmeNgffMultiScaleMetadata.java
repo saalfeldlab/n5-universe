@@ -153,7 +153,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final Axis[] axes)
 	{
 		final int N = datasets.length;
-		final Axis[] axesToWrite = axes != null ? reverseCopy(axes) : null;
+		final Axis[] axesToWrite = axes;
 
 		final NgffSingleScaleAxesMetadata[] childrenMetadata = new NgffSingleScaleAxesMetadata[ N ];
 		for ( int i = 0; i < N; i++ )
@@ -164,12 +164,9 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 			final double[] offset = DoubleStream.generate( () -> 0 ).limit( nd ).toArray();
 			offsetFromAffine(affineTransform, offset);
-			ArrayUtils.reverse(offset);
 
 			final double[] scale = DoubleStream.generate( () -> 1 ).limit( nd ).toArray();
 			scaleFromAffine(affineTransform, scale);
-			ArrayUtils.reverse(scale);
-
 
 			NgffSingleScaleAxesMetadata meta;
 			if (childrenAttributes == null) {
@@ -185,6 +182,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 	}
 
 	public Axis[] getAxes() {
+
 		return axes;
 	}
 

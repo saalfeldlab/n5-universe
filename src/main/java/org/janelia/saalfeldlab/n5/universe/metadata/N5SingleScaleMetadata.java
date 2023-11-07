@@ -151,8 +151,10 @@ public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata impl
 
 		// if relative transformation is 4d, it means the last dimension contains time
 		final AffineGet transform;
-		if( nd == 4 )
-			transform = TransformUtils.subAffine(relativeTransformation, new int[]{0,1,2});
+		if (nd == 4)
+			transform = TransformUtils.subAffine(relativeTransformation, new int[]{0, 1, 2});
+		else if (nd == 2)
+			transform = TransformUtils.superAffine(relativeTransformation, 3, new int[]{0, 1});
 		else
 			transform = relativeTransformation;
 
@@ -160,12 +162,18 @@ public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata impl
 		newTransform.preConcatenate(transform);
 		newTransform.preConcatenate(spatialTransform());
 
+
 		final double[] newScale = new double[nd];
 		final double[] newTranslation = new double[nd];
 		int j = 0;
 		for (int i = 0; i < nd; i++) {
-			newScale[i] = newTransform.get(j, j);
-			newTranslation[i] = newTransform.get(j, nd);
+			if (nd <= 3) {
+				newScale[i] = newTransform.get(j, j);
+				newTranslation[i] = newTransform.get(j, nd);
+			} else {
+				newScale[i] = 1.0;
+				newTranslation[i] = 0.0;
+			}
 			j++;
 		}
 

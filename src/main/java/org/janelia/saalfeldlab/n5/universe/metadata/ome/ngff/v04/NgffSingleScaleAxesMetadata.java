@@ -68,11 +68,7 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 	@Override
 	public Axis[] getAxes() {
 
-		// reverse final the axes if necessary
-//		if (datasetAttributes == null)
-			return axes;
-//		else
-//			return OmeNgffMultiScaleMetadata.reverseIfCorder(datasetAttributes, axes);
+		return axes;
 	}
 
 	public CoordinateTransformation<?>[] getCoordinateTransformations() {

@@ -35,6 +35,9 @@ public class CoordinateTransformationAdapter implements JsonDeserializer< Coordi
 		if ( !jobj.has( "type" ) )
 			return null;
 
+		// always reverse parameters
+		reverseParameters(jobj);
+
 		Class<?> clz;
 		AbstractCoordinateTransformation< ? > out = null;
 		switch ( jobj.get( "type" ).getAsString() )
@@ -70,8 +73,8 @@ public class CoordinateTransformationAdapter implements JsonDeserializer< Coordi
 				}
 		}
 
-//		if( reverse )
-//			reverseParameters( elem.getAsJsonObject() );
+		// always reverse parameters
+		reverseParameters( elem.getAsJsonObject() );
 
 		return elem;
 	}

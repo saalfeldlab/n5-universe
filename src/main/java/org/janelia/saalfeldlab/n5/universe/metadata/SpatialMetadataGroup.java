@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
@@ -46,43 +46,22 @@ public interface SpatialMetadataGroup<T extends SpatialMetadata> extends N5Metad
 		affine3d.set( transform.getRowPackedCopy());
 		transforms.add(affine3d);
 	  }
+	  else if (transform.numSourceDimensions() == 2 ) {
+		transforms.add((AffineTransform3D)TransformUtils.superAffine(transform, 3, new int[]{0, 1}));
+	  }
 	  else {
 
 
 		final int[] indexes;
 		if( getChildrenMetadata()[0] instanceof AxisMetadata )
 		{
-			indexes = new int[3];
 			final AxisMetadata ax = (AxisMetadata)getChildrenMetadata()[0];
-			int j = 0;
-			for( int i = 0; i < ax.getAxes().length; i++ )
-				if( ax.getAxisTypes()[i].equals(Axis.SPACE))
-					indexes[j++] = i;
+			transforms.add(TransformUtils.spatialTransform3D(transform, ax.getAxes()));
 		} else
+		{
 			indexes = new int[]{ 0, 1, 2 };
-
-		final int N = transform.numSourceDimensions();
-
-		int k = 0;
-		final AffineTransform3D transform3d = new AffineTransform3D();
-		final double[] params = transform3d.getRowPackedCopy();
-		for (int i = 0; i < 3; i++) {
-		  for (int j = 0; j < 3; j++) {
-			if (i < N && j < N)
-			  params[k] = transform.get(indexes[i], indexes[j]);
-
-			k++;
-		  }
-
-		  // j == 4
-		  if (i < N)
-			params[k] = transform.get(indexes[i], N);
-
-		  k++;
+			transforms.add(TransformUtils.spatialTransform3D(transform, indexes));
 		}
-
-		transform3d.set(params);
-		transforms.add(transform3d);
 	  }
 	}
 	return transforms.stream().map(AffineTransform3D::copy).toArray(AffineTransform3D[]::new);

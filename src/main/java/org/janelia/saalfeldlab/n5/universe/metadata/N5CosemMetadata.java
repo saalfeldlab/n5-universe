@@ -32,6 +32,8 @@ import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.ScaleAndTranslation;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
@@ -99,7 +101,7 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 	@Override
 	public AffineGet spatialTransform() {
 
-		return new ScaleAndTranslation( cosemTransformMeta.scale, cosemTransformMeta.translate );
+		return cosemTransformMeta.getAffine();
 	}
 
 	private static String firstSpatialUnit( CosemTransform cosemTform ) {
@@ -139,8 +141,6 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 		}
 
 		public AffineGet getAffine() {
-
-			assert (scale.length == 3 && translate.length == 3);
 
 			// COSEM scales and translations are in c-order
 			final double[] scaleRev = new double[scale.length];
@@ -206,10 +206,11 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 
 		public Axis[] buildAxes() {
 
-			final Axis[] out = new Axis[ axes.length];
-			for( int i = 0; i < axes.length; i++ )
+			final Axis[] out = new Axis[axes.length];
+			for (int i = 0; i < axes.length; i++)
 				out[i] = new Axis(AxisUtils.getDefaultType(axes[i]), axes[i], units[i]);
 
+			ArrayUtils.reverse(out);
 			return out;
 		}
 
@@ -233,6 +234,10 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 			newTranslation[i] = newTransform.get(j, tformN);
 			j++;
 		}
+
+		// need to reverse after update for cosem
+		ArrayUtils.reverse(newScale);
+		ArrayUtils.reverse(newTranslation);
 
 		return new N5CosemMetadata( newPath,
 				new N5CosemMetadata.CosemTransform(getCosemTransform().axes, newScale, newTranslation, getCosemTransform().units),

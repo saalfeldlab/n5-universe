@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +22,7 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
 public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>, N5MetadataWriter<OmeNgffMetadata> {
@@ -110,14 +112,11 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		final OmeNgffMultiScaleMetadata[] ms = t.multiscales;
 		final JsonElement jsonElem = gson.toJsonTree(ms);
 
-//		// need to reverse axes
-//		if (reverse) {
-//
-//			for (final JsonElement e : jsonElem.getAsJsonArray().asList()) {
-//				final JsonArray axes = e.getAsJsonObject().get("axes").getAsJsonArray();
-//				Collections.reverse(axes.asList());
-//			}
-//		}
+		// need to reverse axes
+		for (final JsonElement e : jsonElem.getAsJsonArray().asList()) {
+			final JsonArray axes = e.getAsJsonObject().get("axes").getAsJsonArray();
+			Collections.reverse(axes.asList());
+		}
 
 		n5.setAttribute(path, "multiscales", jsonElem);
 	}
