@@ -3,8 +3,11 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AbstractParametrizedFieldTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
@@ -17,14 +20,71 @@ import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
 import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory;
 import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineSet;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.realtransform.Scale;
 import net.imglib2.realtransform.ScaleAndTranslation;
 import net.imglib2.type.numeric.NumericType;
 
 public class TransformUtils
 {
+
+
+	public static AffineTransform3D spatialTransform3D( AffineGet affine, Axis[] axes )
+	{
+		final int numSpatialDims = (int)Arrays.stream(axes)
+				.filter( x -> x.getType().equals(Axis.SPACE)).count();
+
+		// can copy the input to the output directly if
+		// the input is 3d and all dimensions are spatial
+		if( affine.numTargetDimensions() == 3 && numSpatialDims == 3 )
+		{
+			final AffineTransform3D affine3d = new AffineTransform3D();
+			affine3d.set( affine.getRowPackedCopy() );
+			return affine3d;
+		}
+
+		final int[] spatialIndexes = new int[numSpatialDims];
+		int j = 0;
+		for( int i = 0; i < affine.numSourceDimensions(); i++ )
+		{
+			if (axes[i].getType().equals(Axis.SPACE))
+				spatialIndexes[j++] = i;
+		}
+
+		return spatialTransform3D(affine, spatialIndexes);
+	}
+
+	public static AffineTransform3D spatialTransform3D( AffineGet affine, final int[] spatialIndexes )
+	{
+		final int numSpatialDims = spatialIndexes.length;
+
+		// can copy the input to the output directly if
+		// the input is 3d and all dimensions are spatial
+		if( affine.numTargetDimensions() == 3 && numSpatialDims == 3 )
+		{
+			final AffineTransform3D affine3d = new AffineTransform3D();
+			affine3d.set( affine.getRowPackedCopy() );
+			return affine3d;
+		}
+
+		final int numAffineDims = affine.numTargetDimensions();
+		if (numAffineDims < 3 || numSpatialDims < 3) {
+			final AffineGet spatialAffine = subAffine(affine, spatialIndexes);
+			return (AffineTransform3D)superAffine(spatialAffine, 3,
+					IntStream.range(0, numSpatialDims).toArray());
+		}
+		else if (numAffineDims > 3 && numSpatialDims == 3) {
+			// TODO what if (N > 3)?
+			return (AffineTransform3D)subAffine(affine, spatialIndexes);
+		}
+
+		// the above should cover all valid cases
+		// return null for invalid case
+		return null;
+	}
 
 	public static AffineGet subAffine( AffineGet affine, int[] indexes  )
 	{
@@ -63,6 +123,48 @@ public class TransformUtils
 			dat[k++] = affine.get( indexes[i], ndIn );
 		}
 		return dat;
+	}
+
+	/**
+	 * Returns an affine with a specified dimensionality that
+	 * contains
+	 *
+	 * @param <T> an affine set and affine get
+	 * @param affine the input affine
+	 * @param nd the dimensionality of the output affine
+	 * @param indexes the indexes
+	 * @return the resulting affine
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T extends AffineGet & AffineSet> AffineGet superAffine(
+			final AffineGet affine, int nd, final int[] indexes) {
+
+		assert( indexes.length == affine.numSourceDimensions() );
+		if( affine.numTargetDimensions() == nd )
+			return affine;
+
+		final T out;
+		if (nd == 2)
+			out = (T)new AffineTransform2D();
+		else if (nd == 3)
+			out = (T)new AffineTransform3D();
+		else
+			out = (T)new AffineTransform(nd);
+
+		final int N = indexes.length;
+		for( int i = 0; i < N; i++ ) {
+			for( int j = 0; j < N; j++ ) {
+				out.set( affine.get(i, j),
+						indexes[i], indexes[j]);
+			}
+		}
+
+		for (int i = 0; i < N; i++) {
+			out.set(affine.get(i, N),
+					indexes[i], nd );
+		}
+
+		return out;
 	}
 
 	public static AffineTransform3D toAffine3D( SequenceCoordinateTransform seq )
@@ -120,7 +222,6 @@ public class TransformUtils
 				if( t instanceof AffineGet )
 				{
 					preConcatenate( total, (AffineGet) t  );
-	//				total.preConcatenate((AffineGet) t );
 				}
 				else
 					return null;
