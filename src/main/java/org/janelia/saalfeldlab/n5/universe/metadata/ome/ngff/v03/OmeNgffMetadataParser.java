@@ -24,7 +24,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser< OmeNgffMetadata 
 		try
 		{
 			multiscales = n5.getAttribute( node.getPath(), "multiscales", OmeNgffMultiScaleMetadata[].class );
-		} catch ( Exception e )
+		} catch ( final Exception e )
 		{
 			return Optional.empty();
 		}
@@ -50,23 +50,23 @@ public class OmeNgffMetadataParser implements N5MetadataParser< OmeNgffMetadata 
 			return Optional.empty();
 
 		/*
-		 * Need to replace all children with new children with the 
-		 * metadata from this  
+		 * Need to replace all children with new children with the
+		 * metadata from this
 		 */
-		for ( OmeNgffMultiScaleMetadata ms : multiscales )
+		for ( final OmeNgffMultiScaleMetadata ms : multiscales )
 		{
 			ms.path = node.getPath();
-			String[] paths = ms.getPaths();
-			DatasetAttributes[] attrs = new DatasetAttributes[ ms.getPaths().length ];
-			N5DatasetMetadata[] dsetMeta = new N5DatasetMetadata[ paths.length ];
+			final String[] paths = ms.getPaths();
+			final DatasetAttributes[] attrs = new DatasetAttributes[ ms.getPaths().length ];
+			final N5DatasetMetadata[] dsetMeta = new N5DatasetMetadata[ paths.length ];
 			for( int i = 0; i < paths.length; i++ )
 			{
 				dsetMeta[ i ] = ((N5DatasetMetadata)scaleLevelNodes.get( MetadataUtils.canonicalPath( node, paths[ i ] ) ).getMetadata());
 				attrs[ i ] = dsetMeta[ i ].getAttributes();
 			}
 
-			N5SingleScaleMetadata[] msChildrenMeta = ms.buildChildren( nd, attrs );
-			MetadataUtils.updateChildrenMetadata( node, msChildrenMeta );
+			final N5SingleScaleMetadata[] msChildrenMeta = ms.buildChildren( nd, attrs );
+			MetadataUtils.updateChildrenMetadata( node, msChildrenMeta, false );
 			ms.childrenMetadata = msChildrenMeta;
 
 			ms.childrenAttributes = attrs;
@@ -88,7 +88,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser< OmeNgffMetadata 
 
 				final OmeNgffDataset ds = ms.datasets[j];
 				final N5SingleScaleMetadata meta = ms.childrenMetadata[j];
-				String childPath = path + "/" + ds.path;
+				final String childPath = path + "/" + ds.path;
 			}
 		}
 

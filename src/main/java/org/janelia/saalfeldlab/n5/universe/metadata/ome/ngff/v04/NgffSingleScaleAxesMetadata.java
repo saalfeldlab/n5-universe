@@ -52,7 +52,7 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 			final Axis[] axes,
 			final DatasetAttributes datasetAttributes) {
 
-		this.path = path;
+		this.path = MetadataUtils.normalizeGroupPath(path);
 
 		this.scale = scale;
 		this.translation = translation;

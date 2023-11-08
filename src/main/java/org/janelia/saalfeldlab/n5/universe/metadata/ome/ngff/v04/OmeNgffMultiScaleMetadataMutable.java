@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 
 public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata {
@@ -26,7 +27,7 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 	public OmeNgffMultiScaleMetadataMutable( final String path) {
 
-		super(-1, path, null, null, null, null, new OmeNgffDataset[]{}, new DatasetAttributes[]{}, null, null, false);
+		super(-1, MetadataUtils.normalizeGroupPath(path), null, null, null, null, new OmeNgffDataset[]{}, new DatasetAttributes[]{}, null, null, false);
 
 //		final int nd, final String path, final String name,
 //		final String type, final String version, final Axis[] axes,
@@ -34,7 +35,7 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 //		final CoordinateTransformation<?>[] coordinateTransformations,
 //		final OmeNgffDownsamplingMetadata metadata
 
-		setPath( path );
+		setPath( super.basePath );
 		datasets = new ArrayList<>();
 		attributes = new ArrayList<>();
 		children = new ArrayList<>();
@@ -88,16 +89,16 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 //		}
 //	}
 
-@Override
-public String getPath() {
+	@Override
+	public String getPath() {
 
-	return path;
-}
+		return path;
+	}
 
-public void setPath(final String path) {
+	public void setPath(final String path) {
 
-	this.path = path;
-}
+		this.path = path;
+	}
 
 	public void addChild(final NgffSingleScaleAxesMetadata child) {
 
@@ -108,7 +109,7 @@ public void setPath(final String path) {
 
 		final OmeNgffDataset dset = new OmeNgffDataset();
 		// paths are relative to this object
-		dset.path = Paths.get(path).relativize(Paths.get(child.getPath())).toString();
+		dset.path = Paths.get(getPath()).relativize(Paths.get(child.getPath())).toString();
 
 		dset.coordinateTransformations = child.getCoordinateTransformations();
 		if (idx < 0)

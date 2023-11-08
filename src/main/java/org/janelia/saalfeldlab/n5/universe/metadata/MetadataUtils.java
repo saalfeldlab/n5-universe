@@ -1,6 +1,8 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
 import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -128,12 +130,22 @@ public class MetadataUtils {
 		} ).filter( x -> x != null ).toArray();
 	}
 
-	public static void updateChildrenMetadata( final N5TreeNode parent, final N5Metadata[] childrenMetadata )
+	public static void updateChildrenMetadata( final N5TreeNode parent, final N5Metadata[] childrenMetadata,
+			final boolean relative )
 	{
 		final HashMap<String,N5Metadata> children = new HashMap<>();
-		Arrays.stream( childrenMetadata ).forEach( x -> { children.put( x.getPath(), x ); } );
+		Arrays.stream( childrenMetadata ).forEach( x -> {
+			final String absolutePath;
+			if( relative )
+			{
+				absolutePath = normalizeGroupPath(parent.getPath() + "/" + x.getPath());
+			} else {
+				absolutePath = x.getPath();
+			}
+			children.put( absolutePath, x );
+		});
 		parent.childrenList().forEach( c -> {
-			final N5Metadata m = children.get( c.getPath() );
+			final N5Metadata m = children.get(MetadataUtils.normalizeGroupPath(c.getPath()));
 			if( m != null )
 				c.setMetadata( m );
 		});
@@ -150,6 +162,30 @@ public class MetadataUtils {
 		{
 			final N5URI url = new N5URI( "?/" + parent + "/" + child );
 			return url.normalizeGroupPath();
+		}
+		catch ( final URISyntaxException e ) { }
+		return null;
+	}
+
+	public static String normalizeGroupPath(final String path) {
+
+		try {
+			return new N5URI("?" + path).normalizeGroupPath();
+		} catch (final URISyntaxException e) {
+			e.printStackTrace();
+		}
+		return path;
+	}
+
+	public static String relativePath( final String parent, final String child )
+	{
+		try
+		{
+			final N5URI purl = new N5URI( "?" + parent );
+			final N5URI curl = new N5URI( "?" + child );
+			final Path ppath = Paths.get( purl.normalizeGroupPath());
+			final Path cpath = Paths.get( curl.normalizeGroupPath());
+			return ppath.relativize(cpath).toString();
 		}
 		catch ( final URISyntaxException e )
 		{

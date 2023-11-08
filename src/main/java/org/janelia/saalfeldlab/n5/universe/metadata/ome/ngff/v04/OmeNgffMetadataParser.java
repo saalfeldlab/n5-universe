@@ -16,6 +16,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformationAdapter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
@@ -84,7 +85,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 			final OmeNgffMultiScaleMetadata ms = multiscales[j];
 
-			ms.path = node.getPath();
+//			ms.path = node.getPath();
 			final String[] paths = ms.getPaths();
 			final DatasetAttributes[] attrs = new DatasetAttributes[ms.getPaths().length];
 
@@ -94,8 +95,11 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 				attrs[i] = dsetMeta[i].getAttributes();
 			}
 
-			final NgffSingleScaleAxesMetadata[] msChildrenMeta = ms.buildChildren(nd, attrs, ms.coordinateTransformations, ms.axes);
-			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta);
+//			final NgffSingleScaleAxesMetadata[] msChildrenMeta = ms.buildChildren(nd, attrs, ms.coordinateTransformations, ms.axes);
+			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffMultiScaleMetadata.buildMetadata(
+					nd, node.getPath(), ms.datasets, attrs, ms.coordinateTransformations, ms.metadata, ms.axes);
+
+			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta, false);
 
 			// axes need to be flipped after the child is created
 			ArrayUtils.reverse(ms.axes);
