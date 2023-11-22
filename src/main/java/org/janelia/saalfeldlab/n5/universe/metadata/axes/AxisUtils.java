@@ -30,6 +30,8 @@ public class AxisUtils {
 
 	public static final DefaultAxisTypes defaultAxisTypes = DefaultAxisTypes.getInstance();
 
+	public static String SPACE_UNIT = "um";
+	public static String TIME_UNIT = "s";
 
 	/**
 	 * Finds and returns a permutation p such that source[p[i]] equals target[i]
@@ -208,7 +210,8 @@ public class AxisUtils {
 
 	public static Axis defaultAxis(final String label) {
 
-		return new Axis(getDefaultType(label), label, "");
+		final String type = getDefaultType(label);
+		return new Axis(type, label, getDefaultUnit(type));
 	}
 
 	/**
@@ -244,6 +247,15 @@ public class AxisUtils {
 
 	public static String getDefaultType( final String label ) {
 		return defaultAxisTypes.get(label);
+	}
+
+	public static String getDefaultUnit( final String type ) {
+		if( type.equals(Axis.SPACE ))
+			return SPACE_UNIT;
+		else if( type.equals(Axis.TIME ))
+			return TIME_UNIT;
+		else
+			return "";
 	}
 
 	public static String defaultLabel(final int i) {
