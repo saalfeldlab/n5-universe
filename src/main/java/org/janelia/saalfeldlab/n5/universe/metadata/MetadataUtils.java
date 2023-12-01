@@ -28,7 +28,6 @@ import net.imglib2.realtransform.Translation3D;
 
 public class MetadataUtils {
 
-
 	public static double[] mul(final double[] a, final double[] b) {
 
 		final double[] out = new double[ a.length ];
@@ -43,6 +42,21 @@ public class MetadataUtils {
 		final double[] out = new double[ a.length ];
 		for( int i = 0; i <  a.length; i++ )
 			out[i] = a[i] * b[i];
+
+		return out;
+	}
+
+	public static double[][] scalesAndTranslations(final double[] baseScale,
+			final double[] downsamplingFactors, final int numLevels) {
+
+		final int numDimensions = baseScale.length;
+		final double[][] out = new double[numLevels][numDimensions];
+		for( int i = 0; i < numLevels; i++ )
+			for( int d = 0; d < numDimensions; d++ )
+				if( i == 0 )
+					out[i][d] = baseScale[d] * downsamplingFactors[d];
+				else
+					out[i][d] = out[i-1][d] * downsamplingFactors[d];
 
 		return out;
 	}
