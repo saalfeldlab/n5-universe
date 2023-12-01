@@ -29,65 +29,11 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 		super(-1, MetadataUtils.normalizeGroupPath(path), null, null, null, null, new OmeNgffDataset[]{}, new DatasetAttributes[]{}, null, null, false);
 
-//		final int nd, final String path, final String name,
-//		final String type, final String version, final Axis[] axes,
-//		final OmeNgffDataset[] datasets, final DatasetAttributes[] childrenAttributes,
-//		final CoordinateTransformation<?>[] coordinateTransformations,
-//		final OmeNgffDownsamplingMetadata metadata
-
 		setPath( super.basePath );
 		datasets = new ArrayList<>();
 		attributes = new ArrayList<>();
 		children = new ArrayList<>();
 	}
-
-//	public static void main(String[] args) {
-//
-//		final ArrayList<String> list = new ArrayList<String>();
-//		// final LinkedList<String> list = new LinkedList<String>();
-//
-//		list.add("a");
-//		list.add("b");
-//		// list.set(0, "z");
-//		list.add(0, "z");
-//		list.add(1, "q");
-//
-//		list.forEach(System.out::println);
-//
-//		// System.out.println( list.get(0) );
-//		// System.out.println( list.get(1) );
-//	}
-
-//	public void addScale(final String path, final CoordinateTransformation<?>[] transforms,
-//			final DatasetAttributes attribute) {
-//
-//		addScaleLevel(-1, path, transforms, attribute);
-//	}
-//
-//	public void addScaleLevel(final int idx, final String path, final CoordinateTransformation<?>[] transforms,
-//			final DatasetAttributes attribute) {
-//
-//		final OmeNgffDataset dset = new OmeNgffDataset();
-//		dset.path = path;
-//		dset.coordinateTransformations = transforms;
-//		addScaleLevel(idx, dset, attribute);
-//	}
-//
-//	public void addScaleLevel(final OmeNgffDataset dataset, final DatasetAttributes attribute) {
-//
-//		addScaleLevel(-1, dataset, attribute);
-//	}
-//
-//	public void addScaleLevel(int idx, final OmeNgffDataset dataset, final DatasetAttributes attribute) {
-//
-//		if (idx < 0) {
-//			datasets.add(dataset);
-//			attributes.add(attribute);
-//		} else {
-//			datasets.add(idx, dataset);
-//			attributes.add(idx, attribute);
-//		}
-//	}
 
 	@Override
 	public String getPath() {

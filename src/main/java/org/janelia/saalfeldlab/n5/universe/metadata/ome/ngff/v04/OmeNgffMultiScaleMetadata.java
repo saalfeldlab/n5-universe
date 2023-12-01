@@ -255,12 +255,6 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 	{
 		return this.childrenMetadata;
 	}
-//
-//	@Override
-//	public String getPath()
-//	{
-//		return path;
-//	}
 
 	@Override
 	public String[] units()
