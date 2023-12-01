@@ -596,11 +596,11 @@ public class N5Factory implements Serializable {
 			else if (scheme.equals("gs"))
 				return openGoogleCloudReader(uri);
 			else if (encodedUri.getHost() != null && scheme.equals("https") || scheme.equals("http")) {
-				if (encodedUri.getHost().matches(".*s3.*"))
-					return openAWSS3Reader(uri);
-				else if (encodedUri.getHost().matches(".*cloud\\.google\\.com")
+				if (encodedUri.getHost().matches(".*cloud\\.google\\.com")
 						|| encodedUri.getHost().matches(".*storage\\.googleapis\\.com"))
 					return openGoogleCloudReader(uri);
+				else //if (encodedUri.getHost().matches(".*s3.*")) //< This is too fragile for what people in the wild are doing with their S3 instances, for now catch all
+					return openAWSS3Reader(uri);
 			}
 		} catch (final URISyntaxException ignored) {}
 		return openFileBasedN5Reader(uri);
