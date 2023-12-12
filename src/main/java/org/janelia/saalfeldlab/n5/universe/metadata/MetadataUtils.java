@@ -54,7 +54,7 @@ public class MetadataUtils {
 		for( int i = 0; i < numLevels; i++ )
 			for( int d = 0; d < numDimensions; d++ )
 				if( i == 0 )
-					out[i][d] = baseScale[d] * downsamplingFactors[d];
+					out[i][d] = baseScale[d];
 				else
 					out[i][d] = out[i-1][d] * downsamplingFactors[d];
 
