@@ -111,7 +111,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 	}
 
 	@Override
-	public void writeMetadata(final OmeNgffMetadata t, final N5Writer n5, final String path) throws Exception {
+	public void writeMetadata(final OmeNgffMetadata t, final N5Writer n5, final String groupPath) throws Exception {
 
 		final OmeNgffMultiScaleMetadata[] ms = t.multiscales;
 		final JsonElement jsonElem = gson.toJsonTree(ms);
@@ -122,7 +122,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			Collections.reverse(axes.asList());
 		}
 
-		n5.setAttribute(path, "multiscales", jsonElem);
+		n5.setAttribute(groupPath, "multiscales", jsonElem);
 	}
 
 	public static boolean cOrder(final DatasetAttributes datasetAttributes) {

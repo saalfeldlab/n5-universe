@@ -38,6 +38,8 @@ public class OmeNgffMetadata extends MultiscaleMetadata<NgffSingleScaleAxesMetad
 			final double[][] scales,
 			final double[][] translations) {
 
+		// TODO make this a constructor? (yes, says Caleb, and John)
+
 		assert scalePaths.length == scales.length;
 
 		if( translations != null )
