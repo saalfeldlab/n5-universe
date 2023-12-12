@@ -7,7 +7,6 @@ import java.util.stream.IntStream;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
-import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AbstractParametrizedFieldTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
@@ -31,6 +30,17 @@ import net.imglib2.type.numeric.NumericType;
 public class TransformUtils
 {
 
+	public static double[][] affineToMatrix( final AffineGet affine )
+	{
+		// AffineGets always have numSourceDimensions == numTargetDimensions
+		final int N = affine.numSourceDimensions();
+		final double[][] mtx = new double[N][N+1];
+		for( int i = 0; i < N; i++ )
+			for( int j = 0; j < (N+1); j++ )
+				mtx[i][j] = affine.get(i, j);
+
+		return mtx;
+	}
 
 	public static AffineTransform3D spatialTransform3D( AffineGet affine, Axis[] axes )
 	{
@@ -108,6 +118,23 @@ public class TransformUtils
 			out.set( rowPackedSubMatrix( affine, indexes ) );
 			return out;
 		}
+	}
+
+	/**
+	 * Returns a "row-major" flattened array, i.e., the first index is contiguous in the output.
+	 *
+	 * @param arr the 2d array
+	 * @return a flattened version
+	 */
+	public static double[] flatten( final double[][] arr ) {
+
+		final double[] out = new double[arr.length * arr[0].length];
+		int k = 0;
+		for (int i = 0; i < arr.length; i++)
+			for (int j = 0; j < arr[i].length; j++)
+				out[k++] = arr[i][j];
+
+		return out;
 	}
 
 	private static double[] rowPackedSubMatrix( AffineGet affine, int[] indexes )
