@@ -23,4 +23,6 @@ public interface ParametrizedTransform<T extends RealTransform,P> extends Coordi
 	public T buildTransform( P parameters );
 
 	public P getParameters( final N5Reader n5 );
+
+	public void resolveAbsoluePath(final String groupPath);
 }

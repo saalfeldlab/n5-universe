@@ -1,7 +1,5 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
-import java.io.IOException;
-
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
@@ -15,8 +13,14 @@ import net.imglib2.util.Util;
 
 public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> extends AbstractParametrizedTransform<T,P> implements LinearCoordinateTransform<T> {
 
+	protected transient boolean serializeFlatArray = true;
+
 	public AbstractLinearCoordinateTransform( final String type ) {
 		super( type );
+	}
+
+	public AbstractLinearCoordinateTransform( final String type, final String path ) {
+		super( type, path );
 	}
 
 	public AbstractLinearCoordinateTransform( final String type, final String name,
@@ -50,7 +54,21 @@ public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> e
 	@Override
 	public abstract T buildTransform( P parameters );
 
+	public boolean serializeAsFlatArray() {
+
+		return serializeFlatArray;
+	}
+
+	public void setSerializeAsFlatArray(final boolean serializeFlatArray) {
+
+		this.serializeFlatArray = serializeFlatArray;
+	}
+
 	protected static <T extends RealType<T> & NativeType<T>> double[] getDoubleArray(final N5Reader n5, final String path) {
+
+		if( n5 == null )
+			return null;
+
 		if (n5.exists(path)) {
 			try {
 				@SuppressWarnings("unchecked")
@@ -72,6 +90,10 @@ public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> e
 	}
 
 	protected static <T extends RealType<T> & NativeType<T>> double[][] getDoubleArray2(final N5Reader n5, final String path) {
+
+		if( n5 == null )
+			return null;
+
 		if (n5.exists(path)) {
 			try {
 				@SuppressWarnings("unchecked")

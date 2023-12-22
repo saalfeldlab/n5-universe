@@ -1,10 +1,14 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import org.janelia.saalfeldlab.n5.N5URI;
+
 import net.imglib2.realtransform.RealTransform;
 
 public abstract class AbstractParametrizedTransform<T extends RealTransform,P> extends AbstractCoordinateTransform<T> implements ParametrizedTransform<T,P> {
 
-	private final String path;
+	protected final String path;
+
+	protected transient String absolutePath;
 
 	public AbstractParametrizedTransform( String type ) {
 		this( type, null );
@@ -45,7 +49,14 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 
 	@Override
 	public String getParameterPath() {
-		return path;
+
+		return absolutePath != null ? absolutePath : path;
+	}
+
+	@Override
+	public void resolveAbsoluePath(final String groupPath) {
+
+		absolutePath = N5URI.normalizeGroupPath(groupPath + "/" + path);
 	}
 
 }

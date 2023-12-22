@@ -4,6 +4,7 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
@@ -19,13 +20,11 @@ import com.google.gson.JsonSerializer;
 
 public class CoordinateTransformAdapter
 	implements JsonDeserializer<CoordinateTransform<?>>, JsonSerializer<CoordinateTransform<?>> {
-//	implements JsonDeserializer<LinearSpatialTransform> {
 
 	final N5Reader n5;
 
 	public static final String[] FIELD_TO_NULL_CHECK = new String[]{
-		"path", "name",
-		"input_axes", "output_axes", "output_space", "input_space"
+		"path", "name", "input", "output"
 	};
 
 	public CoordinateTransformAdapter() {
@@ -67,15 +66,20 @@ public class CoordinateTransformAdapter
 			break;
 		case("affine"):
 			out = context.deserialize( jobj, AffineCoordinateTransform.class );
+//			out = AffineCoordinateTransform.deserialize(context, jobj);
+
 			break;
 		case("matrix"):
 			out = context.deserialize( jobj, MatrixCoordinateTransform.class );
 			break;
+		case("thin-plate-spline"):
+			out = context.deserialize( jobj, ThinPlateSplineCoordinateTransform.class );
+			break;
 		case(DisplacementFieldCoordinateTransform.KEY):
 			out = context.deserialize( jobj, DisplacementFieldCoordinateTransform.class );
 			break;
-		case(PositionFieldCoordinateTransform.KEY):
-			out = context.deserialize( jobj, PositionFieldCoordinateTransform.class );
+		case(CoordinateFieldCoordinateTransform.KEY):
+			out = context.deserialize( jobj, CoordinateFieldCoordinateTransform.class );
 			break;
 		case("bijection"):
 
@@ -105,7 +109,6 @@ public class CoordinateTransformAdapter
 					transforms[i] = context.deserialize( e, CoordinateTransform.class );
 				}
 				out = new SequenceCoordinateTransform(id.getName(), id.getInput(), id.getOutput(), transforms);
-//				out = seq;
 			}
 			else {
 				out = null;
@@ -180,6 +183,16 @@ public class CoordinateTransformAdapter
 			obj.add("inverse", serialize( inv, itype, context ));
 
 			elem = obj;
+		}
+		else if( src instanceof AbstractLinearCoordinateTransform )
+		{
+			final AbstractLinearCoordinateTransform linCt = (AbstractLinearCoordinateTransform)src;
+			final JsonObject obj =  (JsonObject)context.serialize(linCt);
+			if( !linCt.serializeFlatArray) {
+				obj.add("affine",
+						context.serialize(TransformUtils.affineToMatrix(linCt.getTransform())));
+			}
+			return obj;
 		}
 		else
 		{
