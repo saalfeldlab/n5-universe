@@ -15,6 +15,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.TranslationCoordinateTransform;
 
 import net.imglib2.RandomAccessible;
+import net.imglib2.RealLocalizable;
 import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
 import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory;
@@ -132,6 +133,23 @@ public class TransformUtils
 		int k = 0;
 		for (int i = 0; i < arr.length; i++)
 			for (int j = 0; j < arr[i].length; j++)
+				out[k++] = arr[i][j];
+
+		return out;
+	}
+
+	/**
+	 * Returns a "row-major" flattened array, i.e., the first index is contiguous in the output.
+	 *
+	 * @param arr the 2d array
+	 * @return a flattened version
+	 */
+	public static double[] flattenColMajor( final double[][] arr ) {
+
+		final double[] out = new double[arr.length * arr[0].length];
+		int k = 0;
+		for (int j = 0; j < arr[0].length; j++)
+			for (int i = 0; i < arr.length; i++)
 				out[k++] = arr[i][j];
 
 		return out;
@@ -293,4 +311,31 @@ public class TransformUtils
 		}
 	}
 
+	public static double squaredDistance(Double[] p, RealLocalizable q) {
+
+		double dist = 0;
+		for (int j = 0; j < p.length; j++) {
+			dist += (p[j].doubleValue() - q.getDoublePosition(j)) * (p[j].doubleValue() - q.getDoublePosition(j));
+		}
+		return dist;
+	}
+
+	public static double distance(Double[] p, RealLocalizable q) {
+
+		return Math.sqrt(squaredDistance(p, q));
+	}
+
+	public static double squaredDistance(RealLocalizable p, final RealLocalizable q) {
+
+		double dist = 0;
+		for (int j = 0; j < p.numDimensions(); j++)
+			dist += (p.getDoublePosition(j) - q.getDoublePosition(j)) * (p.getDoublePosition(j) - q.getDoublePosition(j));
+
+		return dist;
+	}
+
+	public static double distance(final RealLocalizable p, final RealLocalizable q) {
+
+		return Math.sqrt(squaredDistance(p, q));
+	}
 }
