@@ -12,6 +12,14 @@ public class CoordinateSystem
 
 	protected final Axis[] axes;
 
+	public CoordinateSystem( final String name, int nd )
+	{
+		this.name = name;
+		axes = new Axis[nd];
+		for (int i = 0; i < nd; i++)
+			axes[i] = AxisUtils.unknownAxis();
+	}
+
 	public CoordinateSystem( final String name, final Axis[] axes )
 	{
 		this.name = name;

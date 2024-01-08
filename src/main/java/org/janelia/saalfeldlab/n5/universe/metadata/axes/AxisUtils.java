@@ -27,6 +27,7 @@ public class AxisUtils {
 	public static final String spaceType = "space";
 	public static final String timeType = "time";
 	public static final String channelType = "channel";
+	public static final String unknownType = "unknown";
 
 	public static final DefaultAxisTypes defaultAxisTypes = DefaultAxisTypes.getInstance();
 
@@ -212,6 +213,10 @@ public class AxisUtils {
 
 		final String type = getDefaultType(label);
 		return new Axis(type, label, getDefaultUnit(type));
+	}
+
+	public static Axis unknownAxis() {
+		return new Axis(unknownType, "", "");
 	}
 
 	/**
