@@ -17,7 +17,9 @@ import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AffineCoordinateTransformAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AffineCoordinateTransform;
@@ -242,32 +244,64 @@ public class Common {
 //		return null;
 	}
 
+	public static TransformGraph openGraph( final String uri ) {
+
+		try {
+
+			final N5URI n5uri = new N5URI(uri);
+			final N5Reader n5 = new N5Factory().gsonBuilder(gsonBuilder()).openReader(n5uri.getContainerPath());
+			return openGraph(n5, n5uri.getGroupPath());
+
+		} catch (URISyntaxException e) {}
+		return null;
+	}
+
 	public static TransformGraph openGraph( final N5Reader n5 )
 	{
 		return openGraph( n5, "/" );
 	}
 
-	public static TransformGraph openGraph( final N5Reader n5, final String dataset )
+	public static TransformGraph openGraph( final N5Reader n5, final String group )
 	{
 		int nd = 5;
-		if( n5.datasetExists( dataset ))
-			nd = n5.getDatasetAttributes( dataset ).getNumDimensions();
+		if( n5.datasetExists( group ))
+			nd = n5.getDatasetAttributes( group ).getNumDimensions();
 
-		return openGraph( n5, dataset, nd );
+		return openGraph( n5, group, nd );
 	}
 
-	public static TransformGraph openGraph( final N5Reader n5, final String dataset, final int nd )
+	public static TransformGraph openGraph( final N5Reader n5, final String group, final int nd )
 	{
-		CoordinateSystem[] spaces = n5.getAttribute(dataset, "spaces", CoordinateSystem[].class);
+		CoordinateSystem[] spaces = n5.getAttribute(group, "coordinateSystems", CoordinateSystem[].class);
 		if( spaces == null )
-			spaces = n5.getAttribute(dataset, "coordinateSystems", CoordinateSystem[].class);
+			spaces = n5.getAttribute(group, "coordinateSystems", CoordinateSystem[].class);
 
-		CoordinateTransform<?>[] transforms = n5.getAttribute(dataset, "transformations", CoordinateTransform[].class);
+		if( spaces == null )
+			return openGraphImpliedSpaces( n5, group, nd );
+
+		CoordinateTransform<?>[] transforms = n5.getAttribute(group, "coordinateTransformations", CoordinateTransform[].class);
 		if( transforms == null )
-			transforms = n5.getAttribute(dataset, "coordinateTransformations", CoordinateTransform[].class);
+			transforms = n5.getAttribute(group, "transformations", CoordinateTransform[].class);
 
 //		return new TransformGraph( Arrays.asList( transforms ), Arrays.asList(spaces));
-		return new SpacesTransforms( spaces, transforms ).buildTransformGraph(dataset, nd);
+		return new SpacesTransforms( spaces, transforms ).buildTransformGraph(group, nd);
+	}
+
+	protected static TransformGraph openGraphImpliedSpaces(final N5Reader n5, final String dataset, final int nd) {
+
+		CoordinateTransform<?>[] transforms = n5.getAttribute(dataset, "coordinateTransformations", CoordinateTransform[].class);
+		if (transforms == null)
+			transforms = n5.getAttribute(dataset, "transformations", CoordinateTransform[].class);
+
+		final CoordinateSystem[] coordinateSystems = Arrays.stream(transforms).flatMap(x -> {
+			return Stream.of(
+					new CoordinateSystem(x.getInput(), nd),
+					new CoordinateSystem(x.getOutput(), nd));
+		}).toArray(N -> {
+			return new CoordinateSystem[N];
+		});
+
+		return new SpacesTransforms(coordinateSystems, transforms).buildTransformGraph(dataset, nd);
 	}
 
 	public static TransformGraph openGraph( final N5Reader n5, final String... datasets ) throws IOException
