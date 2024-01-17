@@ -114,6 +114,9 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 	@Override
 	public double[] getParameters(N5Reader n5) {
 
+		if (n5 == null)
+			return null;
+
 		final double[] paramsFlat = getDoubleArray(n5, getParameterPath());
 		if (paramsFlat != null)
 			return paramsFlat;
