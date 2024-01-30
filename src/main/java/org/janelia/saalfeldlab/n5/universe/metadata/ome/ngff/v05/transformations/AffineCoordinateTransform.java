@@ -14,14 +14,13 @@ public class AffineCoordinateTransform extends BaseLinearCoordinateTransform<Aff
 	}
 
 	public AffineCoordinateTransform( final double[] affine) {
-		super("affine");
-		this.affineFlat = affine;
-		buildTransform(affine );
+		super("affine", affine);
+		buildTransform(affine);
 	}
 
 	public AffineCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
 			final double[] affine) {
-		super("affine", name, inputSpace, outputSpace );
+		super("affine", name, inputSpace, outputSpace, affine );
 		this.affineFlat = affine;
 		buildTransform( affine );
 	}
@@ -36,8 +35,7 @@ public class AffineCoordinateTransform extends BaseLinearCoordinateTransform<Aff
 	public AffineCoordinateTransform( final String name, 
 			final String[] inputAxes, final String[] outputAxes,
 			final double[] affine ) {
-		super("affine", name, inputAxes, outputAxes  );
-		this.affineFlat = affine;
+		super("affine", name, inputAxes, outputAxes, affine );
 	}
 
 	public AffineCoordinateTransform( final String name, final String path,
