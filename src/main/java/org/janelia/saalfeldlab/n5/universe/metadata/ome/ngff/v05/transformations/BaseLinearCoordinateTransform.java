@@ -3,6 +3,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformation
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
@@ -24,6 +25,13 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 		super(type);
 	}
 
+	public BaseLinearCoordinateTransform(final String type, final double[] affineFlat) {
+
+		super(type);
+		this.affineFlat = affineFlat;
+		buildJsonParameter();
+	}
+
 	public BaseLinearCoordinateTransform( final BaseLinearCoordinateTransform<T> other ) {
 		super(other.type, other.path);
 		this.affine = other.affine;
@@ -32,20 +40,38 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 		this.name = other.name;
 		this.input = other.input;
 		this.output = other.output;
+		buildJsonParameter();
 	}
 
-	public BaseLinearCoordinateTransform( final String type, final String name, final String inputSpace, final String outputSpace) {
-		super(type, name, null, inputSpace, outputSpace );
+	public BaseLinearCoordinateTransform(final String type, final String name, final String inputSpace, final String outputSpace) {
+
+		super(type, name, null, inputSpace, outputSpace);
+	}
+
+	public BaseLinearCoordinateTransform(final String type, final String name, final String inputSpace, final String outputSpace, final double[] affineFlat) {
+
+		super(type, name, null, inputSpace, outputSpace);
+		this.affineFlat = affineFlat;
+		buildJsonParameter();
 	}
 
 	public BaseLinearCoordinateTransform(final String type, final String name, final N5Reader n5, final String path,
 			final String inputSpace, final String outputSpace) {
-		super(type, name, path, inputSpace, outputSpace );
+
+		super(type, name, path, inputSpace, outputSpace);
 	}
 
-	public BaseLinearCoordinateTransform( final String type, final String name, 
+	public BaseLinearCoordinateTransform(final String type, final String name,
 			final String[] inputAxes, final String[] outputAxes) {
+
+		super(type, name, null, inputAxes, outputAxes);
+	}
+
+	public BaseLinearCoordinateTransform( final String type, final String name,
+			final String[] inputAxes, final String[] outputAxes, final double[] affineFlat) {
 		super(type, name, null, inputAxes, outputAxes  );
+		this.affineFlat = affineFlat;
+		buildJsonParameter();
 	}
 
 	public BaseLinearCoordinateTransform( final String type, final String name, final String path,
@@ -56,6 +82,12 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 	public JsonElement getJsonParameter() {
 
 		return affine;
+	}
+
+	protected void buildJsonParameter() {
+
+		if( affineFlat != null )
+			affine = new Gson().toJsonTree(affineFlat);
 	}
 
 	public void interpretParameters() {
@@ -113,6 +145,9 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 
 	@Override
 	public double[] getParameters(N5Reader n5) {
+
+		if (n5 == null)
+			return null;
 
 		final double[] paramsFlat = getDoubleArray(n5, getParameterPath());
 		if (paramsFlat != null)

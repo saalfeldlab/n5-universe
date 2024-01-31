@@ -31,8 +31,11 @@ import net.imglib2.type.numeric.NumericType;
 public class TransformUtils
 {
 
-	public static double[][] affineToMatrix( final AffineGet affine )
-	{
+	public static double[][] affineToMatrix( final AffineGet affine ) {
+
+		if (affine == null)
+			return null;
+
 		// AffineGets always have numSourceDimensions == numTargetDimensions
 		final int N = affine.numSourceDimensions();
 		final double[][] mtx = new double[N][N+1];
