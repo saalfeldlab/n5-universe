@@ -111,6 +111,12 @@
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
+		<n5.version>3.1.1</n5.version>
+		<n5-hdf5.version>2.1.0</n5-hdf5.version>
+		<n5-imglib2.version>7.0.0</n5-imglib2.version>
+		<n5-ij.version>4.0.2</n5-ij.version>
+		<n5-zarr.version>1.2.0</n5-zarr.version>
+
 		<jackson-jq.version>1.0.0-preview.20191208</jackson-jq.version>
 		<alphanumeric-comparator.version>1.4.1</alphanumeric-comparator.version>
 	</properties>
@@ -152,14 +158,6 @@
 			<version>${alphanumeric-comparator.version}</version>
 			<scope>compile</scope>
 		</dependency>
-
-<!--		<dependency>-->
-<!--			<groupId>org.janelia.saalfeldlab</groupId>-->
-<!--			<artifactId>n5</artifactId>-->
-<!--			<version>${n5.version}</version>-->
-<!--			<classifier>tests</classifier>-->
-<!--			<scope>test</scope>-->
-<!--		</dependency>-->
     </dependencies>
 
 
