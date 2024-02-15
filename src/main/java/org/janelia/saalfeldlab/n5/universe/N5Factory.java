@@ -43,6 +43,9 @@ import java.util.regex.Pattern;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudResourceManagerClient;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageClient;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageURI;
+import org.janelia.saalfeldlab.n5.Bzip2Compression;
+import org.janelia.saalfeldlab.n5.GzipCompression;
+import org.janelia.saalfeldlab.n5.Lz4Compression;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Exception.N5IOException;
 import org.janelia.saalfeldlab.n5.N5FSReader;
@@ -52,6 +55,8 @@ import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.RawCompression;
+import org.janelia.saalfeldlab.n5.XzCompression;
 import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
@@ -581,7 +586,22 @@ public class N5Factory implements Serializable {
 	public N5Reader openReader(final String uri) {
 
 		try {
-			final URI encodedUri = N5URI.encodeAsUri(uri);
+			return openReader(new N5URI(uri));
+		} catch (URISyntaxException e) {}
+		return null;
+	}
+	
+	/**
+	 * Open an {@link N5Reader} based on some educated guessing from the uri.
+	 *
+	 * @param n5uri
+	 *            the location of the root location of the store, possibly also containing the implementation type
+	 * @return the N5Reader
+	 */
+	public N5Reader openReader(final N5URI n5uri) {
+
+		try {
+			final URI encodedUri = n5uri.getURI();
 			final String scheme = encodedUri.getScheme();
 			if (scheme == null)
 				;
@@ -592,21 +612,36 @@ public class N5Factory implements Serializable {
 					throw new N5Exception.N5IOException(e);
 				}
 			} else if (scheme.equals("s3"))
-				return openAWSS3Reader(uri);
+				return openAWSS3Reader(n5uri.getTypedURI().toString());
 			else if (scheme.equals("gs"))
-				return openGoogleCloudReader(uri);
+				return openGoogleCloudReader(n5uri.getTypedURI().toString());
 			else if (encodedUri.getHost() != null && scheme.equals("https") || scheme.equals("http")) {
 				if (encodedUri.getHost().matches(".*cloud\\.google\\.com")
 						|| encodedUri.getHost().matches(".*storage\\.googleapis\\.com"))
-					return openGoogleCloudReader(uri);
+					return openGoogleCloudReader(n5uri.getTypedURI().toString());
 				else //if (encodedUri.getHost().matches(".*s3.*")) //< This is too fragile for what people in the wild are doing with their S3 instances, for now catch all
-					return openAWSS3Reader(uri);
+					return openAWSS3Reader(n5uri.getTypedURI().toString());
 			}
 		} catch (final URISyntaxException ignored) {}
-		return openFileBasedN5Reader(uri);
+		return openFileBasedN5Reader(n5uri.getTypedURI().toString());
 	}
 
 	private N5Reader openFileBasedN5Reader(final String url) {
+
+		try {
+			final N5URI n5uri = new N5URI(url);
+			if (n5uri.getType() != null)
+				switch (n5uri.getType()) {
+				case N5URI.H5_SCHEME:
+				case N5URI.HDF_SCHEME:
+				case N5URI.HDF5_SCHEME:
+					return openHDF5Reader(n5uri.getContainerPath());
+				case N5URI.N5_SCHEME:
+					return openFSReader(n5uri.getContainerPath());
+				case N5URI.ZARR_SCHEME:
+					return openZarrReader(n5uri.getContainerPath());
+				}
+		} catch (URISyntaxException e) {}
 
 		if (isHDF5Reader(url))
 			return openHDF5Reader(url);
