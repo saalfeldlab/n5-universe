@@ -43,6 +43,7 @@ import java.util.regex.Pattern;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudResourceManagerClient;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageClient;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageURI;
+import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Exception.N5IOException;
 import org.janelia.saalfeldlab.n5.N5FSReader;
@@ -439,15 +440,10 @@ public class N5Factory implements Serializable {
 		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(N5URI.encodeAsUri(uri));
 		final GoogleCloudStorageClient storageClient = new GoogleCloudStorageClient();
 		final Storage storage = storageClient.create();
-
 		final GoogleCloudStorageKeyValueAccess googleCloudBackend = new GoogleCloudStorageKeyValueAccess(storage,
 				googleCloudUri.getBucket(), false);
-		if (lastExtension(uri).startsWith(".zarr")) {
-			return new ZarrKeyValueReader(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder,
-					zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
-		} else {
-			return new N5KeyValueReader(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder, cacheAttributes);
-		}
+
+		return openReader(uri, googleCloudUri.getKey(), googleCloudBackend);
 	}
 
 	/**
@@ -462,15 +458,9 @@ public class N5Factory implements Serializable {
 	public N5Reader openAWSS3Reader(final String uri) throws URISyntaxException {
 
 		final AmazonS3 s3 = createS3(N5URI.encodeAsUri(uri).toString());
-
-		// when, if ever do we want to creat a bucket?
+		// when, if ever do we want to create a bucket?
 		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, getS3Bucket(uri), false);
-		if (lastExtension(uri).startsWith(".zarr")) {
-			return new ZarrKeyValueReader(s3kv, getS3Key(uri), gsonBuilder, zarrMapN5DatasetAttributes,
-					zarrMergeAttributes, cacheAttributes);
-		} else {
-			return new N5KeyValueReader(s3kv, getS3Key(uri), gsonBuilder, cacheAttributes);
-		}
+		return openReader(uri, getS3Key(uri), s3kv);
 	}
 
 	/**
@@ -541,12 +531,8 @@ public class N5Factory implements Serializable {
 		final Storage storage = storageClient.create();
 		final GoogleCloudStorageKeyValueAccess googleCloudBackend = new GoogleCloudStorageKeyValueAccess(storage,
 				googleCloudUri.getBucket(), false);
-		if (lastExtension(uri).startsWith(".zarr")) {
-			return new ZarrKeyValueWriter(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder,
-					zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
-		} else {
-			return new N5KeyValueWriter(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder, cacheAttributes);
-		}
+
+		return openWriter(uri, googleCloudUri.getKey(), googleCloudBackend);
 	}
 
 	/**
@@ -561,18 +547,15 @@ public class N5Factory implements Serializable {
 	public N5Writer openAWSS3Writer(final String uri) throws URISyntaxException {
 
 		final AmazonS3 s3 = createS3(N5URI.encodeAsUri(uri).toString());
-		// when, if ever do we want to creat a bucket?
+		// when, if ever do we want to create a bucket?
 		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, getS3Bucket(uri), false);
-		if (lastExtension(uri).startsWith(".zarr")) {
-			return new ZarrKeyValueWriter(s3kv, getS3Key(uri), gsonBuilder, zarrMapN5DatasetAttributes,
-					zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
-		} else {
-			return new N5KeyValueWriter(s3kv, getS3Key(uri), gsonBuilder, cacheAttributes);
-		}
+		return openWriter(uri, getS3Key(uri), s3kv);
 	}
 
 	/**
 	 * Open an {@link N5Reader} based on some educated guessing from the url.
+	 * <p>
+	 * If this fails for any reason, a {@link RuntimeException} will be thrown.
 	 *
 	 * @param uri
 	 *            the location of the root location of the store
@@ -608,17 +591,23 @@ public class N5Factory implements Serializable {
 
 	private N5Reader openFileBasedN5Reader(final String url) {
 
+		// TODO duplicates logic in openReader(final String uri, final String basePath, final KeyValueAccess kvAcess)
 		if (isHDF5Reader(url))
 			return openHDF5Reader(url);
-		else if (lastExtension(url).startsWith(".zarr"))
-			return openZarrReader(url);
-
-		else
+		else if (lastExtension(url).startsWith(".n5"))
 			return openFSReader(url);
+		else
+			try {
+				return openZarrReader(url);
+			} catch (N5Exception e) {
+				return openFSReader(url);
+			}
 	}
 
 	/**
-	 * Open an {@link N5Writer} based on some educated guessing from the uri.
+	 * Open an {@link N5Writer} based on some eapplyducated guessing from the uri.
+	 * <p>
+	 * If this fails for any reason, a {@link RuntimeException} will be thrown.
 	 *
 	 * @param uri
 	 *            the location of the root location of the store
@@ -649,12 +638,17 @@ public class N5Factory implements Serializable {
 
 	private N5Writer openFileBasedN5Writer(final String url) {
 
-		if (isHDF5Writer(url))
+		// TODO duplicates logic in openFileBasedN5Reader
+		if (isHDF5Reader(url))
 			return openHDF5Writer(url);
-		else if (lastExtension(url).startsWith(".zarr"))
-			return openZarrWriter(url);
-		else
+		else if (lastExtension(url).startsWith(".n5"))
 			return openFSWriter(url);
+		else
+			try {
+				return openZarrWriter(url);
+			} catch (N5Exception e) {
+				return openFSWriter(url);
+			}
 	}
 
 	private static String lastExtension(final String path) {
@@ -664,6 +658,36 @@ public class N5Factory implements Serializable {
 			return path.substring(path.lastIndexOf('.'));
 		else
 			return "";
+	}
+
+	private N5Reader openReader(final String uri, final String basePath, final KeyValueAccess kvAcess) {
+
+		// TODO duplicates logic in openFileBasedN5Reader
+		if (lastExtension(uri).startsWith(".n5")) {
+			return new N5KeyValueReader(kvAcess, basePath, gsonBuilder, cacheAttributes);
+		} else {
+			try {
+				return new ZarrKeyValueReader(kvAcess, basePath, gsonBuilder,
+						zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
+			} catch (final N5Exception e) {
+				return new N5KeyValueReader(kvAcess, basePath, gsonBuilder, cacheAttributes);
+			}
+		}
+	}
+
+	private N5Writer openWriter(final String uri, final String basePath, final KeyValueAccess kvAcess) {
+
+		// TODO duplicates logic in openReader(final String uri, final String basePath, final KeyValueAccess kvAcess)
+		if (lastExtension(uri).startsWith(".n5")) {
+			return new N5KeyValueWriter(kvAcess, basePath, gsonBuilder, cacheAttributes);
+		} else {
+			try {
+				return new ZarrKeyValueWriter(kvAcess, basePath, gsonBuilder, zarrMapN5DatasetAttributes,
+						zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+			} catch (N5Exception e) {
+				return new N5KeyValueWriter(kvAcess, basePath, gsonBuilder, cacheAttributes);
+			}
+		}
 	}
 
 }
