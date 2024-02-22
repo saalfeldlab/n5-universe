@@ -1,13 +1,11 @@
 package org.janelia.saalfeldlab.n5.universe;
 
-import org.janelia.saalfeldlab.n5.AbstractN5Test;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.junit.Before;
 
 public interface StorageSchemeWrappedN5Test {
 
-	abstract N5Factory getFactory();
+	N5Factory getFactory();
 
 	N5Factory.StorageFormat getStorageFormat();
 
