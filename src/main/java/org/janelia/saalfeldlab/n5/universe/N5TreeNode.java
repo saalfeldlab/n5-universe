@@ -128,8 +128,8 @@ public class N5TreeNode {
    * @return the node
    */
   public N5TreeNode addPath( final String path, Function<String, N5TreeNode> constructor ) {
-	  final String normPath = removeLeadingSlash(path);
 
+	  final String normPath = removeLeadingSlash(path);
 	  if( !getPath().isEmpty() && !normPath.startsWith(getPath()))
 		  return null;
 

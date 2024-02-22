@@ -11,8 +11,8 @@ import org.junit.Test;
 public class N5TreeNodeTest {
 
 	@Test
-	public void testStructureEquals()
-	{
+	public void testStructureEquals() {
+
 		N5TreeNode empty = new N5TreeNode("");
 
 		N5TreeNode a = new N5TreeNode("a");
@@ -49,48 +49,74 @@ public class N5TreeNodeTest {
 	}
 
 	@Test
-	public void testAddingChildren()
-	{
+	public void testAddingChildren() {
+
 		final N5TreeNode control = new N5TreeNode("");
 		final N5TreeNode a = new N5TreeNode("a");
 		final N5TreeNode b = new N5TreeNode("a/b");
 		final N5TreeNode c = new N5TreeNode("a/b/c");
 		final N5TreeNode ant = new N5TreeNode("ant");
 		final N5TreeNode bat = new N5TreeNode("ant/bat");
-		control.add( a );
-		a.add( b );
-		b.add( c );
+		control.add(a);
+		a.add(b);
+		b.add(c);
 
 		final N5TreeNode root = new N5TreeNode("");
 		root.addPath("a/b/c");
-		assertTrue( root.getDescendant("a/b/c").isPresent() );
+		assertTrue(root.getDescendant("a/b/c").isPresent());
 		// make sure the tree has expected structure
-		assertTrue( root.structureEquals(control));
-		assertEquals( 4, N5TreeNode.flattenN5Tree(root).count() );
+		assertTrue(root.structureEquals(control));
+		assertEquals(4, N5TreeNode.flattenN5Tree(root).count());
 
 		root.add(new N5TreeNode("ant"));
-		assertTrue( root.getDescendant("ant").isPresent() );
-
+		assertTrue(root.getDescendant("ant").isPresent());
 
 		control.add(ant);
 		ant.add(bat);
 
 		root.addPath("ant/bat");
-		assertTrue( root.getDescendant("ant/bat").isPresent() );
+		assertTrue(root.getDescendant("ant/bat").isPresent());
 		// make sure the tree has expected structure
-		assertTrue( root.structureEquals(control));
-		assertEquals( 6, N5TreeNode.flattenN5Tree(root).count() );
+		assertTrue(root.structureEquals(control));
+		assertEquals(6, N5TreeNode.flattenN5Tree(root).count());
 
 		// ensure children can be added from nodes that are not the root
 		final N5TreeNode c0Node = new N5TreeNode("c0");
 		root.add(c0Node);
 		c0Node.addPath("c0/s0");
-		assertTrue( root.getDescendant("c0/s0").isPresent() );
+		assertTrue(root.getDescendant("c0/s0").isPresent());
 
 		// ensure no new nodes are added when trying to add invalid path
-		assertEquals( 2, N5TreeNode.flattenN5Tree(c0Node).count() );
-		assertNull( c0Node.addPath("x/y/z") );
-		assertEquals( 2, N5TreeNode.flattenN5Tree(c0Node).count() );
+		assertEquals(2, N5TreeNode.flattenN5Tree(c0Node).count());
+		assertNull(c0Node.addPath("x/y/z"));
+		assertEquals(2, N5TreeNode.flattenN5Tree(c0Node).count());
+	}
+
+	@Test
+	public void testAddPath() {
+
+		final N5TreeNode root = new N5TreeNode("");
+
+		root.addPath("a");
+		assertTrue(root.getDescendant("a").isPresent());
+		assertFalse(root.getDescendant("a/b").isPresent());
+
+		root.removeAllChildren();
+		assertFalse(root.getDescendant("a").isPresent());
+		assertFalse(root.getDescendant("a/b").isPresent());
+
+		root.addPath("a/b");
+		assertTrue(root.getDescendant("a").isPresent());
+		assertTrue(root.getDescendant("a/b").isPresent());
+
+		// add path to non-root node
+		final N5TreeNode a = new N5TreeNode("a");
+		a.addPath("a/b");
+		assertTrue(a.getDescendant("a/b").isPresent());
+
+		a.addPath("c");
+		// not added because the added path is not a child of "a"
+		assertFalse(a.getDescendant("a/c").isPresent());
 	}
 
 }
