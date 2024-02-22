@@ -230,12 +230,16 @@ public class N5Factory implements Serializable {
 
 	private static boolean isHDF5(String path) {
 
-		try (final FileInputStream in = new FileInputStream(new File(path))) {
+		final File f = new File(path);
+		if (!f.exists() || !f.isFile())
+			return false;
+
+		try (final FileInputStream in = new FileInputStream(f)) {
 			final byte[] sig = new byte[8];
 			in.read(sig);
 			return Arrays.equals(sig, HDF5_SIG);
 		} catch (final IOException e) {
-			throw new N5Exception.N5IOException(e);
+			return false;
 		}
 	}
 
@@ -694,8 +698,12 @@ public class N5Factory implements Serializable {
 
 			Exception exception = null;
 			for (StorageFormat storageFormat : StorageFormat.values()) {
-				if (storageFormat.compareTo(StorageFormat.HDF5) < 0)
-					break;
+				// all possible attempts at making an hdf5 reader will be done by now
+				// and HDF5 does not use a KeyValueAccess
+				// revisit this if more backends are added
+				if (storageFormat == StorageFormat.HDF5)
+					continue;
+
 				try {
 					return StorageFormat.getReader(storageFormat, access, containerPath, this);
 				} catch (Exception e) {
@@ -855,7 +863,7 @@ public class N5Factory implements Serializable {
 		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).asPredicate().test(uri.getPath())),
 		HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
 			final boolean hasHdf5Extension = Pattern.compile("\\.h(df)5$", Pattern.CASE_INSENSITIVE).asPredicate().test(uri.getPath());
-			return hasHdf5Extension || Paths.get(uri).toFile().exists() && isHDF5(uri.toString());
+			return hasHdf5Extension || isHDF5(uri.getPath());
 		});
 
 		static final Pattern STORAGE_SCHEME_PATTERN = Pattern.compile("^(\\s*(?<storageScheme>(n5|h(df)?5|zarr)):(//)?)?(?<uri>.*)$", Pattern.CASE_INSENSITIVE);
