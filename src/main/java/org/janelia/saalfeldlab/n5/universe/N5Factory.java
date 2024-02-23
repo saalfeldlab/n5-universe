@@ -1,17 +1,17 @@
 /**
  * Copyright (c) 2017-2021, Saalfeld lab, HHMI Janelia
  * All rights reserved.
- *
+ * <p>
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *
+ * <p>
  * Redistributions of source code must retain the above copyright notice, this
- *  list of conditions and the following disclaimer.
- *
+ * list of conditions and the following disclaimer.
+ * <p>
  * Redistributions in binary form must reproduce the above copyright notice,
  * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
- *
+ * <p>
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -37,7 +37,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -63,24 +62,18 @@ import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
+import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 
 import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.AmazonS3URI;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
 import com.google.cloud.resourcemanager.Project;
 import com.google.cloud.resourcemanager.ResourceManager;
 import com.google.cloud.storage.Storage;
@@ -101,8 +94,6 @@ import javax.annotation.Nullable;
 public class N5Factory implements Serializable {
 
 	private static final long serialVersionUID = -6823715427289454617L;
-
-	private static final Pattern AWS_ENDPOINT_PATTERN = Pattern.compile("^(.+\\.)?(s3\\..*amazonaws\\.com)", Pattern.CASE_INSENSITIVE);
 
 	private static byte[] HDF5_SIG = {(byte)137, 72, 68, 70, 13, 10, 26, 10};
 	private int[] hdf5DefaultBlockSize = {64, 64, 64, 1, 1};
@@ -246,162 +237,10 @@ public class N5Factory implements Serializable {
 	AmazonS3 createS3(final String uri) {
 
 		try {
-			return createS3(new AmazonS3URI(uri));
-		} catch (final IllegalArgumentException e) {
-			// if AmazonS3URI does not like the form of the uri
-			try {
-				final URI buri = new URI(uri);
-				final URI endpointUrl = new URI(buri.getScheme(), buri.getHost(), null, null);
-				return createS3(getS3Credentials(), new EndpointConfiguration(endpointUrl.toString(), null), null, getS3Bucket(uri));
-			} catch (final URISyntaxException e1) {
-			}
+			return AmazonS3Utils.createS3(uri, s3Endpoint, AmazonS3Utils.getS3Credentials(s3Credentials, s3Anonymous), s3Region);
+		} catch (final Exception e) {
+			throw new N5Exception("Could not create s3 client from uri: " + uri, e);
 		}
-		throw new N5Exception("Could not create s3 client from uri: " + uri);
-	}
-
-	private AmazonS3 createS3(
-			final AWSCredentialsProvider credentialsProvider,
-			final EndpointConfiguration endpointConfiguration,
-			final Regions region,
-			final String bucketName) {
-
-		final boolean isAmazon = endpointConfiguration == null || AWS_ENDPOINT_PATTERN.matcher(endpointConfiguration.getServiceEndpoint()).find();
-		final AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
-
-		if (!isAmazon)
-			builder.withPathStyleAccessEnabled(true);
-
-		if (credentialsProvider != null)
-			builder.withCredentials(credentialsProvider);
-
-		if (endpointConfiguration != null)
-			builder.withEndpointConfiguration(endpointConfiguration);
-		else if (region != null)
-			builder.withRegion(region);
-		else
-			builder.withRegion("us-east-1");
-
-		AmazonS3 s3 = builder.build();
-		// if we used anonymous credentials and the factory requests a retry with credentials:
-		if (s3RetryWithCredentials && areAnonymous(credentialsProvider)) {
-
-			// I initially tried checking whether the bucket exists, but
-			// that, apparently, returns even when the client does not have access
-			if (!canListBucket(s3, bucketName)) {
-				// bucket not detected with anonymous credentials, try detecting credentials
-				// and return it even if it can't detect the bucket, since there's nothing else to do
-				s3 = createS3(new DefaultAWSCredentialsProviderChain(), endpointConfiguration, region, null);
-			}
-		}
-		return s3;
-	}
-
-	private boolean canListBucket(final AmazonS3 s3, final String bucket) {
-
-		final ListObjectsV2Request request = new ListObjectsV2Request();
-		request.setBucketName(bucket);
-		request.setMaxKeys(1);
-
-		try {
-			// list objects will throw an AmazonS3Exception (Access Denied) if this client does not have access
-			s3.listObjectsV2(request);
-			return true;
-		} catch (final AmazonS3Exception e) {
-			return false;
-		}
-	}
-
-	private AWSStaticCredentialsProvider getS3Credentials() {
-
-		AWSCredentials credentials = null;
-		final AWSStaticCredentialsProvider credentialsProvider;
-		if (s3Credentials != null) {
-			credentials = s3Credentials;
-			credentialsProvider = new AWSStaticCredentialsProvider(credentials);
-		} else {
-			// if not anonymous, try finding credentials
-			if (!s3Anonymous) {
-				try {
-					credentials = new DefaultAWSCredentialsProviderChain().getCredentials();
-				} catch (final Exception e) {
-					System.out.println("Could not load AWS credentials, falling back to anonymous.");
-				}
-				credentialsProvider = new AWSStaticCredentialsProvider(
-						credentials == null ? new AnonymousAWSCredentials() : credentials);
-			} else
-				credentialsProvider = new AWSStaticCredentialsProvider(new AnonymousAWSCredentials());
-		}
-
-		return credentialsProvider;
-	}
-
-	private boolean areAnonymous(final AWSCredentialsProvider credsProvider) {
-
-		final AWSCredentials creds = credsProvider.getCredentials();
-		// AnonymousAWSCredentials do not have an equals method
-		if (creds.getClass().equals(AnonymousAWSCredentials.class))
-			return true;
-
-		return creds.getAWSAccessKeyId() == null && creds.getAWSSecretKey() == null;
-	}
-
-	private Regions getS3Region(final AmazonS3URI uri) {
-
-		final Regions region = Optional.ofNullable(uri.getRegion()).map(Regions::fromName) // get the region from the uri
-				.orElse(Optional.ofNullable(s3Region).map(Regions::fromName) // next use whatever is passed in
-						.orElse(null)); // fallback to null (amazon picks a default)
-		return region;
-	}
-
-	private AmazonS3 createS3(final AmazonS3URI uri) {
-
-		AwsClientBuilder.EndpointConfiguration endpointConfiguration = null;
-		if (!"s3".equalsIgnoreCase(uri.getURI().getScheme())) {
-
-			if (s3Endpoint != null)
-				endpointConfiguration = new EndpointConfiguration(s3Endpoint, null);
-			else {
-				final Matcher matcher = AWS_ENDPOINT_PATTERN.matcher(uri.getURI().getHost());
-				if (matcher.find())
-					endpointConfiguration = new EndpointConfiguration(matcher.group(2), uri.getRegion());
-				else
-					endpointConfiguration = new EndpointConfiguration(uri.getURI().getHost(), uri.getRegion());
-			}
-		}
-
-		return createS3(getS3Credentials(), endpointConfiguration, getS3Region(uri), uri.getBucket());
-	}
-
-	String getS3Bucket(final String uri) {
-
-		try {
-			return new AmazonS3URI(uri).getBucket();
-		} catch (final IllegalArgumentException e) {
-		}
-		try {
-			// parse bucket manually when AmazonS3URI can't
-			final String path = new URI(uri).getPath().replaceFirst("^/", "");
-			return path.substring(0, path.indexOf('/'));
-		} catch (final URISyntaxException e) {
-		}
-		return null;
-	}
-
-	private String getS3Key(final String uri) {
-
-		try {
-			// if key is null, return the empty string
-			final String key = new AmazonS3URI(uri).getKey();
-			return key == null ? "" : key;
-		} catch (final IllegalArgumentException e) {
-		}
-		try {
-			// parse key manually when AmazonS3URI can't
-			final String path = new URI(uri).getPath().replaceFirst("^/", "");
-			return path.substring(path.indexOf('/') + 1);
-		} catch (final URISyntaxException e) {
-		}
-		return null;
 	}
 
 	/**
@@ -454,8 +293,7 @@ public class N5Factory implements Serializable {
 	public N5Reader openGoogleCloudReader(final String uri) throws URISyntaxException {
 
 		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(N5URI.encodeAsUri(uri));
-		final GoogleCloudStorageClient storageClient = new GoogleCloudStorageClient();
-		final Storage storage = storageClient.create();
+		final Storage storage = createGoogleCloudStorage();
 
 		final GoogleCloudStorageKeyValueAccess googleCloudBackend = new GoogleCloudStorageKeyValueAccess(storage,
 				googleCloudUri.getBucket(), false);
@@ -465,6 +303,13 @@ public class N5Factory implements Serializable {
 		} else {
 			return new N5KeyValueReader(googleCloudBackend, googleCloudUri.getKey(), gsonBuilder, cacheAttributes);
 		}
+	}
+
+	private Storage createGoogleCloudStorage() {
+
+		final GoogleCloudStorageClient storageClient = new GoogleCloudStorageClient();
+		final Storage storage = storageClient.create();
+		return storage;
 	}
 
 	/**
@@ -479,12 +324,12 @@ public class N5Factory implements Serializable {
 		final AmazonS3 s3 = createS3(N5URI.encodeAsUri(uri).toString());
 
 		// when, if ever do we want to creat a bucket?
-		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, getS3Bucket(uri), false);
+		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, AmazonS3Utils.getS3Bucket(uri), false);
 		if (lastExtension(uri).startsWith(".zarr")) {
-			return new ZarrKeyValueReader(s3kv, getS3Key(uri), gsonBuilder, zarrMapN5DatasetAttributes,
+			return new ZarrKeyValueReader(s3kv, AmazonS3Utils.getS3Key(uri), gsonBuilder, zarrMapN5DatasetAttributes,
 					zarrMergeAttributes, cacheAttributes);
 		} else {
-			return new N5KeyValueReader(s3kv, getS3Key(uri), gsonBuilder, cacheAttributes);
+			return new N5KeyValueReader(s3kv, AmazonS3Utils.getS3Key(uri), gsonBuilder, cacheAttributes);
 		}
 	}
 
@@ -570,12 +415,12 @@ public class N5Factory implements Serializable {
 
 		final AmazonS3 s3 = createS3(N5URI.encodeAsUri(uri).toString());
 		// when, if ever do we want to creat a bucket?
-		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, getS3Bucket(uri), false);
+		final AmazonS3KeyValueAccess s3kv = new AmazonS3KeyValueAccess(s3, AmazonS3Utils.getS3Bucket(uri), false);
 		if (lastExtension(uri).startsWith(".zarr")) {
-			return new ZarrKeyValueWriter(s3kv, getS3Key(uri), gsonBuilder, zarrMapN5DatasetAttributes,
+			return new ZarrKeyValueWriter(s3kv, AmazonS3Utils.getS3Key(uri), gsonBuilder, zarrMapN5DatasetAttributes,
 					zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
 		} else {
-			return new N5KeyValueWriter(s3kv, getS3Key(uri), gsonBuilder, cacheAttributes);
+			return new N5KeyValueWriter(s3kv, AmazonS3Utils.getS3Key(uri), gsonBuilder, cacheAttributes);
 		}
 	}
 
@@ -691,7 +536,7 @@ public class N5Factory implements Serializable {
 			}
 			final String containerPath;
 			if (access instanceof AmazonS3KeyValueAccess) {
-				containerPath = getS3Key(asUri.toString());
+				containerPath = AmazonS3Utils.getS3Key(asUri.toString());
 			} else {
 				containerPath = asUri.getPath();
 			}
@@ -738,7 +583,7 @@ public class N5Factory implements Serializable {
 			}
 			final String containerPath;
 			if (access instanceof AmazonS3KeyValueAccess) {
-				containerPath = getS3Key(asUri.toString());
+				containerPath = AmazonS3Utils.getS3Key(asUri.toString());
 			} else {
 				containerPath = asUri.getPath();
 			}
@@ -772,7 +617,7 @@ public class N5Factory implements Serializable {
 		final String uriString = uri.toString();
 		final AmazonS3 s3 = factory.createS3(uriString);
 
-		return new AmazonS3KeyValueAccess(s3, factory.getS3Bucket(uriString), factory.createS3Bucket);
+		return new AmazonS3KeyValueAccess(s3, AmazonS3Utils.getS3Bucket(uriString), factory.createS3Bucket);
 	}
 
 	private static FileSystemKeyValueAccess newFileSystemKeyValueAccess(final URI uri, final N5Factory factory) {
@@ -783,7 +628,6 @@ public class N5Factory implements Serializable {
 	private final static Pattern GS_SCHEME = Pattern.compile("gs", Pattern.CASE_INSENSITIVE);
 	private final static Pattern HTTPS_SCHEME = Pattern.compile("http(s)?", Pattern.CASE_INSENSITIVE);
 	private final static Pattern GS_HOST = Pattern.compile("(cloud\\.google|storage\\.googleapis)\\.com", Pattern.CASE_INSENSITIVE);
-	private final static Pattern S3_SCHEME = Pattern.compile("s3", Pattern.CASE_INSENSITIVE);
 	private final static Pattern FILE_SCHEME = Pattern.compile("file", Pattern.CASE_INSENSITIVE);
 
 	/**
@@ -806,7 +650,7 @@ public class N5Factory implements Serializable {
 		AWS(uri -> {
 			final String scheme = uri.getScheme();
 			final boolean hasScheme = scheme != null;
-			return hasScheme && S3_SCHEME.asPredicate().test(scheme)
+			return hasScheme && AmazonS3Utils.S3_SCHEME.asPredicate().test(scheme)
 					|| uri.getHost() != null && hasScheme && HTTPS_SCHEME.asPredicate().test(scheme);
 		}, N5Factory::newAmazonS3KeyValueAccess),
 		FILE(uri -> {
@@ -930,7 +774,7 @@ public class N5Factory implements Serializable {
 			final String containerPath;
 			/* Any more special cases? google? */
 			if (access instanceof AmazonS3KeyValueAccess) {
-				containerPath = factory.getS3Key(uri.toString());
+				containerPath = AmazonS3Utils.getS3Key(uri.toString());
 			} else
 				containerPath = uri.getPath();
 			return StorageFormat.getReader(storage, access, containerPath, factory);
@@ -943,7 +787,7 @@ public class N5Factory implements Serializable {
 			final String containerPath;
 			/* Any more special cases? google? */
 			if (access instanceof AmazonS3KeyValueAccess) {
-				containerPath = factory.getS3Key(uri.toString());
+				containerPath = AmazonS3Utils.getS3Key(uri.toString());
 			} else
 				containerPath = uri.getPath();
 			final N5Writer writer = StorageFormat.getWriter(storage, access, containerPath, factory);
