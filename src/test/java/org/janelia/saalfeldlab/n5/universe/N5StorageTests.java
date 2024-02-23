@@ -1,12 +1,15 @@
 package org.janelia.saalfeldlab.n5.universe;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.google.cloud.storage.Storage;
 import com.google.gson.GsonBuilder;
 import org.janelia.saalfeldlab.n5.AbstractN5Test;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
+import org.janelia.saalfeldlab.n5.googlecloud.N5GoogleCloudStorageTest;
+import org.janelia.saalfeldlab.n5.googlecloud.mock.MockGoogleCloudStorageFactory;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.mock.MockS3Factory;
 import org.junit.runner.RunWith;
@@ -124,27 +127,34 @@ public class N5StorageTests {
 		}
 	}
 
-//	public static class N5GoogleCloudTest extends N5FactoryTest {
-//
-//		@Override public Class<?> getBackendTargetClass() {
-//
-//			return GoogleCloudStorageKeyValueAccess.class;
-//		}
-//
-//		@Override public N5Factory getFactory() {
-//
-//			if (factory == null) {
-//				factory = new N5Factory() {
-//
-//
-//				};
-//			}
-//			return factory;
-//		}
-//
-//		@Override protected String tempN5Location() {
-//
-//			return new URI("gs", tempBucketName(getGoogleCloudStorage()), tempContainerPath(), null).toString();
-//		}
-//	}
+	public static class N5GoogleCloudTest extends N5FactoryTest {
+
+		@Override public Class<?> getBackendTargetClass() {
+
+			return GoogleCloudStorageKeyValueAccess.class;
+		}
+
+		@Override public N5Factory getFactory() {
+
+			if (factory == null) {
+				factory = new N5Factory() {
+
+					@Override Storage createGoogleCloudStorage() {
+
+						return MockGoogleCloudStorageFactory.getOrCreateStorage();
+					}
+				};
+			}
+			return factory;
+		}
+
+		@Override protected String tempN5Location() {
+
+			try {
+				return new URI("gs", N5GoogleCloudStorageTest.tempBucketName(factory.createGoogleCloudStorage()), tempContainerPath(), null).toString();
+			} catch (URISyntaxException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
 }

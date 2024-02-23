@@ -604,9 +604,7 @@ public class N5Factory implements Serializable {
 		return new FileSystemKeyValueAccess(FileSystems.getDefault());
 	}
 
-	private final static Pattern GS_SCHEME = Pattern.compile("gs", Pattern.CASE_INSENSITIVE);
 	private final static Pattern HTTPS_SCHEME = Pattern.compile("http(s)?", Pattern.CASE_INSENSITIVE);
-	private final static Pattern GS_HOST = Pattern.compile("(cloud\\.google|storage\\.googleapis)\\.com", Pattern.CASE_INSENSITIVE);
 	private final static Pattern FILE_SCHEME = Pattern.compile("file", Pattern.CASE_INSENSITIVE);
 
 	/**
@@ -622,9 +620,9 @@ public class N5Factory implements Serializable {
 		GOOGLE_CLOUD(uri -> {
 			final String scheme = uri.getScheme();
 			final boolean hasScheme = scheme != null;
-			return hasScheme && GS_SCHEME.asPredicate().test(scheme)
+			return hasScheme && GoogleCloudUtils.GS_SCHEME.asPredicate().test(scheme)
 					|| hasScheme && HTTPS_SCHEME.asPredicate().test(scheme)
-					&& uri.getHost() != null && GS_HOST.asPredicate().test(uri.getHost());
+					&& uri.getHost() != null && GoogleCloudUtils.GS_HOST.asPredicate().test(uri.getHost());
 		}, N5Factory::newGoogleCloudKeyValueAccess),
 		AWS(uri -> {
 			final String scheme = uri.getScheme();
