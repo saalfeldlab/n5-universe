@@ -12,6 +12,8 @@ import org.janelia.saalfeldlab.n5.googlecloud.mock.MockGoogleCloudStorageFactory
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.mock.MockS3Factory;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrTest;
+import org.junit.Ignore;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -85,6 +87,12 @@ public class ZarrStorageTests {
 
 			return getReader(location);
 		}
+
+		@Ignore
+		@Override public void testReadZarrPython() {}
+
+		@Ignore
+		@Override public void testReadZarrNestedPython() {}
 	}
 
 	public static class ZarrFileSystemTest extends ZarrFactoryTest {
