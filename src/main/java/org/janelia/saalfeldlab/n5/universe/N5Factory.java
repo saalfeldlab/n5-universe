@@ -679,7 +679,7 @@ public class N5Factory implements Serializable {
 		}
 	}
 
-	enum StorageFormat {
+	public enum StorageFormat {
 		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).asPredicate().test(uri.getPath())),
 		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).asPredicate().test(uri.getPath())),
 		HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
@@ -700,7 +700,7 @@ public class N5Factory implements Serializable {
 			this.uriTest = test;
 		}
 
-		private static StorageFormat guessStorageFromUri(URI uri) {
+		public static StorageFormat guessStorageFromUri(URI uri) {
 
 			for (StorageFormat format : StorageFormat.values()) {
 				if (format.uriTest.test(uri))
@@ -709,7 +709,7 @@ public class N5Factory implements Serializable {
 			return null;
 		}
 
-		private static Pair<StorageFormat, URI> parseUri(String uri) throws URISyntaxException {
+		public static Pair<StorageFormat, URI> parseUri(String uri) throws URISyntaxException {
 
 			final Pair<StorageFormat, String> storageFromScheme = getStorageFromNestedScheme(uri);
 			final URI asUri = N5URI.encodeAsUri(storageFromScheme.getB());
@@ -720,7 +720,7 @@ public class N5Factory implements Serializable {
 
 		}
 
-		private static Pair<StorageFormat, String> getStorageFromNestedScheme(String uri) {
+		public static Pair<StorageFormat, String> getStorageFromNestedScheme(String uri) {
 
 			final Matcher storageSchemeMatcher = StorageFormat.STORAGE_SCHEME_PATTERN.matcher(uri);
 			storageSchemeMatcher.matches();
