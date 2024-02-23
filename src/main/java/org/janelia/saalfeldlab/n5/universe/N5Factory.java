@@ -36,7 +36,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -44,9 +43,8 @@ import java.util.regex.Pattern;
 
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import org.janelia.saalfeldlab.googlecloud.GoogleCloudResourceManagerClient;
-import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageClient;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageURI;
+import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Exception;
@@ -69,13 +67,8 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 
 import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3URI;
-import com.google.cloud.resourcemanager.Project;
-import com.google.cloud.resourcemanager.ResourceManager;
 import com.google.cloud.storage.Storage;
 import com.google.gson.GsonBuilder;
 
@@ -113,7 +106,7 @@ public class N5Factory implements Serializable {
 	private boolean s3Anonymous = true;
 	private boolean s3RetryWithCredentials = false;
 	private String s3Endpoint;
-	private boolean createS3Bucket = false;
+	private boolean createBucket = false;
 
 	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
 
@@ -305,11 +298,9 @@ public class N5Factory implements Serializable {
 		}
 	}
 
-	private Storage createGoogleCloudStorage() {
+	Storage createGoogleCloudStorage() {
 
-		final GoogleCloudStorageClient storageClient = new GoogleCloudStorageClient();
-		final Storage storage = storageClient.create();
-		return storage;
+		return GoogleCloudUtils.createGoogleCloudStorage(googleCloudProjectId);
 	}
 
 	/**
@@ -383,17 +374,7 @@ public class N5Factory implements Serializable {
 	public N5Writer openGoogleCloudWriter(final String uri) throws URISyntaxException {
 
 		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(N5URI.encodeAsUri(uri));
-		final GoogleCloudStorageClient storageClient;
-		if (googleCloudProjectId == null) {
-			final ResourceManager resourceManager = new GoogleCloudResourceManagerClient().create();
-			final Iterator<Project> projectsIterator = resourceManager.list().iterateAll().iterator();
-			if (!projectsIterator.hasNext())
-				return null;
-			storageClient = new GoogleCloudStorageClient(projectsIterator.next().getProjectId());
-		} else
-			storageClient = new GoogleCloudStorageClient(googleCloudProjectId);
-
-		final Storage storage = storageClient.create();
+		final Storage storage = createGoogleCloudStorage();
 		final GoogleCloudStorageKeyValueAccess googleCloudBackend = new GoogleCloudStorageKeyValueAccess(storage,
 				googleCloudUri.getBucket(), false);
 		if (lastExtension(uri).startsWith(".zarr")) {
@@ -607,9 +588,7 @@ public class N5Factory implements Serializable {
 	private static GoogleCloudStorageKeyValueAccess newGoogleCloudKeyValueAccess(final URI uri, final N5Factory factory) {
 
 		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(uri);
-		final GoogleCloudStorageClient storageClient = new GoogleCloudStorageClient();
-		final Storage storage = storageClient.create();
-		return new GoogleCloudStorageKeyValueAccess(storage, googleCloudUri.getBucket(), false);
+		return new GoogleCloudStorageKeyValueAccess(factory.createGoogleCloudStorage(), googleCloudUri.getBucket(), factory.createBucket);
 	}
 
 	private static AmazonS3KeyValueAccess newAmazonS3KeyValueAccess(final URI uri, final N5Factory factory) {
@@ -617,7 +596,7 @@ public class N5Factory implements Serializable {
 		final String uriString = uri.toString();
 		final AmazonS3 s3 = factory.createS3(uriString);
 
-		return new AmazonS3KeyValueAccess(s3, AmazonS3Utils.getS3Bucket(uriString), factory.createS3Bucket);
+		return new AmazonS3KeyValueAccess(s3, AmazonS3Utils.getS3Bucket(uriString), factory.createBucket);
 	}
 
 	private static FileSystemKeyValueAccess newFileSystemKeyValueAccess(final URI uri, final N5Factory factory) {
@@ -782,7 +761,7 @@ public class N5Factory implements Serializable {
 
 		private static N5Writer getWriter(StorageFormat storage, URI uri, N5Factory factory) {
 
-			factory.createS3Bucket = true;
+			factory.createBucket = true;
 			final KeyValueAccess access = KeyValueAccessBackend.getKeyValueAccess(uri, factory);
 			final String containerPath;
 			/* Any more special cases? google? */
@@ -791,7 +770,7 @@ public class N5Factory implements Serializable {
 			} else
 				containerPath = uri.getPath();
 			final N5Writer writer = StorageFormat.getWriter(storage, access, containerPath, factory);
-			factory.createS3Bucket = false;
+			factory.createBucket = false;
 			return writer;
 		}
 
