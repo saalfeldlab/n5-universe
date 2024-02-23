@@ -2,12 +2,13 @@ package org.janelia.saalfeldlab.n5.universe;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.google.gson.GsonBuilder;
+import org.janelia.saalfeldlab.n5.AbstractN5Test;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.mock.MockS3Factory;
-import org.janelia.saalfeldlab.n5.zarr.N5ZarrTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -20,14 +21,14 @@ import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempBucketName;
 import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempContainerPath;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ZarrStorageTests.ZarrFileSystemTest.class, ZarrStorageTests.ZarrAmazonS3Test.class})
-public class ZarrStorageTests {
+@Suite.SuiteClasses({N5StorageTests.N5FileSystemTest.class, N5StorageTests.N5AmazonS3Test.class})
+public class N5StorageTests {
 
-	public static abstract class ZarrFactoryTest extends N5ZarrTest implements StorageSchemeWrappedN5Test {
+	public static abstract class N5FactoryTest extends AbstractN5Test implements StorageSchemeWrappedN5Test {
 
 		protected N5Factory factory;
 
-		public ZarrFactoryTest() {
+		public N5FactoryTest() {
 
 			this.factory = getFactory();
 		}
@@ -44,20 +45,12 @@ public class ZarrStorageTests {
 
 		@Override public N5Factory.StorageFormat getStorageFormat() {
 
-			return N5Factory.StorageFormat.ZARR;
+			return N5Factory.StorageFormat.N5;
 		}
 
 		@Override protected N5Writer createN5Writer() {
 
 			return getWriter(tempN5Location());
-		}
-
-		@Override protected N5Writer createN5Writer(String location, GsonBuilder gsonBuilder, String dimensionSeparator, boolean mapN5DatasetAttributes) {
-
-			factory.gsonBuilder(gsonBuilder);
-			factory.zarrDimensionSeparator(dimensionSeparator);
-			factory.zarrMapN5Attributes(mapN5DatasetAttributes);
-			return getWriter(location);
 		}
 
 		@Override protected N5Reader createN5Reader(String location, GsonBuilder gson) {
@@ -83,7 +76,7 @@ public class ZarrStorageTests {
 		}
 	}
 
-	public static class ZarrFileSystemTest extends ZarrFactoryTest {
+	public static class N5FileSystemTest extends N5FactoryTest {
 
 		@Override public Class<?> getBackendTargetClass() {
 
@@ -93,14 +86,14 @@ public class ZarrStorageTests {
 		@Override protected String tempN5Location() {
 
 			try {
-				return Files.createTempDirectory("zarr-test").toUri().getPath();
+				return Files.createTempDirectory("n5-test").toUri().getPath();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		}
 	}
 
-	public static class ZarrAmazonS3Test extends ZarrFactoryTest {
+	public static class N5AmazonS3Test extends N5FactoryTest {
 
 		@Override public Class<?> getBackendTargetClass() {
 
@@ -130,4 +123,28 @@ public class ZarrStorageTests {
 			}
 		}
 	}
+
+//	public static class N5GoogleCloudTest extends N5FactoryTest {
+//
+//		@Override public Class<?> getBackendTargetClass() {
+//
+//			return GoogleCloudStorageKeyValueAccess.class;
+//		}
+//
+//		@Override public N5Factory getFactory() {
+//
+//			if (factory == null) {
+//				factory = new N5Factory() {
+//
+//
+//				};
+//			}
+//			return factory;
+//		}
+//
+//		@Override protected String tempN5Location() {
+//
+//			return new URI("gs", tempBucketName(getGoogleCloudStorage()), tempContainerPath(), null).toString();
+//		}
+//	}
 }
