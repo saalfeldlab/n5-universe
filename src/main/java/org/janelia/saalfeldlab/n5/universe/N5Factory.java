@@ -233,7 +233,7 @@ public class N5Factory implements Serializable {
 			// if AmazonS3URI does not like the form of the uri
 			try {
 				final URI buri = new URI(uri);
-				final URI endpointUrl = new URI(buri.getScheme(), buri.getHost(), null, null);
+				final URI endpointUrl = new URI(buri.getScheme(), null, buri.getHost(), buri.getPort(), null, null, null);
 				return createS3(getS3Credentials(), new EndpointConfiguration(endpointUrl.toString(), null), null, getS3Bucket(uri));
 			} catch (final URISyntaxException e1) {}
 		}
