@@ -645,7 +645,7 @@ public class N5Factory implements Serializable {
 		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).matches()),
 		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).matches()),
 		HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
-			final boolean hasHdf5Extension = Pattern.compile("\\.h(df)5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).matches();
+			final boolean hasHdf5Extension = Pattern.compile("\\.h(df)?5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).matches();
 			return hasHdf5Extension || isHDF5(uri.getPath());
 		});
 
