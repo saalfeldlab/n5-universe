@@ -45,6 +45,7 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
+import org.janelia.saalfeldlab.n5.hdf5.HDF5Utils;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
@@ -55,14 +56,10 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
-import java.util.Arrays;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -84,7 +81,6 @@ public class N5Factory implements Serializable {
 	private static final long serialVersionUID = -6823715427289454617L;
 	private final static Pattern HTTPS_SCHEME = Pattern.compile("http(s)?", Pattern.CASE_INSENSITIVE);
 	private final static Pattern FILE_SCHEME = Pattern.compile("file", Pattern.CASE_INSENSITIVE);
-	private static byte[] HDF5_SIG = {(byte)137, 72, 68, 70, 13, 10, 26, 10};
 	private int[] hdf5DefaultBlockSize = {64, 64, 64, 1, 1};
 	private boolean hdf5OverrideBlockSize = false;
 	private GsonBuilder gsonBuilder = new GsonBuilder();
@@ -99,21 +95,6 @@ public class N5Factory implements Serializable {
 	private boolean s3RetryWithCredentials = false;
 	private String s3Endpoint;
 	private boolean createBucket = false;
-
-	private static boolean isHDF5(String path) {
-
-		final File f = new File(path);
-		if (!f.exists() || !f.isFile())
-			return false;
-
-		try (final FileInputStream in = new FileInputStream(f)) {
-			final byte[] sig = new byte[8];
-			in.read(sig);
-			return Arrays.equals(sig, HDF5_SIG);
-		} catch (final IOException e) {
-			return false;
-		}
-	}
 
 	private static GoogleCloudStorageKeyValueAccess newGoogleCloudKeyValueAccess(final URI uri, final N5Factory factory) {
 
@@ -475,6 +456,15 @@ public class N5Factory implements Serializable {
 		return openN5ContainerWithBackend(KeyValueAccessBackend.AWS, uri, this::openWriter);
 	}
 
+	public N5Writer openWriter(final StorageFormat format, final String uri) {
+
+		try {
+			return openN5Container(format, N5URI.encodeAsUri(uri), this::openWriter);
+		} catch (URISyntaxException e) {
+			throw new N5Exception(e);
+		}
+	}
+
 	public N5Writer openWriter(final StorageFormat format, final URI uri) {
 
 		createBucket = true;
@@ -500,8 +490,7 @@ public class N5Factory implements Serializable {
 			for (StorageFormat format : StorageFormat.values()) {
 				try {
 					return openWriter(format, access, containerPath);
-				}
-				catch (Exception e) {}
+				} catch (Exception ignored) {}
 			}
 			throw new N5Exception("Unable to open " + containerPath + " as N5Writer");
 
@@ -642,11 +631,11 @@ public class N5Factory implements Serializable {
 	}
 
 	public enum StorageFormat {
-		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).matches()),
-		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).matches()),
+		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find()),
+		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find()),
 		HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
-			final boolean hasHdf5Extension = Pattern.compile("\\.h(df)?5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).matches();
-			return hasHdf5Extension || isHDF5(uri.getPath());
+			final boolean hasHdf5Extension = Pattern.compile("\\.h(df)?5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find();
+			return hasHdf5Extension || HDF5Utils.isHDF5(uri.getPath());
 		});
 
 		static final Pattern STORAGE_SCHEME_PATTERN = Pattern.compile("^(\\s*(?<storageScheme>(n5|h(df)?5|zarr)):(//)?)?(?<uri>.*)$", Pattern.CASE_INSENSITIVE);
