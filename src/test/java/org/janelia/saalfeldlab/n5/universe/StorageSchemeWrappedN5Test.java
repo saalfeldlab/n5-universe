@@ -24,7 +24,7 @@ public interface StorageSchemeWrappedN5Test {
 	default N5Writer getWriter(String uri) {
 
 		final String uriWithStorageScheme = prependStorageScheme(uri);
-		final GsonKeyValueN5Writer writer = (GsonKeyValueN5Writer)getFactory().getWriter(uriWithStorageScheme);
+		final GsonKeyValueN5Writer writer = (GsonKeyValueN5Writer)getFactory().openWriter(uriWithStorageScheme);
 		switch (getStorageFormat()){
 		case ZARR:
 			assertTrue(writer instanceof ZarrKeyValueWriter);
@@ -43,7 +43,7 @@ public interface StorageSchemeWrappedN5Test {
 	default N5Reader getReader(String uri) {
 
 		final String uriWithStorageScheme = prependStorageScheme(uri);
-		final GsonKeyValueN5Reader reader = (GsonKeyValueN5Reader)getFactory().getReader(uriWithStorageScheme);
+		final GsonKeyValueN5Reader reader = (GsonKeyValueN5Reader)getFactory().openReader(uriWithStorageScheme);
 		switch (getStorageFormat()){
 		case ZARR:
 			assertTrue(reader instanceof ZarrKeyValueReader);
