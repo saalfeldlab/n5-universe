@@ -1,22 +1,29 @@
 package org.janelia.saalfeldlab.n5.universe;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import org.janelia.saalfeldlab.n5.N5Exception;
+import org.janelia.saalfeldlab.n5.N5KeyValueReader;
+import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
+import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
+import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
+import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
-import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
-import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
-import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
-import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 public class N5FactoryTests {
 
@@ -52,9 +59,9 @@ public class N5FactoryTests {
 		assertNotEquals("zarr extension != n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(zarrExt));
 		assertEquals("zarr extension == zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(zarrExt));
 
-		assertNotEquals("unknown extension != h5", StorageFormat.HDF5, N5Factory.StorageFormat.guessStorageFromUri(unknownExt));
-		assertNotEquals("unknown extension != n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(unknownExt));
-		assertNotEquals("unknown extension != zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(unknownExt));
+		assertNull("unknown extension != h5", N5Factory.StorageFormat.guessStorageFromUri(unknownExt));
+		assertNull("unknown extension != n5", N5Factory.StorageFormat.guessStorageFromUri(unknownExt));
+		assertNull("unknown extension != zarr", N5Factory.StorageFormat.guessStorageFromUri(unknownExt));
 	}
 
 	@Test
@@ -141,13 +148,142 @@ public class N5FactoryTests {
 			tmp.delete();
 		}
 	}
+
+	@Test
+	public void testDefaultForAmbiguousWriters() {
+
+		final N5Factory factory = new N5Factory();
+
+		File tmp = null;
+		try {
+			tmp = Files.createTempDirectory("factory-test-").toFile();
+
+			final String[] paths = new String[]{
+					"a_non_hdf5_file",
+					"an_hdf5_file",
+					"a_zarr_directory",
+					"an_n5_directory",
+					"an_empty_directory",
+					"a_non_existent_path"
+			};
+
+			final Path tmpPath = tmp.toPath();
+
+			final File tmpNonHdf5File = tmpPath.resolve(paths[0]).toFile();
+			tmpNonHdf5File.createNewFile();
+			tmpNonHdf5File.deleteOnExit();
+
+			factory.openWriter(StorageFormat.HDF5, tmpPath.resolve(paths[1]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[2]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[3]).toFile().getCanonicalPath()).close();
+
+			final File tmpEmptyDir = tmpPath.resolve(paths[4]).toFile();
+			tmpEmptyDir.mkdirs();
+			tmpEmptyDir.deleteOnExit();
+
+
+
+			final Class<?>[] writerTypes = new Class[]{
+					null,
+					N5HDF5Writer.class,
+					ZarrKeyValueWriter.class,
+					ZarrKeyValueWriter.class,
+					ZarrKeyValueWriter.class,
+					ZarrKeyValueWriter.class
+			};
+
+			for (int i = 0; i < paths.length; i++) {
+
+				final String prefixUri = new URI("file", null, tmpPath.resolve(paths[i]).normalize().toString(), null).toString();
+				checkWriterTypeFromFactory( factory, prefixUri, writerTypes[i], " with path " + paths[i]);
+			}
+
+		} catch (IOException | URISyntaxException e) {
+			e.printStackTrace();
+		} finally {
+			tmp.delete();
+		}
+	}
+
+
+	@Test
+	public void testDefaultForAmbiguousReaders() {
+
+		final N5Factory factory = new N5Factory();
+
+		File tmp = null;
+		try {
+			tmp = Files.createTempDirectory("factory-test-").toFile();
+
+			final String[] paths = new String[]{
+					"a_non_hdf5_file",
+					"an_hdf5_file",
+					"a_zarr_directory",
+					"an_n5_directory",
+					"an_empty_directory",
+					"a_non_existent_path"
+			};
+
+			final Path tmpPath = tmp.toPath();
+
+			final File tmpNonHdf5File = tmpPath.resolve(paths[0]).toFile();
+			tmpNonHdf5File.createNewFile();
+			tmpNonHdf5File.deleteOnExit();
+
+			factory.openWriter(StorageFormat.HDF5, tmpPath.resolve(paths[1]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[2]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[3]).toFile().getCanonicalPath()).close();
+
+			final File tmpEmptyDir = tmpPath.resolve(paths[4]).toFile();
+			tmpEmptyDir.mkdirs();
+			tmpEmptyDir.deleteOnExit();
+
+
+
+			final Class<?>[] readerTypes = new Class[]{
+					null,
+					N5HDF5Reader.class,
+					ZarrKeyValueReader.class,
+					N5KeyValueReader.class,
+					N5KeyValueReader.class,
+					null
+			};
+
+			for (int i = 0; i < paths.length; i++) {
+
+				final String prefixUri = new URI("file", null, tmpPath.resolve(paths[i]).normalize().toString(), null).toString();
+				checkReaderTypeFromFactory( factory, prefixUri, readerTypes[i], " with path " + paths[i]);
+			}
+
+		} catch (IOException | URISyntaxException e) {
+			e.printStackTrace();
+		} finally {
+			tmp.delete();
+		}
+	}
 	
 	private void checkWriterTypeFromFactory(N5Factory factory, String uri, Class<?> expected, String messageSuffix) {
 
+		if (expected == null) {
+			assertThrows(N5Exception.class, () -> factory.openWriter(uri));
+			return;
+		}
+
 		final N5Writer n5 = factory.openWriter(uri);
-		assertNotNull("null n5 for " + uri, n5);
+		assertNotNull(	"null n5 for " + uri, n5);
 		assertEquals(expected.getName() + messageSuffix, expected, n5.getClass());
 		n5.remove();
 	}
 
+	private void checkReaderTypeFromFactory(N5Factory factory, String uri, Class<?> expected, String messageSuffix) {
+
+		if (expected == null) {
+			assertThrows(N5Exception.class, () -> factory.openReader(uri));
+			return;
+		}
+
+		final N5Reader n5 = factory.openReader(uri);
+		assertNotNull(	"null n5 for " + uri, n5);
+		assertEquals(expected.getName() + messageSuffix, expected, n5.getClass());
+	}
 }

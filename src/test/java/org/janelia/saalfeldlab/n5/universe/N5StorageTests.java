@@ -197,8 +197,11 @@ public class N5StorageTests {
 					@Override Storage createGoogleCloudStorage() {
 
 						final Storage storage = getOrCreateStorage();
-						N5GoogleCloudFactoryTest.storage = storage;
-						return storage;
+						if (storage == null)
+							N5GoogleCloudFactoryTest.storage = super.createGoogleCloudStorage();
+						else
+							N5GoogleCloudFactoryTest.storage = storage;
+						return N5GoogleCloudFactoryTest.storage;
 					}
 				};
 			}
@@ -238,7 +241,20 @@ public class N5StorageTests {
 
 			return MockGoogleCloudStorageFactory.getOrCreateStorage();
 		}
+	}
 
 
+
+	public static class N5GoogleCloudBackendTest extends N5GoogleCloudFactoryTest {
+
+		@Override public Class<?> getBackendTargetClass() {
+
+			return GoogleCloudStorageKeyValueAccess.class;
+		}
+
+		@Override protected Storage getOrCreateStorage() {
+
+			return factory.createGoogleCloudStorage();
+		}
 	}
 }
