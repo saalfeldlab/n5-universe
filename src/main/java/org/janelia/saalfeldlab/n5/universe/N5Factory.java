@@ -78,6 +78,8 @@ import java.util.regex.Pattern;
  */
 public class N5Factory implements Serializable {
 
+	private static final N5Factory FACTORY = new N5Factory();
+
 	private static final long serialVersionUID = -6823715427289454617L;
 	private final static Pattern HTTPS_SCHEME = Pattern.compile("http(s)?", Pattern.CASE_INSENSITIVE);
 	private final static Pattern FILE_SCHEME = Pattern.compile("file", Pattern.CASE_INSENSITIVE);
@@ -685,5 +687,27 @@ public class N5Factory implements Serializable {
 			}
 			return new ValuePair<>(null, uriGroup);
 		}
+	}
+
+	/**
+	 * Creates an N5 writer for the specified container URI with default N5Factory configuration.
+	 *
+	 * @param containerUri location of the N5 container
+	 * @return an N5Writer instance for the given containerURI
+	 */
+	public static N5Writer createWriter(String containerUri) {
+
+		return FACTORY.openWriter(containerUri);
+	}
+
+	/**
+	 * Creates an N5Reader at containerURI with default N5Factory configuration.
+	 *
+	 * @param containerUri location of the N5 container
+	 * @return an N5Reader instance for the given containerURI
+	 */
+	public static N5Reader createReader(String containerUri) {
+
+		return FACTORY.openReader(containerUri);
 	}
 }
