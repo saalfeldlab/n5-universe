@@ -9,12 +9,17 @@ import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
-import org.janelia.saalfeldlab.n5.googlecloud.N5GoogleCloudStorageTest;
+import org.janelia.saalfeldlab.n5.googlecloud.N5GoogleCloudStorageTests;
+import org.janelia.saalfeldlab.n5.googlecloud.backend.BackendGoogleCloudStorageFactory;
 import org.janelia.saalfeldlab.n5.googlecloud.mock.MockGoogleCloudStorageFactory;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
+import org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests;
 import org.janelia.saalfeldlab.n5.s3.mock.MockS3Factory;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.rules.TestWatcher;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -26,6 +31,7 @@ import java.util.ArrayList;
 
 import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempBucketName;
 import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempContainerPath;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({N5StorageTests.N5FileSystemTest.class, N5StorageTests.N5AmazonS3MockTest.class, N5StorageTests.N5AmazonS3BackendTest.class})
@@ -122,34 +128,47 @@ public class N5StorageTests {
 
 		@AfterClass
 		public static void removeTestBucket() {
-			if (s3.doesBucketExistV2(testBucket))
-				s3.deleteBucket(testBucket);
+
+			if (s3 != null && s3.doesBucketExistV2(testBucket))
+				N5Factory.createWriter("s3://" + testBucket).remove();
 		}
 
-	}
-
-	public static  class N5AmazonS3MockTest extends N5AmazonS3FactoryTest {
 		@Override public N5Factory getFactory() {
 
-			if (factory == null) {
-				factory = new N5Factory() {
+			if (factory != null)
+				return factory;
+			factory = new N5Factory() {
 
-					@Override AmazonS3 createS3(String uri) {
+				@Override AmazonS3 createS3(String uri) {
 
-						AmazonS3 s3 = MockS3Factory.getOrCreateS3();
-						N5AmazonS3FactoryTest.s3 = s3;
-						return s3;
-					}
-				};
-			}
+					if (N5AmazonS3FactoryTest.s3 == null)
+						N5AmazonS3FactoryTest.s3 = super.createS3(uri);
+					return s3;
+				}
+			};
 			return factory;
 		}
 
 		@Override protected String tempN5Location() {
 
 			try {
-
 				return new URI("s3", testBucket, tempContainerPath(), null).toString();
+			} catch (URISyntaxException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public static class N5AmazonS3MockTest extends N5AmazonS3FactoryTest {
+		public N5AmazonS3MockTest() {
+
+			N5AmazonS3FactoryTest.s3 = MockS3Factory.getOrCreateS3();
+		}
+
+		@Override protected String tempN5Location() {
+
+			try {
+				return new URI("http", "localhost:8001", "/" + testBucket + tempContainerPath(), null, null).toString();
 			} catch (URISyntaxException e) {
 				throw new RuntimeException(e);
 			}
@@ -158,67 +177,32 @@ public class N5StorageTests {
 
 	public static class N5AmazonS3BackendTest extends N5AmazonS3FactoryTest {
 
-		@Override public Class<?> getBackendTargetClass() {
+		@BeforeClass
+		public static void ensureBucketExists() {
 
-			return AmazonS3KeyValueAccess.class;
+
+
+			N5Factory.createWriter("s3://" + testBucket);
+			assertTrue(s3.doesBucketExistV2(testBucket));
 		}
 
-		@Override protected String tempN5Location() {
+		@Rule public TestWatcher skipIfErroneousFailure = new N5AmazonS3Tests.SkipErroneousNoSuchBucketFailure();
 
-			try {
-				final String s3ContainerUri = new URI("s3", testBucket, tempContainerPath(), null).toString();
-				if (s3 == null) {
-					s3 = factory.createS3(s3ContainerUri);
-				}
-				return s3ContainerUri;
-			} catch (URISyntaxException e) {
-				throw new RuntimeException(e);
-			}
+		public N5AmazonS3BackendTest() {
+
+			N5AmazonS3FactoryTest.s3 = null;
 		}
 	}
 
 	public static abstract class N5GoogleCloudFactoryTest extends N5FactoryTest {
 
-		private static String testBucket = N5GoogleCloudStorageTest.tempBucketName();
-		private static Storage storage = null;
-
-		protected abstract Storage getOrCreateStorage();
+		protected static String testBucket = N5GoogleCloudStorageTests.tempBucketName();
+		protected static Storage storage = null;
 
 		@Override public Class<?> getBackendTargetClass() {
 
 			return GoogleCloudStorageKeyValueAccess.class;
 		}
-
-		@Override public N5Factory getFactory() {
-
-			if (factory == null) {
-				factory = new N5Factory() {
-
-					@Override Storage createGoogleCloudStorage() {
-
-						final Storage storage = getOrCreateStorage();
-						if (storage == null)
-							N5GoogleCloudFactoryTest.storage = super.createGoogleCloudStorage();
-						else
-							N5GoogleCloudFactoryTest.storage = storage;
-						return N5GoogleCloudFactoryTest.storage;
-					}
-				};
-			}
-			return factory;
-		}
-
-		@Override
-		protected String tempN5Location() {
-
-			try {
-				return new URI("gs", testBucket, tempContainerPath(), null).toString();
-			} catch (URISyntaxException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-
 
 		@AfterClass
 		public static void removeTestBucket() {
@@ -228,33 +212,50 @@ public class N5StorageTests {
 				storage.delete(testBucket);
 			}
 		}
+
+		@Override public N5Factory getFactory() {
+
+			if (factory != null)
+				return factory;
+			factory = new N5Factory() {
+
+				@Override Storage createGoogleCloudStorage() {
+
+					return storage;
+				}
+			};
+			return factory;
+		}
+
+		@Override protected String tempN5Location() {
+
+			try {
+				return new URI("gs", testBucket, tempContainerPath(), null).toString();
+			} catch (URISyntaxException e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 
 	public static class N5GoogleCloudMockTest extends N5GoogleCloudFactoryTest {
+		public N5GoogleCloudMockTest() {
 
-		@Override public Class<?> getBackendTargetClass() {
-
-			return GoogleCloudStorageKeyValueAccess.class;
-		}
-
-		@Override protected Storage getOrCreateStorage() {
-
-			return MockGoogleCloudStorageFactory.getOrCreateStorage();
+			N5GoogleCloudFactoryTest.storage = MockGoogleCloudStorageFactory.getOrCreateStorage();
 		}
 	}
 
-
-
 	public static class N5GoogleCloudBackendTest extends N5GoogleCloudFactoryTest {
 
-		@Override public Class<?> getBackendTargetClass() {
+		@BeforeClass
+		public static void ensureBucketExists() {
 
-			return GoogleCloudStorageKeyValueAccess.class;
+			final N5Writer writer = N5Factory.createWriter("gs://" + testBucket);
+			assertTrue(writer.exists(""));
 		}
 
-		@Override protected Storage getOrCreateStorage() {
+		public N5GoogleCloudBackendTest() {
 
-			return factory.createGoogleCloudStorage();
+			N5GoogleCloudFactoryTest.storage = BackendGoogleCloudStorageFactory.getOrCreateStorage();
 		}
 	}
 }
