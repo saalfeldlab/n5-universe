@@ -61,7 +61,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -94,14 +93,12 @@ public class N5Factory implements Serializable {
 	private String s3Region = null;
 	private AWSCredentials s3Credentials = null;
 	private boolean s3Anonymous = true;
-	private boolean s3RetryWithCredentials = false;
 	private String s3Endpoint;
-	private boolean createBucket = false;
 
 	private static GoogleCloudStorageKeyValueAccess newGoogleCloudKeyValueAccess(final URI uri, final N5Factory factory) {
 
 		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(uri);
-		return new GoogleCloudStorageKeyValueAccess(factory.createGoogleCloudStorage(), googleCloudUri.getBucket(), factory.createBucket);
+		return new GoogleCloudStorageKeyValueAccess(factory.createGoogleCloudStorage(), googleCloudUri, true);
 	}
 
 	private static AmazonS3KeyValueAccess newAmazonS3KeyValueAccess(final URI uri, final N5Factory factory) {
@@ -109,7 +106,7 @@ public class N5Factory implements Serializable {
 		final String uriString = uri.toString();
 		final AmazonS3 s3 = factory.createS3(uriString);
 
-		return new AmazonS3KeyValueAccess(s3, uri.toString(), factory.createBucket);
+		return new AmazonS3KeyValueAccess(s3, uri, true);
 	}
 
 	private static FileSystemKeyValueAccess newFileSystemKeyValueAccess(final URI uri, final N5Factory factory) {
@@ -183,9 +180,9 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
+	@Deprecated
 	public N5Factory s3RetryWithCredentials() {
 
-		s3RetryWithCredentials = true;
 		return this;
 	}
 
@@ -205,7 +202,7 @@ public class N5Factory implements Serializable {
 
 		try {
 			return AmazonS3Utils.createS3(uri, s3Endpoint, AmazonS3Utils.getS3Credentials(s3Credentials, s3Anonymous), s3Region);
-		} catch (final Exception e) {
+		} catch (final Throwable e) {
 			throw new N5Exception("Could not create s3 client from uri: " + uri, e);
 		}
 	}
@@ -222,7 +219,8 @@ public class N5Factory implements Serializable {
 	 * @param uri to create a {@link KeyValueAccess} from.
 	 * @return the {@link KeyValueAccess} and container path, or null if none are valid
 	 */
-	Pair<KeyValueAccess, String> getKeyValueAccess(final URI uri) {
+	@Nullable
+	KeyValueAccess getKeyValueAccess(final URI uri) {
 
 		/*NOTE: The order of these tests is very important, as the predicates for each
 		 * backend take into account reasonable defaults when possible.
@@ -231,14 +229,14 @@ public class N5Factory implements Serializable {
 		for (KeyValueAccessBackend backend : KeyValueAccessBackend.values()) {
 			final KeyValueAccess kva = backend.apply(uri, this);
 			if (kva != null)
-				return new ValuePair<>(kva, backend.parseContainerPath.apply(uri));
+				return kva;
 		}
 		return null;
 	}
 
 	/**
 	 * Open an {@link N5Reader} over an N5 Container.
-	 *
+	 * <p>
 	 * NOTE: The name seems to imply that this will open any N5Reader, over a
 	 * {@link FileSystemKeyValueAccess} however that is misleading. Instead
 	 * this will open any N5Container that is a valid {@link  StorageFormat#N5}.
@@ -359,8 +357,8 @@ public class N5Factory implements Serializable {
 			for (StorageFormat format : StorageFormat.values()) {
 				try {
 					return openReader(format, access, containerPath);
+				} catch (Throwable e) {
 				}
-				catch (Exception e) {}
 			}
 			throw new N5Exception("Unable to open " + containerPath + " as N5Reader");
 
@@ -380,7 +378,7 @@ public class N5Factory implements Serializable {
 
 	/**
 	 * Open an {@link N5Writer} for N5 Container.
-	 *
+	 * <p>
 	 * NOTE: The name seems to imply that this will open any N5Writer, over a
 	 * {@link FileSystemKeyValueAccess} however that is misleading. Instead
 	 * this will open any N5Container that is a valid {@link  StorageFormat#N5}.
@@ -469,10 +467,7 @@ public class N5Factory implements Serializable {
 
 	public N5Writer openWriter(final StorageFormat format, final URI uri) {
 
-		createBucket = true;
-		final N5Writer n5Writer = openN5Container(format, uri, this::openWriter);
-		createBucket = false;
-		return n5Writer;
+		return openN5Container(format, uri, this::openWriter);
 	}
 
 	/**
@@ -492,7 +487,8 @@ public class N5Factory implements Serializable {
 			for (StorageFormat format : StorageFormat.values()) {
 				try {
 					return openWriter(format, access, containerPath);
-				} catch (Exception ignored) {}
+				} catch (Throwable ignored) {
+				}
 			}
 			throw new N5Exception("Unable to open " + containerPath + " as N5Writer");
 
@@ -526,15 +522,14 @@ public class N5Factory implements Serializable {
 
 	private <T extends N5Reader> T openN5ContainerWithBackend(
 			final KeyValueAccessBackend backend,
-			final String uri,
+			final String containerUri,
 			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithBackend
 	) throws URISyntaxException {
 
-		final Pair<StorageFormat, URI> formatAndUri = StorageFormat.parseUri(uri);
-		final URI asUri = formatAndUri.getB();
-		final KeyValueAccess kva = backend.apply(asUri, this);
-		final String containerPath = backend.parseContainerPath.apply(asUri);
-		return openWithBackend.apply(formatAndUri.getA(), kva, containerPath);
+		final Pair<StorageFormat, URI> formatAndUri = StorageFormat.parseUri(containerUri);
+		final URI uri = formatAndUri.getB();
+		final KeyValueAccess kva = backend.apply(uri, this);
+		return openWithBackend.apply(formatAndUri.getA(), kva, uri.toString());
 	}
 
 	private <T extends N5Reader> T openN5Container(
@@ -542,37 +537,29 @@ public class N5Factory implements Serializable {
 			final URI uri,
 			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
 
-		final Pair<KeyValueAccess, String> accessAndContainerPath = getKeyValueAccess(uri);
-		if (accessAndContainerPath == null)
+		final KeyValueAccess kva = getKeyValueAccess(uri);
+		if (kva == null)
 			throw new N5Exception("Cannot get KeyValueAccess at " + uri);
-		final KeyValueAccess access = accessAndContainerPath.getA();
-		final String containerPath = accessAndContainerPath.getB();
-		return openWithKva.apply(storageFormat, access, containerPath);
+		return openWithKva.apply(storageFormat, kva, uri.toString());
 	}
 
 	private <T extends N5Reader> T openN5Container(
-			final String uri,
+			final String containerUri,
 			final BiFunction<StorageFormat, URI, T> openWithFormat,
 			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
 
 		final Pair<StorageFormat, URI> storageAndUri;
 		try {
-			storageAndUri = StorageFormat.parseUri(uri);
+			storageAndUri = StorageFormat.parseUri(containerUri);
 		} catch (URISyntaxException e) {
-			throw new N5Exception("Unable to open " + uri + " as N5 Container", e);
+			throw new N5Exception("Unable to open " + containerUri + " as N5 Container", e);
 		}
 		final StorageFormat format = storageAndUri.getA();
-		final URI asUri = storageAndUri.getB();
+		final URI uri = storageAndUri.getB();
 		if (format != null)
-			return openWithFormat.apply(format, asUri);
-
-		final Pair<KeyValueAccess, String> accessAndContainerPath = getKeyValueAccess(asUri);
-		if (accessAndContainerPath == null)
-			throw new N5Exception("Cannot get KeyValueAccess at " + asUri);
-		final KeyValueAccess access = accessAndContainerPath.getA();
-		final String containerPath = accessAndContainerPath.getB();
-
-		return openWithKva.apply(null, access, containerPath);
+			return openWithFormat.apply(format, uri);
+		else
+			return openN5Container(null, uri, openWithKva);
 	}
 
 	/**
@@ -596,27 +583,20 @@ public class N5Factory implements Serializable {
 			final boolean hasScheme = scheme != null;
 			return hasScheme && AmazonS3Utils.S3_SCHEME.asPredicate().test(scheme)
 					|| uri.getHost() != null && hasScheme && HTTPS_SCHEME.asPredicate().test(scheme);
-		}, N5Factory::newAmazonS3KeyValueAccess, AmazonS3Utils::getS3Key),
+		}, N5Factory::newAmazonS3KeyValueAccess),
 		FILE(uri -> {
 			final String scheme = uri.getScheme();
 			final boolean hasScheme = scheme != null;
-			return !hasScheme || hasScheme && FILE_SCHEME.asPredicate().test(scheme);
+			return !hasScheme || FILE_SCHEME.asPredicate().test(scheme);
 		}, N5Factory::newFileSystemKeyValueAccess);
 
 		private final Predicate<URI> backendTest;
 		private final BiFunction<URI, N5Factory, KeyValueAccess> backendGenerator;
-		private final Function<URI, String> parseContainerPath;
 
 		KeyValueAccessBackend(Predicate<URI> test, BiFunction<URI, N5Factory, KeyValueAccess> generator) {
 
-			this(test, generator, URI::getPath);
-		}
-
-		KeyValueAccessBackend(Predicate<URI> test, BiFunction<URI, N5Factory, KeyValueAccess> generator, final Function<URI, String> getContainerPath) {
-
 			backendTest = test;
 			backendGenerator = generator;
-			parseContainerPath = getContainerPath;
 		}
 
 		@Override public KeyValueAccess apply(final URI uri, final N5Factory factory) {
