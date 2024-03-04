@@ -180,8 +180,9 @@ public class N5StorageTests {
 		@BeforeClass
 		public static void ensureBucketExists() {
 
-			final N5Writer writer = N5Factory.createWriter("s3://" + testBucket);
+			final N5Writer writer = N5Factory.createWriter("s3://" + testBucket + "/" + tempContainerPath());
 			assertTrue(writer.exists(""));
+			writer.remove();
 		}
 
 		@Rule public TestWatcher skipIfErroneousFailure = new N5AmazonS3Tests.SkipErroneousNoSuchBucketFailure();
@@ -247,13 +248,19 @@ public class N5StorageTests {
 		@BeforeClass
 		public static void ensureBucketExists() {
 
-			final N5Writer writer = N5Factory.createWriter("gs://" + testBucket);
+			final N5Writer writer = N5Factory.createWriter("gs://" + testBucket + "/" + tempContainerPath());
 			assertTrue(writer.exists(""));
+			writer.remove();
 		}
 
 		public N5GoogleCloudBackendTest() {
 
 			N5GoogleCloudFactoryTest.storage = BackendGoogleCloudStorageFactory.getOrCreateStorage();
+		}
+
+		@Override public void testVersion() throws NumberFormatException, IOException, URISyntaxException {
+
+			super.testVersion();
 		}
 	}
 }
