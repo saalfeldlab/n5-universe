@@ -180,8 +180,8 @@ public class N5StorageTests {
 		@BeforeClass
 		public static void ensureBucketExists() {
 
-			N5Factory.createWriter("s3://" + testBucket);
-			assertTrue(s3.doesBucketExistV2(testBucket));
+			final N5Writer writer = N5Factory.createWriter("s3://" + testBucket);
+			assertTrue(writer.exists(""));
 		}
 
 		@Rule public TestWatcher skipIfErroneousFailure = new N5AmazonS3Tests.SkipErroneousNoSuchBucketFailure();

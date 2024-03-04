@@ -9,7 +9,6 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
 import org.janelia.saalfeldlab.n5.googlecloud.N5GoogleCloudStorageTests;
-import org.janelia.saalfeldlab.n5.googlecloud.backend.BackendGoogleCloudStorageFactory;
 import org.janelia.saalfeldlab.n5.googlecloud.mock.MockGoogleCloudStorageFactory;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests;
@@ -190,8 +189,8 @@ public class ZarrStorageTests {
 		@BeforeClass
 		public static void ensureBucketExists() {
 
-			N5Factory.createWriter("s3://" + testBucket);
-			assertTrue(s3.doesBucketExistV2(testBucket));
+			final N5Writer writer = N5Factory.createWriter("s3://" + testBucket);
+			assertTrue(writer.exists(""));
 		}
 
 		@Rule public TestWatcher skipIfErroneousFailure = new N5AmazonS3Tests.SkipErroneousNoSuchBucketFailure();
@@ -259,11 +258,6 @@ public class ZarrStorageTests {
 
 			final N5Writer writer = N5Factory.createWriter("gs://" + testBucket);
 			assertTrue(writer.exists(""));
-		}
-
-		public ZarrGoogleCloudBackendTest() {
-
-			ZarrGoogleCloudFactoryTest.storage = BackendGoogleCloudStorageFactory.getOrCreateStorage();
 		}
 	}
 }
