@@ -34,7 +34,7 @@ import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempContainerPath;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({N5StorageTests.N5FileSystemTest.class, N5StorageTests.N5AmazonS3MockTest.class, N5StorageTests.N5AmazonS3BackendTest.class, N5StorageTests.N5GoogleCloudMockTest.class, N5StorageTests.N5GoogleCloudBackendTest.class})
+@Suite.SuiteClasses({N5StorageTests.N5FileSystemTest.class, N5StorageTests.N5AmazonS3MockTest.class, N5StorageTests.N5GoogleCloudMockTest.class})
 public class N5StorageTests {
 
 	public static abstract class N5FactoryTest extends AbstractN5Test implements StorageSchemeWrappedN5Test {
@@ -179,8 +179,6 @@ public class N5StorageTests {
 
 		@BeforeClass
 		public static void ensureBucketExists() {
-
-
 
 			N5Factory.createWriter("s3://" + testBucket);
 			assertTrue(s3.doesBucketExistV2(testBucket));

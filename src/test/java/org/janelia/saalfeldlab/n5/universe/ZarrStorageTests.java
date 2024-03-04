@@ -33,7 +33,7 @@ import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempContainerPath;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ZarrStorageTests.ZarrFileSystemTest.class, ZarrStorageTests.ZarrAmazonS3MockTest.class, ZarrStorageTests.ZarrAmazonS3BackendTest.class, ZarrStorageTests.ZarrGoogleCloudMockTest.class, ZarrStorageTests.ZarrAmazonS3BackendTest.class})
+@Suite.SuiteClasses({ZarrStorageTests.ZarrFileSystemTest.class, ZarrStorageTests.ZarrAmazonS3MockTest.class, ZarrStorageTests.ZarrGoogleCloudMockTest.class})
 public class ZarrStorageTests {
 
 	public static abstract class ZarrFactoryTest extends N5ZarrTest implements StorageSchemeWrappedN5Test {

@@ -275,7 +275,7 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
 					<excludes>
-						<exclude>**Backend*.java</exclude>
+						<exclude>**Backend**</exclude>
 					</excludes>
 				</configuration>
 			</plugin>

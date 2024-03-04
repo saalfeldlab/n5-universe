@@ -265,7 +265,7 @@ public class N5FactoryTests {
 	private void checkWriterTypeFromFactory(N5Factory factory, String uri, Class<?> expected, String messageSuffix) {
 
 		if (expected == null) {
-			assertThrows(N5Exception.class, () -> factory.openWriter(uri));
+			assertThrows("Should throw exception for " + uri, N5Exception.class, () -> factory.openWriter(uri));
 			return;
 		}
 
