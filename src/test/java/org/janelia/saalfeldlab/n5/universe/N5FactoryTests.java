@@ -34,7 +34,9 @@ public class N5FactoryTests {
 		final URI h5Ext = new URI("file:///tmp/a.h5");
 		final URI hdf5Ext = new URI("file:///tmp/a.hdf5");
 		final URI n5Ext = new URI("file:///tmp/a.n5");
+		final URI n5ExtSlash = new URI("file:///tmp/a.n5/");
 		final URI zarrExt = new URI("file:///tmp/a.zarr");
+		final URI zarrExtSlash = new URI("file:///tmp/a.zarr/");
 		final URI unknownExt = new URI("file:///tmp/a.abc");
 
 		assertNull("no extension null", N5Factory.StorageFormat.guessStorageFromUri(noExt));
@@ -55,9 +57,17 @@ public class N5FactoryTests {
 		assertEquals("n5 extension == n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(n5Ext));
 		assertNotEquals("n5 extension != zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(n5Ext));
 
+		assertNotEquals("n5 extension slash != h5", StorageFormat.HDF5, N5Factory.StorageFormat.guessStorageFromUri(n5ExtSlash));
+		assertEquals("n5 extension slash == n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(n5ExtSlash));
+		assertNotEquals("n5 extension slash != zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(n5ExtSlash));
+
 		assertNotEquals("zarr extension != h5", StorageFormat.HDF5, N5Factory.StorageFormat.guessStorageFromUri(zarrExt));
 		assertNotEquals("zarr extension != n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(zarrExt));
 		assertEquals("zarr extension == zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(zarrExt));
+
+		assertNotEquals("zarr extension slash != h5", StorageFormat.HDF5, N5Factory.StorageFormat.guessStorageFromUri(zarrExtSlash));
+		assertNotEquals("zarr extension slash != n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(zarrExtSlash));
+		assertEquals("zarr extension slash == zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(zarrExtSlash));
 
 		assertNull("unknown extension != h5", N5Factory.StorageFormat.guessStorageFromUri(unknownExt));
 		assertNull("unknown extension != n5", N5Factory.StorageFormat.guessStorageFromUri(unknownExt));
@@ -73,17 +83,23 @@ public class N5FactoryTests {
 		try {
 			tmp = Files.createTempDirectory("factory-test-").toFile();
 
-			final String[] ext = new String[]{".h5", ".hdf5", ".n5", ".zarr"};
+			final String[] ext = new String[]{".h5", ".hdf5", ".n5", ".n5", ".zarr", ".zarr"};
+
+			// necessary because new File() removes trailing slash
+			final String[] trailing = new String[]{"", "", "", "/", "", "/"};
+
 			final Class<?>[] readerTypes = new Class[]{
 					N5HDF5Writer.class,
 					N5HDF5Writer.class,
 					N5KeyValueWriter.class,
+					N5KeyValueWriter.class,
+					ZarrKeyValueWriter.class,
 					ZarrKeyValueWriter.class
 			};
 
 			for (int i = 0; i < ext.length; i++) {
 				final File tmpWithExt = new File(tmp, "foo" + i + ext[i]);
-				final String extUri = new URI("file", null, tmpWithExt.toURI().normalize().getPath(), null).toString();
+				final String extUri = new URI("file", null, tmpWithExt.toURI().normalize().getPath(), null).toString() + trailing[i];
 				checkWriterTypeFromFactory( factory, extUri, readerTypes[i], " with extension");
 			}
 
