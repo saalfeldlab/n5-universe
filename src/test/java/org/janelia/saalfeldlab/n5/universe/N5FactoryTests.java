@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -85,8 +86,9 @@ public class N5FactoryTests {
 
 			final String[] ext = new String[]{".h5", ".hdf5", ".n5", ".n5", ".zarr", ".zarr"};
 
-			// necessary because new File() removes trailing slash
-			final String[] trailing = new String[]{"", "", "", "/", "", "/"};
+			// necessary because new File() removes trailing separator
+			final String separator = FileSystems.getDefault().getSeparator();
+			final String[] trailing = new String[]{"", "", "", separator, "", separator};
 
 			final Class<?>[] readerTypes = new Class[]{
 					N5HDF5Writer.class,

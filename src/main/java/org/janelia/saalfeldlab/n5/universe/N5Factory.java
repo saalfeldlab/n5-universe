@@ -613,8 +613,8 @@ public class N5Factory implements Serializable {
 	}
 
 	public enum StorageFormat {
-		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find()),
-		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find()),
+		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr(" + FileSystems.getDefault().getSeparator() + ")?$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find()),
+		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5(" + FileSystems.getDefault().getSeparator() + ")?$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find()),
 		HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
 			final boolean hasHdf5Extension = Pattern.compile("\\.h(df)?5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find();
 			return hasHdf5Extension || HDF5Utils.isHDF5(uri.getPath());
