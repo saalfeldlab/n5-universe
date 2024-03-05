@@ -20,6 +20,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install blosc (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          pip install blosc --no-input --target src/test/resources
+          mv src/test/resources/bin/* src/test/resources
+      - name: Install blosc (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          pip install blosc --no-input --target src/test/resources
+          mv src/test/resources/lib64/* src/test/resources
       - name: Set up Java
         uses: actions/setup-java@v2
         with:
