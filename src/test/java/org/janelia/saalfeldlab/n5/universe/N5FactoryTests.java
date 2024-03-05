@@ -100,8 +100,7 @@ public class N5FactoryTests {
 			};
 
 			for (int i = 0; i < ext.length; i++) {
-				final File tmpWithExt = new File(tmp, "foo" + i + ext[i]);
-				final String extUri = new URI("file", null, tmpWithExt.toURI().normalize().getPath(), null).toString() + trailing[i];
+				final String extUri = tmp.toPath().resolve("foo" + i + ext[i]).normalize().toUri() + trailing[i];
 				checkWriterTypeFromFactory( factory, extUri, readerTypes[i], " with extension");
 			}
 
@@ -129,12 +128,11 @@ public class N5FactoryTests {
 			};
 
 			for (int i = 0; i < prefix.length; i++) {
-				final File tmpNoExt = new File(tmp, "foo"+i);
 
-				final String prefixUri = prefix[i] + ":" + new URI("file", null, tmpNoExt.toURI().normalize().getPath(), null).toString();
+				final String prefixUri = prefix[i] + ":" + tmp.toPath().resolve("foo" + i).normalize().toUri();
 				checkWriterTypeFromFactory( factory, prefixUri, readerTypes[i], " with prefix");
 
-				final String prefixUriSlashes = prefix[i] + "://" + new URI("file", null, tmpNoExt.toURI().normalize().getPath(), null).toString();
+				final String prefixUriSlashes = prefix[i] + "://" + tmp.toPath().resolve("foo" + i).normalize().toUri();
 				checkWriterTypeFromFactory( factory, prefixUriSlashes, readerTypes[i], " with prefix slashes");
 			}
 
@@ -144,12 +142,10 @@ public class N5FactoryTests {
 			for (int i = 0; i < prefix.length; i++) {
 				for (int j = 0; j < extensions.length; j++) {
 
-					final File tmpWithExt = new File(tmp, "foo"+i+extensions[j]);
-
-					final String prefixUri = prefix[i] + ":" + new URI("file", null, tmpWithExt.toURI().normalize().getPath(), null).toString();
+					final String prefixUri = prefix[i] + ":" + tmp.toPath().resolve("foo" + i + extensions[i]).normalize().toUri();
 					checkWriterTypeFromFactory( factory, prefixUri, readerTypes[i], " with prefix");
 
-					final String prefixUriSlashes = prefix[i] + "://" + new URI("file", null, tmpWithExt.toURI().normalize().getPath(), null).toString();
+					final String prefixUriSlashes = prefix[i] + "://" + tmp.toPath().resolve("foo" + i + extensions[i]).normalize().toUri();
 					checkWriterTypeFromFactory( factory, prefixUriSlashes, readerTypes[i], " with prefix slashes");
 				}
 			}
