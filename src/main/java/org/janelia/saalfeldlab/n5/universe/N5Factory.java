@@ -688,16 +688,18 @@ public class N5Factory implements Serializable {
 	}
 
 	private static URI parseUriFromString(String uri) {
-		URI asUri;
 		try {
-			asUri = Paths.get(uri).toUri();
-		} catch (Throwable ignore) {
-			try {
-				asUri = N5URI.encodeAsUri(uri);
-			} catch (URISyntaxException e) {
-				throw new N5Exception(e);
-			}
+			return URI.create(uri);
+		} catch (Throwable ignore) {}
+
+		try {
+			return Paths.get(uri).toUri();
+		} catch (Throwable ignore) {}
+
+		try {
+			return N5URI.encodeAsUri(uri);
+		} catch (URISyntaxException e) {
+			throw new N5Exception(e);
 		}
-		return asUri;
 	}
 }
