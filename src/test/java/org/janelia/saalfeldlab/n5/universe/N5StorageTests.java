@@ -118,8 +118,15 @@ public class N5StorageTests {
 	public static abstract class N5AmazonS3FactoryTest extends N5FactoryTest {
 
 		public static AmazonS3 s3 = null;
-
 		final static String testBucket = tempBucketName();
+
+		final static N5Factory FACTORY = new N5Factory() {
+
+			@Override AmazonS3 createS3(String uri) {
+
+				return s3 != null ? s3 : (s3 = super.createS3(uri));
+			}
+		};
 
 		@Override public Class<?> getBackendTargetClass() {
 
@@ -128,25 +135,16 @@ public class N5StorageTests {
 
 		@AfterClass
 		public static void removeTestBucket() {
-
-			if (s3 != null && s3.doesBucketExistV2(testBucket))
-				N5Factory.createWriter("s3://" + testBucket).remove();
+			try {
+				FACTORY.openWriter("s3://" + testBucket).remove("");
+			} catch (Throwable e) {
+				System.err.println("Error during test cleanup. Bucket " + testBucket + " may still exist.");
+			}
 		}
 
 		@Override public N5Factory getFactory() {
 
-			if (factory != null)
-				return factory;
-			factory = new N5Factory() {
-
-				@Override AmazonS3 createS3(String uri) {
-
-					if (N5AmazonS3FactoryTest.s3 == null)
-						N5AmazonS3FactoryTest.s3 = super.createS3(uri);
-					return s3;
-				}
-			};
-			return factory;
+			return factory != null ? factory : (factory = FACTORY);
 		}
 
 		@Override protected String tempN5Location() {
@@ -180,7 +178,7 @@ public class N5StorageTests {
 		@BeforeClass
 		public static void ensureBucketExists() {
 
-			final N5Writer writer = N5Factory.createWriter("s3://" + testBucket + "/" + tempContainerPath());
+			final N5Writer writer = FACTORY.createWriter("s3://" + testBucket + "/" + tempContainerPath());
 			assertTrue(writer.exists(""));
 			writer.remove();
 		}
@@ -197,6 +195,13 @@ public class N5StorageTests {
 
 		protected static String testBucket = N5GoogleCloudStorageTests.tempBucketName();
 		protected static Storage storage = null;
+		protected static N5Factory FACTORY = new N5Factory() {
+
+			@Override Storage createGoogleCloudStorage() {
+
+				return storage;
+			}
+		};
 
 		@Override public Class<?> getBackendTargetClass() {
 
@@ -205,25 +210,16 @@ public class N5StorageTests {
 
 		@AfterClass
 		public static void removeTestBucket() {
-
-			final Bucket bucket = storage.get(testBucket);
-			if (bucket != null && bucket.exists()) {
-				storage.delete(testBucket);
+			try {
+				FACTORY.openWriter("gs://" + testBucket).remove("");
+			} catch (Throwable e) {
+				System.err.println("Error during test cleanup. Bucket " + testBucket + " may still exist.");
 			}
 		}
 
 		@Override public N5Factory getFactory() {
 
-			if (factory != null)
-				return factory;
-			factory = new N5Factory() {
-
-				@Override Storage createGoogleCloudStorage() {
-
-					return storage;
-				}
-			};
-			return factory;
+			return factory != null ? factory : (factory = FACTORY);
 		}
 
 		@Override protected String tempN5Location() {
