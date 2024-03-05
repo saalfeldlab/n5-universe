@@ -76,7 +76,7 @@ public class N5FactoryTests {
 	}
 
 	@Test
-	public void testWriterTypeByExtension() {
+	public void testWriterTypeByExtension() throws IOException, URISyntaxException {
 
 		final N5Factory factory = new N5Factory();
 
@@ -105,10 +105,6 @@ public class N5FactoryTests {
 				checkWriterTypeFromFactory( factory, extUri, readerTypes[i], " with extension");
 			}
 
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
 		} finally {
 			tmp.delete();
 		}
@@ -116,7 +112,7 @@ public class N5FactoryTests {
 	}
 
 	@Test
-	public void testWriterTypeByPrefix() {
+	public void testWriterTypeByPrefix() throws URISyntaxException, IOException {
 
 		final N5Factory factory = new N5Factory();
 
@@ -158,17 +154,13 @@ public class N5FactoryTests {
 				}
 			}
 
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
 		} finally {
 			tmp.delete();
 		}
 	}
 
 	@Test
-	public void testDefaultForAmbiguousWriters() {
+	public void testDefaultForAmbiguousWriters() throws IOException {
 
 		final N5Factory factory = new N5Factory();
 
@@ -212,12 +204,10 @@ public class N5FactoryTests {
 
 			for (int i = 0; i < paths.length; i++) {
 
-				final String prefixUri = new URI("file", null, tmpPath.resolve(paths[i]).normalize().toString(), null).toString();
+				final String prefixUri = tmpPath.resolve(paths[i]).normalize().toUri().toString();
 				checkWriterTypeFromFactory( factory, prefixUri, writerTypes[i], " with path " + paths[i]);
 			}
 
-		} catch (IOException | URISyntaxException e) {
-			e.printStackTrace();
 		} finally {
 			tmp.delete();
 		}
@@ -225,7 +215,7 @@ public class N5FactoryTests {
 
 
 	@Test
-	public void testDefaultForAmbiguousReaders() {
+	public void testDefaultForAmbiguousReaders() throws IOException {
 
 		final N5Factory factory = new N5Factory();
 
@@ -268,13 +258,10 @@ public class N5FactoryTests {
 			};
 
 			for (int i = 0; i < paths.length; i++) {
-
-				final String prefixUri = new URI("file", null, tmpPath.resolve(paths[i]).normalize().toString(), null).toString();
+				final String prefixUri = tmpPath.resolve(paths[i]).normalize().toUri().toString();;
 				checkReaderTypeFromFactory( factory, prefixUri, readerTypes[i], " with path " + paths[i]);
 			}
 
-		} catch (IOException | URISyntaxException e) {
-			e.printStackTrace();
 		} finally {
 			tmp.delete();
 		}

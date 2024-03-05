@@ -56,10 +56,12 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
+import java.nio.file.Paths;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -328,11 +330,7 @@ public class N5Factory implements Serializable {
 
 	public N5Reader openReader(final StorageFormat format, final String uri) {
 
-		try {
-			return openN5Container(format, N5URI.encodeAsUri(uri), this::openReader);
-		} catch (URISyntaxException e) {
-			throw new N5Exception(e);
-		}
+		return openN5Container(format, parseUriFromString(uri), this::openReader);
 	}
 
 	public N5Reader openReader(final StorageFormat format, final URI uri) {
@@ -458,11 +456,9 @@ public class N5Factory implements Serializable {
 
 	public N5Writer openWriter(final StorageFormat format, final String uri) {
 
-		try {
-			return openN5Container(format, N5URI.encodeAsUri(uri), this::openWriter);
-		} catch (URISyntaxException e) {
-			throw new N5Exception(e);
-		}
+
+		return openN5Container(format, parseUriFromString(uri), this::openWriter);
+
 	}
 
 	public N5Writer openWriter(final StorageFormat format, final URI uri) {
@@ -613,8 +609,8 @@ public class N5Factory implements Serializable {
 	}
 
 	public enum StorageFormat {
-		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr(" + FileSystems.getDefault().getSeparator() + ")?$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find()),
-		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5(" + FileSystems.getDefault().getSeparator() + ")?$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find()),
+		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
+		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 		HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
 			final boolean hasHdf5Extension = Pattern.compile("\\.h(df)?5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find();
 			return hasHdf5Extension || HDF5Utils.isHDF5(uri.getPath());
@@ -645,7 +641,7 @@ public class N5Factory implements Serializable {
 		public static Pair<StorageFormat, URI> parseUri(String uri) throws URISyntaxException {
 
 			final Pair<StorageFormat, String> storageFromScheme = getStorageFromNestedScheme(uri);
-			final URI asUri = N5URI.encodeAsUri(storageFromScheme.getB());
+			final URI asUri = parseUriFromString(storageFromScheme.getB());
 			if (storageFromScheme.getA() != null)
 				return new ValuePair<>(storageFromScheme.getA(), asUri);
 			else
@@ -689,5 +685,19 @@ public class N5Factory implements Serializable {
 	public static N5Reader createReader(String containerUri) {
 
 		return FACTORY.openReader(containerUri);
+	}
+
+	private static URI parseUriFromString(String uri) {
+		URI asUri;
+		try {
+			asUri = Paths.get(uri).toUri();
+		} catch (Throwable ignore) {
+			try {
+				asUri = N5URI.encodeAsUri(uri);
+			} catch (URISyntaxException e) {
+				throw new N5Exception(e);
+			}
+		}
+		return asUri;
 	}
 }
