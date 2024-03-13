@@ -10,6 +10,8 @@ def hasDims: .attributes | has("dimensions");
 
 def flattenTree: .. | select( type == "object" and has("path")) | del(.children);
 
+def cleanPath: . | sub("^\\.(?<x>.*)\\/.+"; "\(.x)"; "g");
+
 def parentPath: if length <= 1 then "" elif length == 2 then .[0] else .[0:-1] | map(select( . != "children")) | join("/") end;
 
 def attrPaths: paths | select(.[-1] == "attributes");
@@ -290,10 +292,18 @@ def scaleTransform( $scales ): { "type" : "scale", "scale" : $scales };
 
 def toTreePath: ltrimstr( "/") | split("/") | map_values( ["children", . ] ) | flatten;
 
+def fromTreePath: if (length == 0) then "" else [.[range(1;length;2)]] | join("/") end;
+
 def getSubTree( $path ): getpath( $path | toTreePath );
 
 def moveSubTree( $srcPath; $dstPath ): getSubTree( $srcPath ) as $subTree | setpath( $dstPath | toTreePath; $subTree ) 
     | delpaths([$srcPath | toTreePath]);
+
+def treeEditAttrs( $path; f ):
+    ($path | toTreePath | . + ["attributes"]) as $p |
+    setpath( $p; getpath($p) | f );
+
+def treeAddAttrs( $path; $attrs ): treeEditAttrs( $path; . + $attrs );
 
 def canonicalAxis( $type; $lbl; $unit ): {
     "type" : $type,
