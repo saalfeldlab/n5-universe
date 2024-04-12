@@ -47,9 +47,9 @@ public class NgffSingleScaleMetadataParser implements N5MetadataParser<NgffSingl
 			double[] translation = null;
 			for (int i = 0; i < cts.length; i++) {
 				if (cts[i] instanceof ScaleCoordinateTransformation)
-					scale = ((ScaleCoordinateTransformation)cts[0]).getScale();
+					scale = ((ScaleCoordinateTransformation)cts[i]).getScale();
 				else if (cts[i] instanceof TranslationCoordinateTransformation)
-					translation = ((TranslationCoordinateTransformation)cts[0]).getTranslation();
+					translation = ((TranslationCoordinateTransformation)cts[i]).getTranslation();
 			}
 
 			final DatasetAttributes dsetAttrs = n5.getDatasetAttributes(node.getPath());
