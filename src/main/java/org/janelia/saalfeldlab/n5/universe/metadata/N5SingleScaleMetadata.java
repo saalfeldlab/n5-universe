@@ -159,8 +159,8 @@ public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata impl
 			transform = relativeTransformation;
 
 		final AffineTransform3D newTransform = new AffineTransform3D();
-		newTransform.preConcatenate(transform);
 		newTransform.preConcatenate(spatialTransform());
+		newTransform.preConcatenate(transform);
 
 
 		final double[] newScale = new double[nd];

@@ -158,8 +158,8 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 
 		final int nd = this.axes.length;
 		final AffineTransform newTransform = new AffineTransform(nd);
-		newTransform.preConcatenate(relativeTransformation);
 		newTransform.preConcatenate(spatialTransform());
+		newTransform.preConcatenate(relativeTransformation);
 
 		final double[] newScale = new double[nd];
 		final double[] newTranslation = new double[nd];
