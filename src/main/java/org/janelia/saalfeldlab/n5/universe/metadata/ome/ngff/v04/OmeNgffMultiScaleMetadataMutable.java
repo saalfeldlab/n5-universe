@@ -57,12 +57,7 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 		final OmeNgffDataset dset = new OmeNgffDataset();
 		// paths are relative to this object
-		try {
-			dset.path = N5URI.normalizeGroupPath(
-					N5URI.from("", getPath(), "").resolve(N5URI.from("", child.getPath(), ""))
-					.getGroupPath());
-		} catch (URISyntaxException e) { }
-
+		dset.path = MetadataUtils.relativePath(getPath(), child.getPath());
 		dset.coordinateTransformations = child.getCoordinateTransformations();
 		if (idx < 0)
 		{

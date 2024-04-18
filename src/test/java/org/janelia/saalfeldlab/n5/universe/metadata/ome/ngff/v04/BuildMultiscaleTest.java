@@ -2,6 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
 import static org.junit.Assert.assertEquals;
 
+import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.junit.Test;
@@ -39,6 +40,16 @@ public class BuildMultiscaleTest {
 
 		for (int i = 0; i < childPaths.length; i++) {
 			assertEquals(childPaths[i], meta.getDatasets()[i].path);
+		}
+
+		// test building children from multiscales
+		// these metadata's path variables must be relative to the root
+		final NgffSingleScaleAxesMetadata[] children = OmeNgffMultiScaleMetadata.buildMetadata(3, path, null, meta);
+		for (int i = 0; i < childPaths.length; i++) {
+			// ensure the paths are equal up to normalization
+			assertEquals(
+				N5URI.normalizeGroupPath(path + "/" + childPaths[i]),
+				N5URI.normalizeGroupPath(children[i].getPath()));
 		}
 	}
 

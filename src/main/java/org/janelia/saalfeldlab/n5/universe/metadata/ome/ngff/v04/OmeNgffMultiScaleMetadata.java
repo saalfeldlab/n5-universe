@@ -26,8 +26,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
 import java.net.URISyntaxException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.stream.DoubleStream;
 
@@ -139,11 +137,9 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		for( int i = 0; i < children.length; i++ )
 		{
 			datasets[i] = new OmeNgffDataset();
-//			final Path p = Paths.get(path);
-//			final Path c = Paths.get(children[i].getPath());
-//			datasets[i].path = p.relativize(c).toString();
-			datasets[i].path = Paths.get(path).relativize(Paths.get(children[i].getPath())).toString();
+			datasets[i].path = MetadataUtils.relativePath(path, children[i].getPath());
 			datasets[i].coordinateTransformations = children[i].getCoordinateTransformations();
+
 		}
 		return datasets;
 	}
