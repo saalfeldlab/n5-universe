@@ -207,7 +207,7 @@ public class MetadataUtils {
 		try {
 			final String purl = new N5URI("?" + parent).normalizeGroupPath();
 			final String curl = new N5URI("?" + child).normalizeGroupPath();
-			return new N5URI("?" + curl.replaceFirst(purl, "")).normalizeGroupPath();
+			return new N5URI("?" + curl.replaceFirst("^"+purl, "")).normalizeGroupPath();
 		} catch (final URISyntaxException e) {}
 		return child;
 	}
