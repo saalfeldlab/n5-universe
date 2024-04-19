@@ -25,7 +25,7 @@ public class BuildMultiscaleTest {
 
 		final String downsampleMethod = "sampling";
 		final Axis[] axes = AxisUtils.buildAxes("x", "y", "z");
-		final OmeNgffMultiScaleMetadataMutable ms = new OmeNgffMultiScaleMetadataMutable("");
+		final OmeNgffMultiScaleMetadataMutable ms = new OmeNgffMultiScaleMetadataMutable(path);
 
 		for (int i = 0; i < childPaths.length; i++) {
 			final double s = Math.pow(2, i);

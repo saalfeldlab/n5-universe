@@ -191,21 +191,14 @@ public class MetadataUtils {
 		return path;
 	}
 
-	public static String relativePath( final String parent, final String child )
-	{
-		try
-		{
-			final N5URI purl = new N5URI( "?" + parent );
-			final N5URI curl = new N5URI( "?" + child );
-			final Path ppath = Paths.get( purl.normalizeGroupPath());
-			final Path cpath = Paths.get( curl.normalizeGroupPath());
-			return ppath.relativize(cpath).toString();
-		}
-		catch ( final URISyntaxException e )
-		{
-			e.printStackTrace();
-		}
-		return null;
+	public static String relativePath(final String parent, final String child) {
+
+		try {
+			final String purl = new N5URI("?" + parent).normalizeGroupPath();
+			final String curl = new N5URI("?" + child).normalizeGroupPath();
+			return new N5URI("?" + curl.replaceFirst(purl, "")).normalizeGroupPath();
+		} catch (final URISyntaxException e) {}
+		return child;
 	}
 
 	/**
