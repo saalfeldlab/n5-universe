@@ -39,7 +39,9 @@ public class BuildMultiscaleTest {
 				ms.coordinateTransformations, ms.metadata, true);
 
 		for (int i = 0; i < childPaths.length; i++) {
-			assertEquals(childPaths[i], meta.getDatasets()[i].path);
+			assertEquals(
+					String.format("multiscale path incorrect for root: %s, child: %s", path, childPaths[i]),
+					childPaths[i], meta.getDatasets()[i].path);
 		}
 
 		// test building children from multiscales
@@ -48,6 +50,7 @@ public class BuildMultiscaleTest {
 		for (int i = 0; i < childPaths.length; i++) {
 			// ensure the paths are equal up to normalization
 			assertEquals(
+				String.format("single scale path incorrect for root: %s, child: %s", path, childPaths[i]),
 				N5URI.normalizeGroupPath(path + "/" + childPaths[i]),
 				N5URI.normalizeGroupPath(children[i].getPath()));
 		}
