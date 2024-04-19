@@ -192,6 +192,16 @@ public class MetadataUtils {
 		return path;
 	}
 
+	/**
+	 * Returns a relative group path from the child absolute path group path child 
+	 * the parent absolute group path.
+	 *
+	 * If the child path is not a descendent of parent, child will be returned.
+	 *
+	 * @param parent an absolute path
+	 * @param child an absolute path
+	 * @return relative path from child to parent, if it exists.
+	 */
 	public static String relativePath(final String parent, final String child) {
 
 		try {
