@@ -30,8 +30,8 @@ public class MetadataUtils {
 
 	public static double[] mul(final double[] a, final double[] b) {
 
-		final double[] out = new double[ a.length ];
-		for( int i = 0; i <  a.length; i++ )
+		final double[] out = new double[a.length];
+		for (int i = 0; i < a.length; i++)
 			out[i] = a[i] * b[i];
 
 		return out;
@@ -39,8 +39,8 @@ public class MetadataUtils {
 
 	public static double[] mul(final double[] a, final long[] b) {
 
-		final double[] out = new double[ a.length ];
-		for( int i = 0; i <  a.length; i++ )
+		final double[] out = new double[a.length];
+		for (int i = 0; i < a.length; i++)
 			out[i] = a[i] * b[i];
 
 		return out;
@@ -91,21 +91,22 @@ public class MetadataUtils {
 		return factors;
 	}
 
-	public static CoordinateTransformation<?>[] buildScaleTranslationTransformList( final double[] scale, final double[] translation ) {
+	public static CoordinateTransformation<?>[] buildScaleTranslationTransformList(final double[] scale, final double[] translation) {
+
 		int nTforms = 0;
-		if( scale != null )
+		if (scale != null)
 			nTforms++;
 
-		if( translation != null )
+		if (translation != null)
 			nTforms++;
 
 		final CoordinateTransformation<?>[] coordinateTransformations = new CoordinateTransformation<?>[nTforms];
 
 		int i = 0;
-		if( scale != null )
+		if (scale != null)
 			coordinateTransformations[i++] = new ScaleCoordinateTransformation(scale);
 
-		if( translation != null )
+		if (translation != null)
 			coordinateTransformations[i++] = new TranslationCoordinateTransformation(translation);
 
 		return coordinateTransformations;
@@ -120,64 +121,64 @@ public class MetadataUtils {
 	 * @param datasetMetadata dataset metadata
 	 * @return the single scale metadata
 	 */
-	public static N5SingleScaleMetadata setDatasetAttributes( final N5SingleScaleMetadata baseMetadata, final N5DatasetMetadata datasetMetadata )
-	{
-		if( baseMetadata.getPath().equals( datasetMetadata.getPath() ))
-			return new N5SingleScaleMetadata( baseMetadata.getPath(), baseMetadata.spatialTransform3d(),
+	public static N5SingleScaleMetadata setDatasetAttributes(final N5SingleScaleMetadata baseMetadata, final N5DatasetMetadata datasetMetadata) {
+
+		if (baseMetadata.getPath().equals(datasetMetadata.getPath()))
+			return new N5SingleScaleMetadata(baseMetadata.getPath(), baseMetadata.spatialTransform3d(),
 					baseMetadata.getDownsamplingFactors(), baseMetadata.getPixelResolution(), baseMetadata.getOffset(),
-					baseMetadata.unit(), datasetMetadata.getAttributes() );
+					baseMetadata.unit(), datasetMetadata.getAttributes());
 		else
 			return null;
 	}
 
-	public static N5SingleScaleMetadata[] updateChildrenDatasetAttributes( final N5SingleScaleMetadata[] baseMetadata, final N5DatasetMetadata[] datasetMetadata )
-	{
-		final HashMap<String,N5SingleScaleMetadata> bases = new HashMap<>();
-		Arrays.stream( baseMetadata ).forEach( x -> { bases.put( x.getPath(), x ); } );
+	public static N5SingleScaleMetadata[] updateChildrenDatasetAttributes(final N5SingleScaleMetadata[] baseMetadata,
+			final N5DatasetMetadata[] datasetMetadata) {
 
-		return ( N5SingleScaleMetadata[] ) Arrays.stream( datasetMetadata ).map( x -> {
-			final N5SingleScaleMetadata b = bases.get( x.getPath() );
-			if( b == null )
+		final HashMap<String, N5SingleScaleMetadata> bases = new HashMap<>();
+		Arrays.stream(baseMetadata).forEach(x -> {
+			bases.put(x.getPath(), x);
+		});
+
+		return (N5SingleScaleMetadata[])Arrays.stream(datasetMetadata).map(x -> {
+			final N5SingleScaleMetadata b = bases.get(x.getPath());
+			if (b == null)
 				return null;
 			else
-				return setDatasetAttributes( b, x );
-		} ).filter( x -> x != null ).toArray();
+				return setDatasetAttributes(b, x);
+		}).filter(x -> x != null).toArray();
 	}
 
-	public static void updateChildrenMetadata( final N5TreeNode parent, final N5Metadata[] childrenMetadata,
-			final boolean relative )
-	{
-		final HashMap<String,N5Metadata> children = new HashMap<>();
-		Arrays.stream( childrenMetadata ).forEach( x -> {
+	public static void updateChildrenMetadata(final N5TreeNode parent, final N5Metadata[] childrenMetadata,
+			final boolean relative) {
+
+		final HashMap<String, N5Metadata> children = new HashMap<>();
+		Arrays.stream(childrenMetadata).forEach(x -> {
 			final String absolutePath;
-			if( relative )
-			{
+			if (relative) {
 				absolutePath = normalizeGroupPath(parent.getPath() + "/" + x.getPath());
 			} else {
 				absolutePath = x.getPath();
 			}
-			children.put( absolutePath, x );
+			children.put(absolutePath, x);
 		});
-		parent.childrenList().forEach( c -> {
+		parent.childrenList().forEach(c -> {
 			final N5Metadata m = children.get(MetadataUtils.normalizeGroupPath(c.getPath()));
-			if( m != null )
-				c.setMetadata( m );
+			if (m != null)
+				c.setMetadata(m);
 		});
 	}
 
-	public static String canonicalPath( final N5TreeNode parent, final String child )
-	{
-		return canonicalPath( parent.getPath(), child );
+	public static String canonicalPath(final N5TreeNode parent, final String child) {
+
+		return canonicalPath(parent.getPath(), child);
 	}
 
-	public static String canonicalPath( final String parent, final String child )
-	{
-		try
-		{
-			final N5URI url = new N5URI( "?/" + parent + "/" + child );
+	public static String canonicalPath(final String parent, final String child) {
+
+		try {
+			final N5URI url = new N5URI("?/" + parent + "/" + child);
 			return url.normalizeGroupPath();
-		}
-		catch ( final URISyntaxException e ) { }
+		} catch (final URISyntaxException e) {}
 		return null;
 	}
 
@@ -208,13 +209,13 @@ public class MetadataUtils {
 	 * @param d exponent
 	 * @return result
 	 */
-	public static double[] pow( final double[] x, final int d )
-	{
-		final double[] y = new double[ x.length ];
-		Arrays.fill( y, 1 );
-		for ( int i = 0; i < d; i++ )
-			for ( int j = 0; j < x.length; j++ )
-				y[ j ] *= x[ j ];
+	public static double[] pow(final double[] x, final int d) {
+
+		final double[] y = new double[x.length];
+		Arrays.fill(y, 1);
+		for (int i = 0; i < d; i++)
+			for (int j = 0; j < x.length; j++)
+				y[j] *= x[j];
 
 		return y;
 	}
@@ -227,6 +228,7 @@ public class MetadataUtils {
 	 * @return a string
 	 */
 	public static String getStringNullable(final JsonElement element) {
+
 		if (element == null || element.isJsonNull())
 			return null;
 		else
@@ -245,10 +247,9 @@ public class MetadataUtils {
 
 		if (translation != null) {
 
-			if( scale != null ) {
+			if (scale != null) {
 				return new ScaleAndTranslation(scale, translation);
-			}
-			else {
+			} else {
 				// scale null, translation not null
 				if (translation.length == 2)
 					return new Translation2D(translation);
