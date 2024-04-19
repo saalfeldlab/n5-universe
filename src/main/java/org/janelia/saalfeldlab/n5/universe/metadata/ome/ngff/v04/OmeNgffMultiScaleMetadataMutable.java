@@ -1,10 +1,12 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 
@@ -55,8 +57,7 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 		final OmeNgffDataset dset = new OmeNgffDataset();
 		// paths are relative to this object
-		dset.path = Paths.get(getPath()).relativize(Paths.get(child.getPath())).toString();
-
+		dset.path = MetadataUtils.relativePath(getPath(), child.getPath());
 		dset.coordinateTransformations = child.getCoordinateTransformations();
 		if (idx < 0)
 		{
