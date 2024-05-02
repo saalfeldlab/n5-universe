@@ -1,6 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
-import org.janelia.saalfeldlab.n5.universe.metadata.MultiscaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
@@ -8,7 +8,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTrans
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
 
-public class OmeNgffMetadata extends MultiscaleMetadata<NgffSingleScaleAxesMetadata>
+public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAxesMetadata>
 {
 	public final OmeNgffMultiScaleMetadata[] multiscales;
 

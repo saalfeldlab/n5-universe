@@ -27,7 +27,6 @@ package org.janelia.saalfeldlab.n5.universe.metadata;
 
 import java.util.Objects;
 import net.imglib2.realtransform.AffineGet;
-import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform3D;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
@@ -38,7 +37,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
  * @author Caleb Hulbert
  * @author John Bogovic
  */
-public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata implements IntensityMetadata, SpatialModifiable<N5SingleScaleMetadata> {
+public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata implements SpatialModifiable<N5SingleScaleMetadata> {
 
   private final AffineTransform3D transform;
   private final String unit;
@@ -92,8 +91,8 @@ public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata impl
 	this.pixelResolution = pixelResolution;
 	this.offset = offset;
 	/* These are allowed to be null, if we wish to use implementation defaults */
-	this.minIntensity = minIntensity;
-	this.maxIntensity = maxIntensity;
+	this.minIntensity = minIntensity != null ? minIntensity : 0;
+	this.maxIntensity = maxIntensity != null ? maxIntensity : IntensityMetadata.maxForDataType(attributes.getDataType());
 	this.isLabelMultiset = isLabelMultiset;
 
 	if (unit == null)
@@ -116,12 +115,12 @@ public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata impl
 
   @Override public double minIntensity() {
 
-	return minIntensity != null ? minIntensity : IntensityMetadata.super.minIntensity();
+	return minIntensity;
   }
 
   @Override public double maxIntensity() {
 
-	return maxIntensity != null ? maxIntensity : IntensityMetadata.super.maxIntensity();
+	return maxIntensity;
   }
 
   public double[] getPixelResolution() {
