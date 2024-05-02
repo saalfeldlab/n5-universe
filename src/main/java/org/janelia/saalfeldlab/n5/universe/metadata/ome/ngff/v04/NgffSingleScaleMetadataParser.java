@@ -13,8 +13,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;

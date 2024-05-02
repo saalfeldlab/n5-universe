@@ -16,7 +16,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformationAdapter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
