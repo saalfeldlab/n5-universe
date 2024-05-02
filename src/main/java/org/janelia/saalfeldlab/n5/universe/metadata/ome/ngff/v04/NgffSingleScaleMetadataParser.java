@@ -8,6 +8,7 @@ import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
+import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
@@ -18,6 +19,8 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTrans
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+
+import net.imglib2.realtransform.ScaleAndTranslation;
 
 public class NgffSingleScaleMetadataParser implements N5MetadataParser<NgffSingleScaleAxesMetadata>, N5MetadataWriter<NgffSingleScaleAxesMetadata> {
 
@@ -43,14 +46,9 @@ public class NgffSingleScaleMetadataParser implements N5MetadataParser<NgffSingl
 			if (cts == null || cts.length == 0)
 				return Optional.of(new NgffSingleScaleAxesMetadata(node.getPath(), null, null, null));
 
-			double[] scale = null;
-			double[] translation = null;
-			for (int i = 0; i < cts.length; i++) {
-				if (cts[i] instanceof ScaleCoordinateTransformation)
-					scale = ((ScaleCoordinateTransformation)cts[i]).getScale();
-				else if (cts[i] instanceof TranslationCoordinateTransformation)
-					translation = ((TranslationCoordinateTransformation)cts[i]).getTranslation();
-			}
+			final ScaleAndTranslation scaleAndTranslation = MetadataUtils.scaleTranslationFromCoordinateTransformations(cts);
+			final double[] scale = scaleAndTranslation.getScaleCopy();
+			final double[] translation = scaleAndTranslation.getTranslationCopy();
 
 			final DatasetAttributes dsetAttrs = n5.getDatasetAttributes(node.getPath());
 			if( OmeNgffMetadataParser.cOrder(dsetAttrs))

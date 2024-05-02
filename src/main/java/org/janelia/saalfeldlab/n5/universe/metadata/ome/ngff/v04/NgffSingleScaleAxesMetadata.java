@@ -60,8 +60,8 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 
 		this.datasetAttributes = datasetAttributes;
 
-		// TODO generalize for translation first
 		coordinateTransformations = MetadataUtils.buildScaleTranslationTransformList(scale, translation);
+
 		this.transform = MetadataUtils.scaleTranslationTransforms(scale, translation);
 	}
 

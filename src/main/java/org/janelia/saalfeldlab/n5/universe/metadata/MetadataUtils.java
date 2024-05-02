@@ -1,8 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
 import java.net.URISyntaxException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -25,6 +23,7 @@ import net.imglib2.realtransform.ScaleAndTranslation;
 import net.imglib2.realtransform.Translation;
 import net.imglib2.realtransform.Translation2D;
 import net.imglib2.realtransform.Translation3D;
+import net.imglib2.util.Pair;
 
 public class MetadataUtils {
 
@@ -110,6 +109,32 @@ public class MetadataUtils {
 			coordinateTransformations[i++] = new TranslationCoordinateTransformation(translation);
 
 		return coordinateTransformations;
+	}
+
+	public static ScaleAndTranslation scaleTranslationFromCoordinateTransformations(final CoordinateTransformation<?>[] cts) {
+
+		if (cts == null || cts.length == 0)
+			return null;
+
+		ScaleAndTranslation out = coordinateTransformToScaleAndTranslation(cts[0]);
+		for (int i = 1; i < cts.length; i++) {
+			out.preConcatenate(coordinateTransformToScaleAndTranslation(cts[i]));
+		}
+		return out;
+	}
+
+	public static ScaleAndTranslation coordinateTransformToScaleAndTranslation(CoordinateTransformation<?> ct) {
+
+		if (ct.getType().equals(ScaleCoordinateTransformation.TYPE)) {
+			final double[] s = ((ScaleCoordinateTransformation)ct).getScale();
+			return new ScaleAndTranslation(s, new double[s.length]);
+		} else if (ct.getType().equals(TranslationCoordinateTransformation.TYPE)) {
+			final double[] t = ((TranslationCoordinateTransformation)ct).getTranslation();
+			final double[] s = new double[t.length];
+			Arrays.fill(s, 1.0);
+			return new ScaleAndTranslation(s, t);
+		}
+		return null;
 	}
 
 	/**
