@@ -11,8 +11,8 @@ import org.junit.Test;
 public class N5TreeNodeTest {
 
 	@Test
-	public void testStructureEquals()
-	{
+	public void testStructureEquals() {
+
 		N5TreeNode empty = new N5TreeNode("");
 
 		N5TreeNode a = new N5TreeNode("a");
@@ -49,8 +49,8 @@ public class N5TreeNodeTest {
 	}
 
 	@Test
-	public void testAddingChildren()
-	{
+	public void testAddingChildren() {
+
 		final N5TreeNode control = new N5TreeNode("");
 		final N5TreeNode a = new N5TreeNode("a");
 		final N5TreeNode b = new N5TreeNode("a/b");
@@ -75,7 +75,11 @@ public class N5TreeNodeTest {
 		control.add(ant);
 		ant.add(bat);
 
-		root.addPath("ant/bat");
+		N5TreeNode ab = root.addPath("ant/bat");
+		assertEquals("ant/bat", ab.getPath());
+		assertEquals(0, ab.getDescendants(x -> { return x != ab; }).count());
+
+
 		assertTrue( root.getDescendant("ant/bat").isPresent() );
 		// make sure the tree has expected structure
 		assertTrue( root.structureEquals(control));
