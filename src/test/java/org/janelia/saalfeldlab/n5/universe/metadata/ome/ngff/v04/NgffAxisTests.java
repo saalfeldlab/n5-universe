@@ -1,7 +1,17 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.net.URI;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Optional;
+
+import org.apache.commons.lang3.ArrayUtils;
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.junit.Test;
@@ -82,6 +92,38 @@ public class NgffAxisTests {
 		st5 = new NgffSingleScaleAxesMetadata("", scale5d, translation5d, axes, null).spatialTransform3d();
 		assertArrayEquals("5d scale translation cxtyz", new double[] { 3, 0, 0, 100, 0, 5, 0, -1, 0, 0, 6, -10 },
 				st5.getRowPackedCopy(), 1e-9);
+	}
+
+	@Test
+	public void testAxisOrderStorageOrder() {
+
+		URI rootF = Paths.get("src", "test", "resources", "metadata.zarr").toUri();
+		final N5Reader zarr = new N5Factory().openReader(rootF.toString());
+
+		final String[] names = new String[]{"c", "x", "y", "z"};
+
+		final OmeNgffMetadataParser parser = new OmeNgffMetadataParser();
+
+		// no not flip when f-Order
+		final N5TreeNode fOrderNode = CoordinateTransformParsingTest.setupNode(zarr, "fOrder", "1");
+		axisOrderTest(parser.parseMetadata(zarr, fOrderNode), names);
+
+		// flip when c-Order
+		ArrayUtils.reverse(names);
+		final N5TreeNode cOrderNode = CoordinateTransformParsingTest.setupNode(zarr, "cOrder", "1");
+		axisOrderTest(parser.parseMetadata(zarr, cOrderNode), names);
+	}
+
+	private void axisOrderTest(final Optional<OmeNgffMetadata> metaOpt, final String[] expectedNames) {
+
+		assertTrue("ss not parsable", metaOpt.isPresent());
+
+		final OmeNgffMetadata meta = metaOpt.get();
+		assertTrue("no multiscales found", meta.multiscales.length > 0);
+
+		final Axis[] axes = meta.multiscales[0].axes;
+		final String[] names = Arrays.stream(axes).map(a -> a.getName()).toArray(N -> new String[N]);
+		assertArrayEquals("names don't match", expectedNames, names);
 	}
 
 }

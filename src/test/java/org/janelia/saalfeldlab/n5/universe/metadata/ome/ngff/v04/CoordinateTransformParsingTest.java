@@ -31,19 +31,19 @@ public class CoordinateTransformParsingTest {
 		final N5Reader zarr = new N5Factory().openReader(rootF.toString());
 
 		final OmeNgffMetadataParser grpParser = new OmeNgffMetadataParser();
-		test(grpParser.parseMetadata(zarr, setupNode("coordTforms/ss", "s0")),
+		test(grpParser.parseMetadata(zarr, setupNode(zarr, "coordTforms/ss", "s0")),
 				new double[]{4, 4},
 				new double[]{0, 0});
 
-		test(grpParser.parseMetadata(zarr, setupNode("coordTforms/st", "s0")),
+		test(grpParser.parseMetadata(zarr, setupNode(zarr, "coordTforms/st", "s0")),
 				new double[]{2, 2},
 				new double[]{10, 10});
 
-		test(grpParser.parseMetadata(zarr, setupNode("coordTforms/ts", "s0")),
+		test(grpParser.parseMetadata(zarr, setupNode(zarr, "coordTforms/ts", "s0")),
 				new double[]{2, 2},
 				new double[]{20, 20});
 
-		test(grpParser.parseMetadata(zarr, setupNode("coordTforms/tt", "s0")),
+		test(grpParser.parseMetadata(zarr, setupNode(zarr, "coordTforms/tt", "s0")),
 				new double[]{1, 1},
 				new double[]{20, 20});
 	}
@@ -61,12 +61,17 @@ public class CoordinateTransformParsingTest {
 		assertArrayEquals(expectedTranslation, tform.getTranslationCopy(), EPS);
 	}
 
-	private N5TreeNode setupNode(final String path, final String childPath) {
+	protected static N5TreeNode setupNode(final N5Reader n5, final String path, final String childPath) {
 
+		final String absoluteChildPath = path + "/" + childPath;
 		final N5TreeNode node = new N5TreeNode(path);
-		final N5TreeNode child = new N5TreeNode(path + "/" + childPath);
-		final DatasetAttributes attrs = new DatasetAttributes(new long[]{4, 4}, new int[]{4, 4}, DataType.UINT8, new RawCompression());
-		child.setMetadata(new N5SingleScaleMetadata(path + "/" + childPath, new AffineTransform3D(),
+		final N5TreeNode child = new N5TreeNode(absoluteChildPath);
+
+		DatasetAttributes attrs = n5.getDatasetAttributes(absoluteChildPath);
+		if (attrs == null) // add dummy attributes of non are present
+			attrs = new DatasetAttributes(new long[]{4, 4}, new int[]{4, 4}, DataType.UINT8, new RawCompression());
+
+		child.setMetadata(new N5SingleScaleMetadata(absoluteChildPath, new AffineTransform3D(),
 				new double[]{1, 1}, new double[]{1, 1}, new double[]{0, 0}, "", attrs, false));
 
 		node.add(child);
