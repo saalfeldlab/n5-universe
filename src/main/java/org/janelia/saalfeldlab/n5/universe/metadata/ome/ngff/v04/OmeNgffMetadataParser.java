@@ -19,7 +19,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiSca
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformationAdapter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
-import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -94,22 +93,15 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 				attrs[i] = dsetMeta[i].getAttributes();
 			}
 
-			// if zarr is used for storage, and arrays are stored in F-order, axes should not be reversed
-			// reverse Axes if C-order where "row major" == C-order in this context.
-			boolean reverseAxes = true;
-			if( n5 instanceof ZarrKeyValueReader)
-				reverseAxes = cOrder(dsetMeta[0].getAttributes());
-
 			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffMultiScaleMetadata.buildMetadata(
 					nd, node.getPath(), ms.datasets, attrs, ms.coordinateTransformations, ms.metadata, ms.axes);
 
 			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta, false);
 
 			// axes need to be flipped after the child is created
-			if (reverseAxes)
-				ArrayUtils.reverse(ms.axes);
+			ArrayUtils.reverse(ms.axes);
 
-			multiscales[j] = new OmeNgffMultiScaleMetadata( ms, msChildrenMeta );
+			multiscales[j] = new OmeNgffMultiScaleMetadata(ms, msChildrenMeta);
 		}
 
 		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales));

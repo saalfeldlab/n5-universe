@@ -99,8 +99,6 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final boolean buildDatasetsFromChildren) {
 
 		super( MetadataUtils.normalizeGroupPath(path), buildMetadata(nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes));
-		if (!allSameAxisOrder(childrenAttributes))
-			throw new RuntimeException("All ome-zarr arrays must have same array order");
 
 		this.name = name;
 		this.type = type;
@@ -280,7 +278,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		public JsonObject kwargs;
 	}
 
-	public static boolean cOrder( final DatasetAttributes datasetAttributes ) {
+	public static boolean cOrder(final DatasetAttributes datasetAttributes) {
 
 		if (datasetAttributes instanceof ZarrDatasetAttributes) {
 			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes;
@@ -289,7 +287,16 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		return false;
 	}
 
-	public static <T> T[] reverseIfCorder( final DatasetAttributes datasetAttributes, final T[] arr ) {
+	public static boolean fOrder(final DatasetAttributes datasetAttributes) {
+
+		if (datasetAttributes instanceof ZarrDatasetAttributes) {
+			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes;
+			return !zattrs.isRowMajor();
+		}
+		return false;
+	}
+
+	public static <T> T[] reverseIfCorder(final DatasetAttributes datasetAttributes, final T[] arr) {
 
 		if (datasetAttributes == null || arr == null)
 			return arr;
@@ -302,7 +309,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		return arr;
 	}
 
-	public static <T> T[] reverseIfCorder( final boolean cOrder, final T[] arr ) {
+	public static <T> T[] reverseIfCorder(final boolean cOrder, final T[] arr) {
 
 		if (arr == null)
 			return arr;
@@ -317,11 +324,11 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 	public static double[] reverseIfCorder(final DatasetAttributes[] datasetAttributes, final boolean cOrder, final double[] arr) {
 
-		if( arr == null )
+		if (arr == null)
 			return null;
 
 		if (datasetAttributes == null || datasetAttributes.length == 0)
-			return reverseIfCorder(cOrder, arr) ;
+			return reverseIfCorder(cOrder, arr);
 
 		if (datasetAttributes[0] instanceof ZarrDatasetAttributes) {
 
@@ -355,14 +362,15 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		return arr;
 	}
 
-
 	public static double[] reverseCopy(final double[] arr) {
+
 		final double[] arrCopy = Arrays.copyOf(arr, arr.length);
 		ArrayUtils.reverse(arrCopy);
 		return arrCopy;
 	}
 
 	public static <T> T[] reverseCopy(final T[] arr) {
+
 		final T[] arrCopy = Arrays.copyOf(arr, arr.length);
 		ArrayUtils.reverse(arrCopy);
 		return arrCopy;
@@ -370,7 +378,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 	public static boolean allSameAxisOrder(final DatasetAttributes[] multiscaleDatasetAttributes) {
 
-		if( multiscaleDatasetAttributes == null )
+		if (multiscaleDatasetAttributes == null)
 			return true;
 
 		boolean unknown = true;
@@ -382,7 +390,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 				if (unknown) {
 					cOrder = zattrs.isRowMajor();
 					unknown = true;
-				} else if ( cOrder != zattrs.isRowMajor() ){
+				} else if (cOrder != zattrs.isRowMajor()) {
 					return false;
 				}
 			}

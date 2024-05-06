@@ -14,11 +14,16 @@ import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
 import org.junit.Test;
 
 import net.imglib2.realtransform.AffineTransform3D;
 
 public class NgffAxisTests {
+
+	private static double EPS = 1e-6;
 
 	@Test
 	public void testSpatial3D() {
@@ -97,24 +102,30 @@ public class NgffAxisTests {
 	@Test
 	public void testAxisOrderStorageOrder() {
 
-		URI rootF = Paths.get("src", "test", "resources", "metadata.zarr").toUri();
+		final URI rootF = Paths.get("src", "test", "resources", "metadata.zarr").toUri();
 		final N5Reader zarr = new N5Factory().openReader(rootF.toString());
 
 		final String[] names = new String[]{"c", "x", "y", "z"};
+		ArrayUtils.reverse(names);
+
+		// the expected scales and translations are reversed versions
+		// of the arrays appearing in the JSON
+		final double[] expectedScales = new double[]{13, 12, 11, 1};
+		final double[] expectedTranslations = new double[]{3, 2, 1, 0};
 
 		final OmeNgffMetadataParser parser = new OmeNgffMetadataParser();
 
-		// no not flip when f-Order
+		// flip when f-Order
 		final N5TreeNode fOrderNode = CoordinateTransformParsingTest.setupNode(zarr, "fOrder", "1");
-		axisOrderTest(parser.parseMetadata(zarr, fOrderNode), names);
+		axisOrderTest(parser.parseMetadata(zarr, fOrderNode), names, expectedScales, expectedTranslations);
 
-		// flip when c-Order
-		ArrayUtils.reverse(names);
+		// and flip when c-Order
 		final N5TreeNode cOrderNode = CoordinateTransformParsingTest.setupNode(zarr, "cOrder", "1");
-		axisOrderTest(parser.parseMetadata(zarr, cOrderNode), names);
+		axisOrderTest(parser.parseMetadata(zarr, cOrderNode), names, expectedScales, expectedTranslations);
 	}
 
-	private void axisOrderTest(final Optional<OmeNgffMetadata> metaOpt, final String[] expectedNames) {
+	private void axisOrderTest(final Optional<OmeNgffMetadata> metaOpt, final String[] expectedNames,
+			final double[] expectedScales, final double[] expectedTranslations) {
 
 		assertTrue("ss not parsable", metaOpt.isPresent());
 
@@ -124,6 +135,15 @@ public class NgffAxisTests {
 		final Axis[] axes = meta.multiscales[0].axes;
 		final String[] names = Arrays.stream(axes).map(a -> a.getName()).toArray(N -> new String[N]);
 		assertArrayEquals("names don't match", expectedNames, names);
+
+		final CoordinateTransformation<?>[] cts = meta.multiscales[0].datasets[0].coordinateTransformations;
+		assertTrue("first coordinate transform not scale", cts[0] instanceof ScaleCoordinateTransformation);
+		final ScaleCoordinateTransformation ct0 = (ScaleCoordinateTransformation)cts[0];
+		assertArrayEquals("scales don't match", expectedScales, ct0.getScale(), EPS);
+
+		assertTrue("second coordinate transform not translation", cts[1] instanceof TranslationCoordinateTransformation);
+		final TranslationCoordinateTransformation ct1 = (TranslationCoordinateTransformation)cts[1];
+		assertArrayEquals("translations don't match", expectedTranslations, ct1.getTranslation(), EPS);
 	}
 
 }
