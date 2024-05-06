@@ -147,7 +147,17 @@ public class AxisUtils {
 		return permute(imgTmp, invertPermutation(p));
 	}
 
-	private static final <T> int indexOf( final T[] arr, final T tgt ) {
+	public static <T> RandomAccessibleInterval<T> reverseDimensions(final RandomAccessibleInterval<T> img) {
+
+		// final int[] p = IntStream.range(0, img.numDimensions()).toArray();
+		// ArrayUtils.reverse(p);
+
+		final int nd = img.numDimensions();
+		final int[] p = IntStream.iterate(nd - 1, x -> x - 1).limit(nd).toArray();
+		return permute(img, invertPermutation(p));
+	}
+
+	private static final <T> int indexOf(final T[] arr, final T tgt) {
 		for( int i = 0; i < arr.length; i++ ) {
 			if( arr[i].equals(tgt))
 				return i;
