@@ -84,12 +84,15 @@ public class AxisUtils {
 	}
 
 	/**
-	 * Permutes an array in place.
+	 * Permutes an input array into a destination array. The input and destination may be the same
+	 * instance.
 	 *
 	 * @param <T>
 	 *            the type
 	 * @param in
-	 *            the array
+	 *            the input array
+	 * @param dest
+	 *            the destination array
 	 * @param p
 	 *            the permutation
 	 */
@@ -180,13 +183,13 @@ public class AxisUtils {
 	}
 
 	/**
-	 * Converters an array of integers to a normalized array of integers such
-	 * that the smallest integer is mapped to 0, the second smallest to 1 ...
-	 * and the largest is mapped to N-1, where N is the number of unique
-	 * integers in the array.
+	 * Converters an array of integers to a normalized array of integers such that the smallest
+	 * integer is mapped to 0, the second smallest to 1 ... and the largest is mapped to N-1, where
+	 * N is the number of unique integers in the array.
 	 *
-	 * @param p
-	 *            indexes
+	 * @param indexes
+	 *            the indexes
+	 *
 	 * @return normalized indexes
 	 */
 	public static int[] normalizeIndexes(final int[] indexes) {
