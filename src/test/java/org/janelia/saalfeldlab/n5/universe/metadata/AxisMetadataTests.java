@@ -1,5 +1,10 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Optional;
+
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
@@ -15,11 +20,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.gson.Gson;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Optional;
 
 
 public class AxisMetadataTests {
@@ -41,9 +41,9 @@ public class AxisMetadataTests {
 
 		final String n5Root = "src/test/resources/canonical.n5";
 		n5rootF = new File(n5Root);
-		
-		URL configUrl = TransformTests.class.getResource( "/n5.jq" );
-		File baseDir = new File( configUrl.getFile() ).getParentFile();
+
+		final URL configUrl = TransformTests.class.getResource( "/n5.jq" );
+		final File baseDir = new File( configUrl.getFile() ).getParentFile();
 		containerDir = new File( baseDir, "canonical.n5" );
 
 		try {
@@ -51,7 +51,7 @@ public class AxisMetadataTests {
 			n5 = new N5FSReader( n5rootF.getCanonicalPath(), JqUtils.gsonBuilder(null));
 			n5w = new N5FSWriter( containerDir.getCanonicalPath(), JqUtils.gsonBuilder(null));
 
-		}catch( IOException e ) {
+		}catch( final IOException e ) {
 			e.printStackTrace();
 		}
 
@@ -77,12 +77,12 @@ public class AxisMetadataTests {
 		final CanonicalMetadataParser parser = new CanonicalMetadataParser();
 		Assert.assertTrue("affine dataset exists", n5.exists("affine"));
 
-		Optional<CanonicalMetadata> metaOpt = parser.parseMetadata(n5, "affine");
+		final Optional<CanonicalMetadata> metaOpt = parser.parseMetadata(n5, "affine");
 		Assert.assertTrue("canonical metadata exists", metaOpt.isPresent() );
-		
+
 		final CanonicalMetadata metaRaw = metaOpt.get();
 		Assert.assertTrue("is CanonicalSpatialDatasetMetadata ", (metaRaw instanceof CanonicalSpatialDatasetMetadata ));
-		CanonicalSpatialDatasetMetadata sdMeta = (CanonicalSpatialDatasetMetadata)metaRaw;
+		final CanonicalSpatialDatasetMetadata sdMeta = (CanonicalSpatialDatasetMetadata)metaRaw;
 
 		// test intensity
 		Assert.assertEquals("min intensity",  12.0, sdMeta.minIntensity(), eps );
@@ -95,25 +95,25 @@ public class AxisMetadataTests {
 
 		Assert.assertArrayEquals("affineData", expectedAffineData, affineData, eps);
 
-		Optional<CanonicalMetadata> msMetaOpt = parser.parseMetadata(n5, "multiscaleAffine");
+		final Optional<CanonicalMetadata> msMetaOpt = parser.parseMetadata(n5, "multiscaleAffine");
 		Assert.assertTrue("canonical ms metadata exists", msMetaOpt.isPresent() );
-		
+
 		System.out.println( msMetaOpt );
 	}
-	
+
 	@Test
 	public void readWriteTest() throws IOException {
 
 		final Gson gson = JqUtils.buildGson(n5w);
 
-		CanonicalMetadataParser parser = new CanonicalMetadataParser();
-		Optional<CanonicalMetadata> meta = parser.parseMetadata(n5, "axes/xyz");
+		final CanonicalMetadataParser parser = new CanonicalMetadataParser();
+		final Optional<CanonicalMetadata> meta = parser.parseMetadata(n5, "axes/xyz");
 		System.out.println( meta.get() );
 	}
 
 	private CanonicalSpatialDatasetMetadata makeMeta(double[] affine, DatasetAttributes attrs, Axis[] axes) {
 		return new CanonicalSpatialDatasetMetadata("",
-				new SpatialMetadataCanonical("", new AffineSpatialTransform(affine), "mm", axes), 
+				new SpatialMetadataCanonical("", new AffineSpatialTransform(affine), "mm", axes),
 				attrs);
 	}
 

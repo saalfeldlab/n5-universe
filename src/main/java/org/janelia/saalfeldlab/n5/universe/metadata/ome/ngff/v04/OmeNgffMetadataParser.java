@@ -93,13 +93,17 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 				attrs[i] = dsetMeta[i].getAttributes();
 			}
 
+			// maybe axes can be flipped first?
+			ArrayUtils.reverse(ms.axes);
+
 			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffMultiScaleMetadata.buildMetadata(
 					nd, node.getPath(), ms.datasets, attrs, ms.coordinateTransformations, ms.metadata, ms.axes);
 
 			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta, false);
 
 			// axes need to be flipped after the child is created
-			ArrayUtils.reverse(ms.axes);
+			// is this actually true?
+			// ArrayUtils.reverse(ms.axes);
 
 			multiscales[j] = new OmeNgffMultiScaleMetadata(ms, msChildrenMeta);
 		}

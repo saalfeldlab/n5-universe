@@ -54,15 +54,28 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 
 		this.path = MetadataUtils.normalizeGroupPath(path);
 
-		this.scale = scale;
-		this.translation = translation;
+		this.scale = scale != null ? scale : ones(axes.length);
+		this.translation = translation != null ? translation : new double[axes.length];
 		this.axes = axes;
 
 		this.datasetAttributes = datasetAttributes;
 
-		coordinateTransformations = MetadataUtils.buildScaleTranslationTransformList(scale, translation);
+		coordinateTransformations = MetadataUtils.buildScaleTranslationTransformList(this.scale, this.translation);
+		if (Arrays.stream(axes).allMatch(x -> x.getType().equals(Axis.SPACE))) {
+			this.transform = MetadataUtils.scaleTranslationTransforms(this.scale, this.translation);
+		} else {
+			final int[] spaceIndexes = AxisUtils.indexes(axes, x -> x.getType().equals(Axis.SPACE));
+			final double[] spaceScale = AxisUtils.permute(this.scale, spaceIndexes);
+			final double[] spaceTranslation = AxisUtils.permute(this.translation, spaceIndexes);
+			this.transform = MetadataUtils.scaleTranslationTransforms(spaceScale, spaceTranslation);
+		}
+	}
 
-		this.transform = MetadataUtils.scaleTranslationTransforms(scale, translation);
+	private static double[] ones(final int N) {
+
+		final double[] ones = new double[N];
+		Arrays.fill(ones, 1);
+		return ones;
 	}
 
 	@Override
