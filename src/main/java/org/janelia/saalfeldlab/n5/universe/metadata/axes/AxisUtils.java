@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SpatialDatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMetadata;
@@ -310,6 +311,32 @@ public class AxisUtils {
 		}
 
 		return new ValuePair<>(img, meta);
+	}
+
+	public static <T, M extends N5Metadata, A extends AxisMetadata & N5Metadata> Pair<RandomAccessibleInterval<T>, M> permuteImageAndMetadataForImagePlus(
+			final int[] p, final RandomAccessibleInterval<T> img, final M meta) {
+
+		// store the permutation for metadata
+		final int[] metadataPermutation = Arrays.stream(p).filter(x -> x >= 0).toArray();
+
+		// pad the image permutation
+		AxisUtils.fillPermutation(p);
+
+		RandomAccessibleInterval<T> imgTmp = img;
+		while (imgTmp.numDimensions() < 5)
+			imgTmp = Views.addDimension(imgTmp, 0, 0);
+
+		RandomAccessibleInterval<T> imgOut;
+		M datasetMeta;
+		if (AxisUtils.isIdentityPermutation(p)) {
+			imgOut = imgTmp;
+			datasetMeta = meta;
+		} else {
+			imgOut = AxisUtils.permute(imgTmp, AxisUtils.invertPermutation(p));
+			datasetMeta = (M)MetadataUtils.permuteSpatialMetadata(meta, metadataPermutation);
+		}
+
+		return new ValuePair<>(imgOut, datasetMeta);
 	}
 
 	public static <T> RandomAccessibleInterval<T> reverseDimensions(final RandomAccessibleInterval<T> img) {
