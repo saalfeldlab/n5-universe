@@ -1,6 +1,5 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -43,6 +42,8 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
   public boolean offsetKeyStrict = false;
   public boolean unitKeyStrict = false;
   public boolean downsamplingFactorsKeyStrict = false;
+
+	private boolean allDefault;
 
   public N5GenericSingleScaleMetadataParser() {
 	  minKey = DEFAULT_MIN;
@@ -183,6 +184,7 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 	@Override
 	public Optional<N5SingleScaleMetadata> parseMetadata(final N5Reader n5, final N5TreeNode node) {
 
+		allDefault = true;
 		try {
 			final DatasetAttributes attributes = n5.getDatasetAttributes(node.getPath());
 			if (attributes == null)
@@ -226,8 +228,13 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 					transform.set(offset[i], i, 3);
 			}
 
-			final N5SingleScaleMetadata metadata = new N5SingleScaleMetadata(path, transform, downsamplingFactors,
-					resolution, offset, unit, attributes, min, max, isLabelMultiset);
+			final N5SingleScaleMetadata metadata;
+			if (allDefault)
+				metadata = new N5DefaultSingleScaleMetadata(path, transform, downsamplingFactors,
+						resolution, offset, unit, attributes, min, max, isLabelMultiset);
+			else
+				metadata = new N5SingleScaleMetadata(path, transform, downsamplingFactors,
+						resolution, offset, unit, attributes, min, max, isLabelMultiset);
 
 			return Optional.of(metadata);
 		} catch (final N5Exception e) {
@@ -244,14 +251,19 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 		}
 	}
 
-	private static <T> T getAttribute(final N5Reader n5, final String path, final String key, final Class<T> clazz,
+	private <T> T getAttribute(final N5Reader n5, final String path, final String key, final Class<T> clazz,
 			final boolean strict, final Predicate<T> filter,
 			final Supplier<T> defaultValue) {
 
-		final Optional<T> optAttr = getAttributeOptional( n5, path, key, clazz ).filter(filter);
-		if (strict)
-			return optAttr.orElseThrow(() -> new N5Exception("Missing or invalid attribute for key: " + key ));
-		else
-			return optAttr.orElseGet( defaultValue );
+		return getAttributeOptional(n5, path, key, clazz).filter(filter).map(x -> {
+			// this will be triggered if there exists a value, therefore not all values are default
+			allDefault = false;
+			return x;
+		}).orElseGet(() -> {
+			if (strict)
+				throw new N5Exception("Missing or invalid attribute for key: " + key);
+
+			return defaultValue.get();
+		});
 	}
 }
