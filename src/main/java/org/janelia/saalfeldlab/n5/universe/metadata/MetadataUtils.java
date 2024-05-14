@@ -471,20 +471,32 @@ public class MetadataUtils {
 
 	public static N5CosemMetadata permuteCosemMetadata(final N5CosemMetadata metadata, int[] axisPermutation) {
 
-		final double[] newScales = AxisUtils.permute(metadata.getCosemTransform().scale, axisPermutation);
-		final double[] newTranslation = AxisUtils.permute(metadata.getCosemTransform().translate, axisPermutation);
+		final double[] oldScales = ArrayUtils.clone(metadata.getCosemTransform().scale);
+		ArrayUtils.reverse(oldScales);
+		final double[] newScales = AxisUtils.permute(oldScales, axisPermutation);
+		ArrayUtils.reverse(newScales);
+
+		final double[] oldTranslation = ArrayUtils.clone(metadata.getCosemTransform().translate);
+		ArrayUtils.reverse(oldTranslation);
+		final double[] newTranslation = AxisUtils.permute(oldTranslation, axisPermutation);
+		ArrayUtils.reverse(newTranslation);
 
 		final String[] newAxes = ArrayUtils.clone(metadata.getCosemTransform().axes);
+		ArrayUtils.reverse(newAxes);
 		AxisUtils.permute(newAxes, newAxes, axisPermutation);
+		ArrayUtils.reverse(newAxes);
 
 		final String[] newUnits = ArrayUtils.clone(metadata.getCosemTransform().units);
+		ArrayUtils.reverse(newUnits);
 		AxisUtils.permute(newUnits, newUnits, axisPermutation);
+		ArrayUtils.reverse(newUnits);
 
 		return new N5CosemMetadata(
 				metadata.getPath(),
 				new CosemTransform(newAxes, newScales, newTranslation, newUnits),
 				metadata.getAttributes());
 	}
+
 
 	public static N5SingleScaleMetadata permuteN5vMetadata(final N5SingleScaleMetadata metadata, int[] axisPermutation) {
 

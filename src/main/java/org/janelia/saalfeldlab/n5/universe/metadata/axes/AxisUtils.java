@@ -343,7 +343,8 @@ public class AxisUtils {
 
 		final int nd = img.numDimensions();
 		final int[] p = IntStream.iterate(nd - 1, x -> x - 1).limit(nd).toArray();
-		return permute(img, invertPermutation(p));
+		// reversing is its own permutation, so can skip the invert step
+		return permute(img, p);
 	}
 
 	private static final <T> int indexOf(final T[] arr, final T tgt) {
