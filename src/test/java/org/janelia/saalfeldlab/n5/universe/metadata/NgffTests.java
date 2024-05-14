@@ -4,6 +4,7 @@ import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.janelia.saalfeldlab.n5.Compression;
@@ -15,6 +16,7 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.universe.N5DatasetDiscoverer;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
+import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadata.CosemTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.NgffMultiScaleGroupAttributes.MultiscaleDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
@@ -161,6 +163,41 @@ public class NgffTests {
 				new DatasetAttributes[] { dsetAttrs },
 				null, null);
 
+	}
+
+	public static CosemTransform buildPermutedAxesCosemMetadata(
+			final int[] permutation, final boolean cOrder, final DatasetAttributes dsetAttrs) {
+
+		final HashMap<String, Double> axisResolution = new HashMap<>();
+		final HashMap<String, Double> axisTranslation = new HashMap<>();
+		for (int i = 0; i < DEFAULT_AXES.length; i++) {
+			axisResolution.put(DEFAULT_AXES_S[i], DEFAULT_RESOLUTION[i]);
+			axisTranslation.put(DEFAULT_AXES_S[i], DEFAULT_TRANSLATION[i]);
+		}
+
+		final String[] axesLabels = new String[permutation.length];
+		AxisUtils.permute(DEFAULT_AXES_S, axesLabels, permutation);
+
+		final double[] resolution = AxisUtils.permute(DEFAULT_RESOLUTION, permutation);
+		final double[] translation = AxisUtils.permute(DEFAULT_TRANSLATION, permutation);
+
+		final NgffSingleScaleAxesMetadata s0Meta = new NgffSingleScaleAxesMetadata("s0", resolution, translation, dsetAttrs);
+		final OmeNgffDataset[] dsets = new OmeNgffDataset[]{new OmeNgffDataset()};
+		dsets[0].path = s0Meta.getPath();
+		dsets[0].coordinateTransformations = s0Meta.getCoordinateTransformations();
+
+		final Axis[] axes = AxisUtils.defaultAxes(axesLabels);
+		final String[] units = IntStream.range(0, axes.length).mapToObj(x -> "").toArray(n -> {
+			return new String[n];
+		});
+
+		if (cOrder) {
+			ArrayUtils.reverse(resolution);
+			ArrayUtils.reverse(translation);
+			ArrayUtils.reverse(axesLabels);
+		}
+
+		return new N5CosemMetadata.CosemTransform(axesLabels, resolution, translation, units);
 	}
 
 	public static void writePermutedAxes(final N5Writer zarr, final String base, final boolean cOrder, final int[] permutation) {
