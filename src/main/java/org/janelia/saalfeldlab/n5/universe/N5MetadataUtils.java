@@ -49,8 +49,8 @@ public class N5MetadataUtils {
 
 	/**
 	 * Adds a parser to the current default list.
-	 * 
-	 * @param parser the parser to add 
+	 *
+	 * @param parser the parser to add
 	 * @param append appends if true, prepends otherwise
 	 */
 	public static void addDefaultParser(N5MetadataParser<?> parser, boolean append) {
@@ -74,8 +74,8 @@ public class N5MetadataUtils {
 
 	/**
 	 * Adds a group parser to the default list.
-	 * 
-	 * @param groupParser the parser to add 
+	 *
+	 * @param groupParser the parser to add
 	 * @param append appends if true, prepends otherwise
 	 */
 	public static void addDefaultGroupParser(N5MetadataParser<?> groupParser, boolean append) {
@@ -88,7 +88,7 @@ public class N5MetadataUtils {
 
 	/**
 	 * Prepends to the default group parser list.
-	 * 
+	 *
 	 * @param groupParser the group parser to add
 	 */
 	public static void addDefaultGroupParser(N5MetadataParser<?> groupParser) {
@@ -109,11 +109,14 @@ public class N5MetadataUtils {
 	public static N5Metadata parseMetadata(final N5Reader n5, final String group, final boolean parseWholeTree,
 			final ExecutorService exec, final List<N5MetadataParser<?>> parsers, final List<N5MetadataParser<?>> groupParsers) {
 
-		final N5TreeNode root = parseMetadataTree(n5, group, exec, parsers, groupParsers);
-		if (root == null)
+		final String groupToParse = parseWholeTree ? "" : group;
+		final N5TreeNode node = parseMetadataTree(n5, groupToParse, exec, parsers, groupParsers);
+		if (node == null)
 			return null;
+		else if (parseWholeTree) // the node returned is the root, so get the correct descendant
+			return node.getDescendant(group).map(N5TreeNode::getMetadata).orElse(null);
 		else
-			return root.getDescendant(group).map(N5TreeNode::getMetadata).orElse(null);
+			return node.getMetadata();
 	}
 
 	public static N5TreeNode parseMetadataTree(final N5Reader n5) {
@@ -123,7 +126,7 @@ public class N5MetadataUtils {
 
 	public static N5TreeNode parseMetadataTree(final N5Reader n5, final String group) {
 
-		return parseMetadataTree(n5, Executors.newCachedThreadPool(), PARSERS, GROUP_PARSERS);
+		return parseMetadataTree(n5, group, Executors.newCachedThreadPool(), PARSERS, GROUP_PARSERS);
 	}
 
 	public static N5TreeNode parseMetadataTree(final N5Reader n5, final ExecutorService exec) {
@@ -158,7 +161,7 @@ public class N5MetadataUtils {
 		final N5DatasetDiscoverer disc = new N5DatasetDiscoverer(n5, exec, parsers, groupParsers);
 		try {
 			return disc.discoverAndParseRecursive(group);
-		} catch (IOException e) {}
+		} catch (final IOException e) {}
 
 		return null;
 	}
