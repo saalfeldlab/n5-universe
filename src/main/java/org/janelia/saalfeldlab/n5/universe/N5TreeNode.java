@@ -34,7 +34,9 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 
@@ -105,7 +107,8 @@ public class N5TreeNode {
 
   public Optional<N5TreeNode> getDescendant( String path ) {
 
-	  return getDescendants( x -> x.getPath().endsWith(path)).findFirst();
+		return getDescendants(x -> N5URI.normalizeGroupPath(x.getPath()).equals(
+				N5URI.normalizeGroupPath(path))).findFirst();
   }
 
   /**
