@@ -61,6 +61,7 @@ import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.s3.AmazonS3;
@@ -97,6 +98,7 @@ public class N5Factory implements Serializable {
 	private String googleCloudProjectId = null;
 	private String s3Region = null;
 	private AWSCredentials s3Credentials = null;
+	private ClientConfiguration s3ClientConfiguration = null;
 	private boolean s3Anonymous = true;
 	private String s3Endpoint;
 
@@ -185,6 +187,12 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
+	public N5Factory s3ClientConfiguration(final ClientConfiguration clientConfiguration) {
+
+		this.s3ClientConfiguration = clientConfiguration;
+		return this;
+	}
+
 	@Deprecated
 	public N5Factory s3RetryWithCredentials() {
 
@@ -206,7 +214,7 @@ public class N5Factory implements Serializable {
 	AmazonS3 createS3(final String uri) {
 
 		try {
-			return AmazonS3Utils.createS3(uri, s3Endpoint, AmazonS3Utils.getS3Credentials(s3Credentials, s3Anonymous), s3Region);
+			return AmazonS3Utils.createS3(uri, s3Endpoint, AmazonS3Utils.getS3Credentials(s3Credentials, s3Anonymous), s3ClientConfiguration, s3Region);
 		} catch (final Throwable e) {
 			throw new N5Exception("Could not create s3 client from uri: " + uri, e);
 		}
