@@ -149,8 +149,8 @@ public class N5TreeNode {
 
 	  // get the appropriate child along the path if it exists, otherwise add it
 	  N5TreeNode child = null;
-	  Stream<N5TreeNode> cs = children.stream().filter( n -> n.getNodeName().equals(childName));
-	  Optional<N5TreeNode> copt = cs.findFirst();
+	  final Stream<N5TreeNode> cs = children.stream().filter( n -> n.getNodeName().equals(childName));
+	  final Optional<N5TreeNode> copt = cs.findFirst();
 	  if( copt.isPresent() )
 		  child = copt.get();
 	  else {
@@ -199,8 +199,8 @@ public class N5TreeNode {
 		  return false;
 
 	  boolean childrenEqual = true;
-	  for( N5TreeNode c : childrenList()) {
-		  Optional<N5TreeNode> otherChildOpt = other.childrenList().stream()
+	  for( final N5TreeNode c : childrenList()) {
+		  final Optional<N5TreeNode> otherChildOpt = other.childrenList().stream()
 			  .filter( x -> x.getNodeName().equals( c.getNodeName()))
 			  .findFirst();
 
@@ -221,9 +221,9 @@ public class N5TreeNode {
 
   private static String printRecursiveHelper(N5TreeNode node, String prefix) {
 
-	StringBuffer out = new StringBuffer();
+	final StringBuffer out = new StringBuffer();
 	out.append(prefix + node.path + "\n");
-	for (N5TreeNode c : node.childrenList()) {
+	for (final N5TreeNode c : node.childrenList()) {
 	  System.out.println(c.path);
 	  out.append(printRecursiveHelper(c, prefix + " "));
 	}
