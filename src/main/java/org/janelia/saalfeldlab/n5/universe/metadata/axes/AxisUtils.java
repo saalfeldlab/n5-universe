@@ -254,7 +254,6 @@ public class AxisUtils {
 		fillPermutation( p );
 
 		// TODO under what conditions can I return the image directly?
-
 		RandomAccessibleInterval<T> imgTmp = img;
 		while( imgTmp.numDimensions() < 5 )
 			imgTmp = Views.addDimension(imgTmp, 0, 0 );
@@ -436,12 +435,14 @@ public class AxisUtils {
 		final int nd = meta.getAttributes().getNumDimensions();
 
 		final String[] labels;
-		if (nd ==  2)
+		if (nd == 2)
 			labels = new String[]{"x", "y"};
-		else if (nd ==  3)
+		else if (nd == 3)
 			labels = new String[]{"x", "y", "z"};
-		else if( nd == 4)
+		else if (nd == 4)
 			labels = new String[]{"x", "y", "z", "t"};
+		else if (nd == 5)
+			labels = new String[]{"x", "y", "z", "c", "t"};
 		else
 			return null;
 
