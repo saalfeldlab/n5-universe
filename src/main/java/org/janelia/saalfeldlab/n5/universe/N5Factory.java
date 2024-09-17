@@ -27,6 +27,7 @@
 package org.janelia.saalfeldlab.n5.universe;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -621,6 +622,7 @@ public class N5Factory implements Serializable {
 
 	public enum StorageFormat {
 		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
+		ZARR3(Pattern.compile("zarr3", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr3$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 		HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
 			final boolean hasHdf5Extension = Pattern.compile("\\.h(df)?5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find();
@@ -638,6 +640,18 @@ public class N5Factory implements Serializable {
 
 			this.schemePattern = schemePattern;
 			this.uriTest = test;
+		}
+
+		public static StorageFormat guessStorageFromUri(URI uri, KeyValueAccess kva) {
+
+			// TODO: for Diyi!
+			final N5URI n5uri = new N5URI(uri);
+			final String absolutePath = uri.getPath(); // not sure if this is correct
+			try {
+				final String[] listResults = kva.list(absolutePath); // get a list of file at this path given by this 
+			} catch (IOException e) { }
+
+			return null;
 		}
 
 		public static StorageFormat guessStorageFromUri(URI uri) {

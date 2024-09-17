@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe;
 
+import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
@@ -25,6 +26,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class N5FactoryTests {
 
@@ -209,7 +211,6 @@ public class N5FactoryTests {
 		}
 	}
 
-
 	@Test
 	public void testDefaultForAmbiguousReaders() throws IOException {
 
@@ -263,6 +264,17 @@ public class N5FactoryTests {
 		}
 	}
 	
+	@Test
+	public void testZarr2VsZarr3Disambiguation() throws IOException, URISyntaxException {
+
+		// TODO: Diyi!
+		final URI uri = new URI("src/test/resources/metadata.zarr?");
+		final FileSystemKeyValueAccess kva = new FileSystemKeyValueAccess(FileSystems.getDefault());
+
+		final StorageFormat format = N5Factory.StorageFormat.guessStorageFromUri(uri, kva);
+		assertEquals("zarr 2", StorageFormat.ZARR, format);
+	}
+
 	private void checkWriterTypeFromFactory(N5Factory factory, String uri, Class<?> expected, String messageSuffix) {
 
 		if (expected == null) {
