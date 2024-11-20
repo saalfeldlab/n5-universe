@@ -21,14 +21,16 @@ import org.janelia.saalfeldlab.n5.GsonN5Writer;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
+import org.janelia.saalfeldlab.n5.ShardedDatasetAttributes;
+import org.janelia.saalfeldlab.n5.shard.Shard;
+import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
+import org.janelia.saalfeldlab.n5.universe.translation.JqUtils;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
-import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
-import org.janelia.saalfeldlab.n5.universe.translation.JqUtils;
 
 public class ContainerMetadataNode implements GsonN5Writer {
 
@@ -69,12 +71,12 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	public HashMap<String, JsonElement> getContainerAttributes() {
 		return attributes;
 	}
-	
+
 	@Override
 	public JsonElement getAttributes(final String pathName) throws N5Exception.N5IOException {
 
 		final String groupPath = N5URI.normalizeGroupPath(pathName);
-		Optional<ContainerMetadataNode> nodeOpt = getNode(groupPath);
+		final Optional<ContainerMetadataNode> nodeOpt = getNode(groupPath);
 		if( nodeOpt.isPresent() )
 		{
 			final ContainerMetadataNode node = nodeOpt.get();
@@ -152,7 +154,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	 */
 	public void addPathsRecursive( String thisPath ) {
 		path = thisPath;
-		for ( String childPath : children.keySet() )
+		for ( final String childPath : children.keySet() )
 			children.get(childPath).addPathsRecursive( thisPath + "/" + childPath );
 	}
 
@@ -181,7 +183,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	public ContainerMetadataNode childRelative(final String normRelativePath) {
-		String childName = normRelativePath.substring( 0, normRelativePath.indexOf('/'));
+		final String childName = normRelativePath.substring( 0, normRelativePath.indexOf('/'));
 		if( children.containsKey(childName) )
 			return children.get(childName);
 		else
@@ -223,7 +225,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 
 	@Override
 	public String[] list(String pathName) throws N5Exception.N5IOException {
-		Optional<ContainerMetadataNode> node = getNode(pathName);
+		final Optional<ContainerMetadataNode> node = getNode(pathName);
 		if( node.isPresent() ) {
 			final Set<String> set = node.get().getChildren().keySet();
 			return set.toArray( new String[ set.size() ]);
@@ -240,8 +242,8 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	@Override
 	public void setAttributes(String pathName, Map<String, ?> attributes) {
 		final Type mapType = new TypeToken<HashMap<String, JsonElement>>(){}.getType();
-		JsonElement json = gson.toJsonTree(attributes);
-		HashMap<String, JsonElement> map = gson.fromJson(json, mapType);
+		final JsonElement json = gson.toJsonTree(attributes);
+		final HashMap<String, JsonElement> map = gson.fromJson(json, mapType);
 		getNode( pathName ).ifPresent( x -> x.attributes.putAll(map) );
 	}
 
@@ -285,7 +287,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		else
 			relativePath = normPath;
 
-		String[] parts = relativePath.split(groupSeparator);
+		final String[] parts = relativePath.split(groupSeparator);
 		createGroupHelper( this, parts, 0 );
 		addPathsRecursive();
 	}
@@ -295,7 +297,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		if( i >= parts.length )
 			return;
 
-		String childRelpath = parts[i];
+		final String childRelpath = parts[i];
 		ContainerMetadataNode child;
 		if( !node.children.containsKey( childRelpath )) {
 			child = new ContainerMetadataNode();
@@ -338,6 +340,10 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	@Override
+	public <T> void writeShard(String datasetPath, ShardedDatasetAttributes datasetAttributes, Shard<T> shard) throws N5Exception {
+	}
+
+	@Override
 	public boolean deleteBlock(String pathName, long... gridPosition) {
 		return false;
 	}
@@ -355,13 +361,13 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		if (n5 instanceof GsonN5Reader) {
 			try {
 				return buildGson((N)n5, dataset, gson );
-			} catch (Exception e) {
+			} catch (final Exception e) {
 			}
 		}
 		else {
 			try {
 				return buildN5( n5, dataset, gson );
-			} catch (Exception e) {
+			} catch (final Exception e) {
 			}
 		}
 		return null;
@@ -383,7 +389,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 			containerRoot.addPathsRecursive(dataset);
 			return containerRoot;
 
-		} catch (N5Exception e) {
+		} catch (final N5Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -396,7 +402,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		final List<N5TreeNode> children = baseNode.childrenList();
 
 		final HashMap<String, ContainerMetadataNode> childMap = new HashMap<>();
-		for (N5TreeNode child : children)
+		for (final N5TreeNode child : children)
 			childMap.put(child.getNodeName(), buildHelper(n5, child));
 
 		if ( attrs != null )
@@ -417,7 +423,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 			containerRoot.addPathsRecursive(dataset);
 			return containerRoot;
 
-		} catch (N5Exception e) {
+		} catch (final N5Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -428,7 +434,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		final List<N5TreeNode> children = baseNode.childrenList();
 
 		final HashMap<String, ContainerMetadataNode> childMap = new HashMap<>();
-		for (N5TreeNode child : children)
+		for (final N5TreeNode child : children)
 			childMap.put(child.getNodeName(), buildHelperN5(n5, child, gson));
 
 		if (attrs.isPresent())
@@ -441,13 +447,13 @@ public class ContainerMetadataNode implements GsonN5Writer {
 			final Gson gson) {
 		try {
 			final HashMap<String, JsonElement> attrs = new HashMap<>();
-			Map<String, Class<?>> attrClasses = n5.listAttributes(dataset);
-			for (String k : attrClasses.keySet()) {
+			final Map<String, Class<?>> attrClasses = n5.listAttributes(dataset);
+			for (final String k : attrClasses.keySet()) {
 
 				if( attrClasses.get(k).equals(String.class)) {
 
-					String s = n5.getAttribute(dataset, k, String.class );
-					Optional<JsonObject> elem = stringToJson( s, gson );
+					final String s = n5.getAttribute(dataset, k, String.class );
+					final Optional<JsonObject> elem = stringToJson( s, gson );
 					if( elem.isPresent())
 						attrs.put( k, elem.get());
 					else
@@ -460,7 +466,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 			if (attrs != null)
 				return Optional.of(attrs);
 
-		} catch (Exception e) {
+		} catch (final Exception e) {
 		}
 		return Optional.empty();
 	}
@@ -468,9 +474,9 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	public static Optional<JsonObject> stringToJson(String s, final Gson gson) {
 
 		try {
-			JsonObject elem = gson.fromJson(s, JsonObject.class);
+			final JsonObject elem = gson.fromJson(s, JsonObject.class);
 			return Optional.of(elem);
-		} catch (JsonSyntaxException e) {
+		} catch (final JsonSyntaxException e) {
 			return Optional.empty();
 		}
 	}
@@ -493,6 +499,12 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	@Override
 	public void setAttributes(String groupPath, JsonElement attributes) throws N5Exception {
 		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public String getAttributesKey() {
+
+		return "attributes.json";
 	}
 
 }
