@@ -1,31 +1,36 @@
 package org.janelia.saalfeldlab.n5.universe.translation;
 
-import com.google.gson.Gson;
 import java.util.List;
 import java.util.Map;
+
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.ShardedDatasetAttributes;
+import org.janelia.saalfeldlab.n5.shard.Shard;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataWriter;
 
+import com.google.gson.Gson;
+
 public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
-	
+
 	protected N5Writer writer;
-	
+
 	protected ContainerMetadataWriter containerWriter;
 
 	public TranslatedN5Writer( N5Writer n5Base, Gson gson, String fwdTranslation, String invTranslation) {
 		super(n5Base, gson, fwdTranslation, invTranslation);
-		
+
 		this.writer = n5Base;
 		containerWriter = new ContainerMetadataWriter( n5Base, translation.getTranslated() );
 	}
-	
+
 	public N5Writer getBaseWriter() {
 		return writer;
 	}
-	
+
 	@Override
 	public <T> void setAttribute( final String pathName, final String key, final T attribute) {
 		translation.setTranslatedAttribute( pathName, key, attribute );
@@ -49,7 +54,7 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 
 	@Override
 	public boolean remove(String pathName) {
-		boolean success = writer.remove(originalPath(pathName));
+		final boolean success = writer.remove(originalPath(pathName));
 		if( success ) {
 			translation.getTranslated().remove(pathName);
 			translation.updateOriginal();
@@ -59,7 +64,7 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 
 	@Override
 	public boolean remove() {
-		boolean success = writer.remove();
+		final boolean success = writer.remove();
 		if( success ) {
 			translation.rootOrig = new ContainerMetadataNode();
 			translation.rootTranslated = new ContainerMetadataNode();
@@ -109,6 +114,12 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	@Override
 	public boolean deleteBlock(String pathName, long... gridPosition) {
 		return writer.deleteBlock(originalPath(pathName), gridPosition);
+	}
+
+	@Override
+	public <T> void writeShard(String datasetPath, ShardedDatasetAttributes datasetAttributes, Shard<T> shard) throws N5Exception {
+
+		throw new N5Exception("not yet implemented");
 	}
 
 }
