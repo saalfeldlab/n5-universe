@@ -71,6 +71,8 @@ import com.google.gson.GsonBuilder;
 
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 
 /**
  * Factory for various N5 readers and writers. Implementation specific
@@ -379,6 +381,8 @@ public class N5Factory implements Serializable {
 				return new N5KeyValueReader(access, containerPath, gsonBuilder, cacheAttributes);
 			case ZARR:
 				return new ZarrKeyValueReader(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
+			case ZARR3:
+				return new ZarrV3KeyValueReader(access,containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
 			case HDF5:
 				return new N5HDF5Reader(containerPath, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
 			}
@@ -505,6 +509,8 @@ public class N5Factory implements Serializable {
 			switch (storage) {
 			case ZARR:
 				return new ZarrKeyValueWriter(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+			case ZARR3:
+				return new ZarrV3KeyValueWriter(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
 			case N5:
 				return new N5KeyValueWriter(access, containerPath, gsonBuilder, cacheAttributes);
 			case HDF5:
@@ -621,15 +627,15 @@ public class N5Factory implements Serializable {
 	}
 
 	public enum StorageFormat {
-		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 		ZARR3(Pattern.compile("zarr3", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr3$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
+		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 		HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
 			final boolean hasHdf5Extension = Pattern.compile("\\.h(df)?5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find();
 			return hasHdf5Extension || HDF5Utils.isHDF5(uri.getPath());
 		});
 
-		static final Pattern STORAGE_SCHEME_PATTERN = Pattern.compile("^(\\s*(?<storageScheme>(n5|h(df)?5|zarr)):(//)?)?(?<uri>.*)$", Pattern.CASE_INSENSITIVE);
+		static final Pattern STORAGE_SCHEME_PATTERN = Pattern.compile("^(\\s*(?<storageScheme>(n5|h(df)?5|zarr|zarr3)):(//)?)?(?<uri>.*)$", Pattern.CASE_INSENSITIVE);
 		private final static String STORAGE_SCHEME_GROUP = "storageScheme";
 		private final static String URI_GROUP = "uri";
 
@@ -648,7 +654,7 @@ public class N5Factory implements Serializable {
 			final N5URI n5uri = new N5URI(uri);
 			final String absolutePath = uri.getPath(); // not sure if this is correct
 			try {
-				final String[] listResults = kva.list(absolutePath); // get a list of file at this path given by this 
+				final String[] listResults = kva.list(absolutePath); // get a list of file at this path given by this
 			} catch (IOException e) { }
 
 			return null;
