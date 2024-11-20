@@ -62,14 +62,20 @@ import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 
-import javax.annotation.Nullable;
-import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.function.BiFunction;
-import java.util.regex.Pattern;
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.services.s3.AmazonS3;
+import com.google.cloud.storage.Storage;
+import com.google.gson.GsonBuilder;
+
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
+
+import net.imglib2.util.Pair;
+import net.imglib2.util.ValuePair;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 
 /**
  * Factory for various N5 readers and writers. Implementation specific
@@ -417,6 +423,8 @@ public class N5Factory implements Serializable {
 				return new N5KeyValueReader(access, containerPath, gsonBuilder, cacheAttributes);
 			case ZARR:
 				return new ZarrKeyValueReader(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
+			case ZARR3:
+				return new ZarrV3KeyValueReader(access,containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
 			case HDF5:
 				return new N5HDF5Reader(containerPath, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
 			}
@@ -569,7 +577,9 @@ public class N5Factory implements Serializable {
 			final String containerLocation = location.toString();
 			switch (storage) {
 			case ZARR:
-				return new ZarrKeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+				return new ZarrKeyValueWriter(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+			case ZARR3:
+				return new ZarrV3KeyValueWriter(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
 			case N5:
 				return new N5KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
 			case HDF5:
