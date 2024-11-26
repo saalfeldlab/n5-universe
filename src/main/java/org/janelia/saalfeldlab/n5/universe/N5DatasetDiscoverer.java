@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -51,6 +52,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5ViewerMultiscaleMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalMetadataParser;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadataParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +95,10 @@ public class N5DatasetDiscoverer {
 		new N5CosemMultiScaleMetadata.CosemMultiScaleParser(),
 		new N5ViewerMultiscaleMetadataParser(),
 		new CanonicalMetadataParser(),
+  };
+
+  public static final N5MetadataParser<?>[] DEFAULT_SHALLOW_GROUP_PARSERS = new N5MetadataParser<?>[] {
+		new OmeNgffMetadataParser(true)
   };
 
   private final List<N5MetadataParser<?>> metadataParsers;
@@ -322,10 +328,47 @@ public class N5DatasetDiscoverer {
 	  }
 	}
   }
+  
+	/**
+	 * Parses metadata for a node using the given parsers, stopping after the first
+	 * success.
+	 *
+	 * @param n5              the N5Reader
+	 * @param node            the tree node
+	 * @param metadataParsers list of metadata parsers
+	 * @param groupParsers    list of group parsers
+	 * @throws IOException the exception
+	 */
+	public static void parseMetadataShallow(final N5Reader n5, final N5TreeNode node,
+			final List<N5MetadataParser<?>> metadataParsers, final List<N5MetadataParser<?>> groupParsers)
+			throws IOException {
 
-  public static boolean trim(final N5TreeNode node ) {
-	  return trim( node, x -> {});
-  }
+		// Go through all parsers to populate metadata
+		for (final N5MetadataParser<?> parser : metadataParsers) {
+			try {
+				Optional<? extends N5Metadata> parsedMeta;
+				parsedMeta = parser.apply(n5, node);
+
+				parsedMeta.ifPresent(node::setMetadata);
+				if (parsedMeta.isPresent())
+					break;
+			} catch (final Exception ignored) {
+			}
+		}
+
+		// this may be a group (e.g. multiscale pyramid) try to parse groups
+		for (final N5MetadataParser<?> gp : groupParsers) {
+			final Optional<? extends N5Metadata> groupMeta = gp.apply(n5, node);
+			groupMeta.ifPresent(node::setMetadata);
+			if (groupMeta.isPresent())
+				break;
+		}
+	}
+
+	public static boolean trim(final N5TreeNode node) {
+		return trim(node, x -> {
+		});
+	}
 
   /**
    * Removes branches of the N5 container tree that do not contain any nodes that can be opened
@@ -590,4 +633,33 @@ public class N5DatasetDiscoverer {
 				Arrays.asList(DEFAULT_GROUP_PARSERS));
 	}
 
+	/**
+	 * Discovers metadata present at the provided dataset without listing.
+	 * 
+	 * @param n5 the reader
+	 * @param dataset the dataset
+	 * @return
+	 */
+	public static N5TreeNode discoverShallow(final N5Reader n5, final String dataset) {
+
+		final N5TreeNode node = new N5TreeNode(dataset);
+
+		try {
+			parseMetadataShallow(n5, node, Arrays.asList(DEFAULT_PARSERS), Arrays.asList(DEFAULT_SHALLOW_GROUP_PARSERS));
+		} catch (IOException e) { }
+
+		return node;
+	}
+
+	/**
+	 * Discovers metadata present at the root without listing
+	 * 
+	 * @param n5 the reader
+	 * @return
+	 */
+	public static N5TreeNode discoverShallow(final N5Reader n5) {
+
+		return discoverShallow(n5, "/");
+	}
+	
 }
