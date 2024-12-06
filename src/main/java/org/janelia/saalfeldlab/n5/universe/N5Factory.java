@@ -513,7 +513,7 @@ public class N5Factory implements Serializable {
 			final URI uri,
 			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
 
-		final KeyValueAccess kva = KeyValueAccessBackend.getKeyValueAccess(uri);
+		final KeyValueAccess kva = getKeyValueAccess(uri);
 		if (kva == null)
 			throw new N5Exception("Cannot get KeyValueAccess at " + uri);
 		final StorageFormat format = storageFormat != null ? storageFormat : StorageFormat.guessStorageFromKeys(uri, kva);
