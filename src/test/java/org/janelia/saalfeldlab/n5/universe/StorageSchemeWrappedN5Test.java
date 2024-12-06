@@ -17,7 +17,7 @@ public interface StorageSchemeWrappedN5Test {
 
 	N5Factory getFactory();
 
-	N5Factory.StorageFormat getStorageFormat();
+	StorageFormat getStorageFormat();
 
 	Class<?> getBackendTargetClass();
 

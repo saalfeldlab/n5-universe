@@ -1,7 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.gson.GsonBuilder;
 import org.janelia.saalfeldlab.n5.AbstractN5Test;
@@ -58,9 +57,9 @@ public class N5StorageTests {
 			return factory;
 		}
 
-		@Override public N5Factory.StorageFormat getStorageFormat() {
+		@Override public StorageFormat getStorageFormat() {
 
-			return N5Factory.StorageFormat.N5;
+			return StorageFormat.N5;
 		}
 
 		@Override protected N5Reader createN5Reader(String location, GsonBuilder gson) {
