@@ -110,7 +110,7 @@
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
-
+    
 		<jackson-jq.version>1.0.0-preview.20191208</jackson-jq.version>
 		<alphanumeric-comparator.version>1.4.1</alphanumeric-comparator.version>
 
@@ -220,6 +220,12 @@
 			<groupId>javax.xml.bind</groupId>
 			<artifactId>jaxb-api</artifactId>
 			<version>${jaxb-api.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- include imagej-legacy at test runtime -->
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>imagej-legacy</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
