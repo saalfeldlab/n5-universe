@@ -503,7 +503,9 @@ public class N5Factory implements Serializable {
 		final Pair<StorageFormat, URI> formatAndUri = StorageFormat.parseUri(containerUri);
 		final URI uri = formatAndUri.getB();
 		final KeyValueAccess kva = backend.apply(uri, this);
-		return openWithBackend.apply(formatAndUri.getA(), kva, uri.toString());
+		StorageFormat format = formatAndUri.getA();
+		format = format != null? format : StorageFormat.guessStorageFromKeys(uri, kva);
+		return openWithBackend.apply(format, kva, uri.toString());
 	}
 
 	private <T extends N5Reader> T openN5Container(
@@ -511,10 +513,11 @@ public class N5Factory implements Serializable {
 			final URI uri,
 			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
 
-		final KeyValueAccess kva = getKeyValueAccess(uri);
+		final KeyValueAccess kva = KeyValueAccessBackend.getKeyValueAccess(uri);
 		if (kva == null)
 			throw new N5Exception("Cannot get KeyValueAccess at " + uri);
-		return openWithKva.apply(storageFormat, kva, uri.toString());
+		final StorageFormat format = storageFormat != null ? storageFormat : StorageFormat.guessStorageFromKeys(uri, kva);
+		return openWithKva.apply(format, kva, uri.toString());
 	}
 
 	private <T extends N5Reader> T openN5Container(

@@ -191,10 +191,10 @@ public class N5FactoryTests {
 			final Class<?>[] writerTypes = new Class[]{
 					null,
 					N5HDF5Writer.class,
-					ZarrKeyValueWriter.class,
-					ZarrKeyValueWriter.class,
-					ZarrKeyValueWriter.class,
-					ZarrKeyValueWriter.class
+					ZarrKeyValueWriter.class, //valid zarr, correct by key match
+					N5KeyValueWriter.class,  //valid n5, correct by key match
+					ZarrKeyValueWriter.class, // empty directory, create new zarr
+					ZarrKeyValueWriter.class //directory doesn't exist, create new zarr
 			};
 
 			for (int i = 0; i < paths.length; i++) {
