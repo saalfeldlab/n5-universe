@@ -26,21 +26,16 @@
  */
 package org.janelia.saalfeldlab.n5.universe;
 
-import java.io.File;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.FileSystems;
 import java.nio.file.Paths;
 import java.util.function.BiFunction;
-import java.util.function.Predicate;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.function.TriFunction;
-import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageURI;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
@@ -50,11 +45,8 @@ import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
-import org.janelia.saalfeldlab.n5.hdf5.HDF5Utils;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
-import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
@@ -69,7 +61,6 @@ import com.google.cloud.storage.Storage;
 import com.google.gson.GsonBuilder;
 
 import net.imglib2.util.Pair;
-import net.imglib2.util.ValuePair;
 
 /**
  * Factory for various N5 readers and writers. Implementation specific
@@ -83,11 +74,11 @@ import net.imglib2.util.ValuePair;
  */
 public class N5Factory implements Serializable {
 
-	private static final N5Factory FACTORY = new N5Factory();
+	static final N5Factory FACTORY = new N5Factory();
 
 	private static final long serialVersionUID = -6823715427289454617L;
-	private final static Pattern HTTPS_SCHEME = Pattern.compile("http(s)?", Pattern.CASE_INSENSITIVE);
-	private final static Pattern FILE_SCHEME = Pattern.compile("file", Pattern.CASE_INSENSITIVE);
+	final static Pattern HTTPS_SCHEME = Pattern.compile("http(s)?", Pattern.CASE_INSENSITIVE);
+	final static Pattern FILE_SCHEME = Pattern.compile("file", Pattern.CASE_INSENSITIVE);
 	private int[] hdf5DefaultBlockSize = {64, 64, 64, 1, 1};
 	private boolean hdf5OverrideBlockSize = false;
 	private GsonBuilder gsonBuilder = new GsonBuilder();
@@ -101,25 +92,6 @@ public class N5Factory implements Serializable {
 	private ClientConfiguration s3ClientConfiguration = null;
 	private boolean s3Anonymous = true;
 	private String s3Endpoint;
-
-	private static GoogleCloudStorageKeyValueAccess newGoogleCloudKeyValueAccess(final URI uri, final N5Factory factory) {
-
-		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(uri);
-		return new GoogleCloudStorageKeyValueAccess(factory.createGoogleCloudStorage(), googleCloudUri, true);
-	}
-
-	private static AmazonS3KeyValueAccess newAmazonS3KeyValueAccess(final URI uri, final N5Factory factory) {
-
-		final String uriString = uri.toString();
-		final AmazonS3 s3 = factory.createS3(uriString);
-
-		return new AmazonS3KeyValueAccess(s3, uri, true);
-	}
-
-	private static FileSystemKeyValueAccess newFileSystemKeyValueAccess(final URI uri, final N5Factory factory) {
-
-		return new FileSystemKeyValueAccess(FileSystems.getDefault());
-	}
 
 	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
 
@@ -225,26 +197,21 @@ public class N5Factory implements Serializable {
 		return GoogleCloudUtils.createGoogleCloudStorage(googleCloudProjectId);
 	}
 
+
+
 	/**
 	 * Test the provided {@link URI} to and return the appropriate {@link KeyValueAccess}.
 	 * If no appropriate {@link KeyValueAccess} is found, may be null
+	 * <p>
+	 * This differs subtly from {@link KeyValueAccessBackend#getKeyValueAccess(URI)} in that
+	 * the resulting {@link KeyValueAccess} may use configured fields from this {@link N5Factory}.
 	 *
 	 * @param uri to create a {@link KeyValueAccess} from.
 	 * @return the {@link KeyValueAccess} and container path, or null if none are valid
 	 */
 	@Nullable
-	KeyValueAccess getKeyValueAccess(final URI uri) {
-
-		/*NOTE: The order of these tests is very important, as the predicates for each
-		 * backend take into account reasonable defaults when possible.
-		 * Here we test from most to least restrictive.
-		 * See the Javadoc for more details.  */
-		for (final KeyValueAccessBackend backend : KeyValueAccessBackend.values()) {
-			final KeyValueAccess kva = backend.apply(uri, this);
-			if (kva != null)
-				return kva;
-		}
-		return null;
+	public KeyValueAccess getKeyValueAccess(final URI uri) {
+		return KeyValueAccessBackend.getKeyValueAccess(uri ,this);
 	}
 
 	/**
@@ -570,113 +537,6 @@ public class N5Factory implements Serializable {
 	}
 
 	/**
-	 * Enum to discover and provide {@link KeyValueAccess} for {@link N5Reader}s and {@link N5Writer}s.
-	 * IMPORTANT: If ever new {@link KeyValueAccess} backends are adding, they MUST be re-ordered
-	 * such that the earliest predicates are the most restrictive, and the later predicates
-	 * are the least restrictive. This ensures that when iterating through the values of
-	 * {@link KeyValueAccessBackend} you can test them in order, and stop at the first
-	 * {@link KeyValueAccess} that is generated.
-	 */
-	enum KeyValueAccessBackend implements Predicate<URI>, BiFunction<URI, N5Factory, KeyValueAccess> {
-		GOOGLE_CLOUD(uri -> {
-			final String scheme = uri.getScheme();
-			final boolean hasScheme = scheme != null;
-			return hasScheme && GoogleCloudUtils.GS_SCHEME.asPredicate().test(scheme)
-					|| hasScheme && HTTPS_SCHEME.asPredicate().test(scheme)
-					&& uri.getHost() != null && GoogleCloudUtils.GS_HOST.asPredicate().test(uri.getHost());
-		}, N5Factory::newGoogleCloudKeyValueAccess),
-		AWS(uri -> {
-			final String scheme = uri.getScheme();
-			final boolean hasScheme = scheme != null;
-			return hasScheme && AmazonS3Utils.S3_SCHEME.asPredicate().test(scheme)
-					|| uri.getHost() != null && hasScheme && HTTPS_SCHEME.asPredicate().test(scheme);
-		}, N5Factory::newAmazonS3KeyValueAccess),
-		FILE(uri -> {
-			final String scheme = uri.getScheme();
-			final boolean hasScheme = scheme != null;
-			return !hasScheme || FILE_SCHEME.asPredicate().test(scheme);
-		}, N5Factory::newFileSystemKeyValueAccess);
-
-		private final Predicate<URI> backendTest;
-		private final BiFunction<URI, N5Factory, KeyValueAccess> backendGenerator;
-
-		KeyValueAccessBackend(Predicate<URI> test, BiFunction<URI, N5Factory, KeyValueAccess> generator) {
-
-			backendTest = test;
-			backendGenerator = generator;
-		}
-
-		@Override public KeyValueAccess apply(final URI uri, final N5Factory factory) {
-
-			if (test(uri))
-				return backendGenerator.apply(uri, factory);
-			return null;
-		}
-
-		@Override public boolean test(URI uri) {
-
-			return backendTest.test(uri);
-		}
-	}
-
-	public enum StorageFormat {
-		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
-		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
-		HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
-			final boolean hasHdf5Extension = Pattern.compile("\\.h(df)?5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find();
-			return hasHdf5Extension || HDF5Utils.isHDF5(uri.getPath());
-		});
-
-		static final Pattern STORAGE_SCHEME_PATTERN = Pattern.compile("^(\\s*(?<storageScheme>(n5|h(df)?5|zarr)):(//)?)?(?<uri>.*)$", Pattern.CASE_INSENSITIVE);
-		private final static String STORAGE_SCHEME_GROUP = "storageScheme";
-		private final static String URI_GROUP = "uri";
-
-		final Pattern schemePattern;
-		private final Predicate<URI> uriTest;
-
-		StorageFormat(final Pattern schemePattern, final Predicate<URI> test) {
-
-			this.schemePattern = schemePattern;
-			this.uriTest = test;
-		}
-
-		public static StorageFormat guessStorageFromUri(URI uri) {
-
-			for (final StorageFormat format : StorageFormat.values()) {
-				if (format.uriTest.test(uri))
-					return format;
-			}
-			return null;
-		}
-
-		public static Pair<StorageFormat, URI> parseUri(String uri) throws URISyntaxException {
-
-			final Pair<StorageFormat, String> storageFromScheme = getStorageFromNestedScheme(uri);
-			final URI asUri = parseUriFromString(storageFromScheme.getB());
-			if (storageFromScheme.getA() != null)
-				return new ValuePair<>(storageFromScheme.getA(), asUri);
-			else
-				return new ValuePair<>(guessStorageFromUri(asUri), asUri);
-
-		}
-
-		public static Pair<StorageFormat, String> getStorageFromNestedScheme(String uri) {
-
-			final Matcher storageSchemeMatcher = StorageFormat.STORAGE_SCHEME_PATTERN.matcher(uri);
-			storageSchemeMatcher.matches();
-			final String storageFormatScheme = storageSchemeMatcher.group(STORAGE_SCHEME_GROUP);
-			final String uriGroup = storageSchemeMatcher.group(URI_GROUP);
-			if (storageFormatScheme != null) {
-				for (final StorageFormat format : StorageFormat.values()) {
-					if (format.schemePattern.asPredicate().test(storageFormatScheme))
-						return new ValuePair<>(format, uriGroup);
-				}
-			}
-			return new ValuePair<>(null, uriGroup);
-		}
-	}
-
-	/**
 	 * Creates an N5 writer for the specified container URI with default N5Factory configuration.
 	 *
 	 * @param containerUri location of the N5 container
@@ -698,7 +558,7 @@ public class N5Factory implements Serializable {
 		return FACTORY.openReader(containerUri);
 	}
 
-	private static URI parseUriFromString(String uri) {
+	static URI parseUriFromString(String uri) {
 		try {
 			return URI.create(uri);
 		} catch (final Throwable ignore) {}

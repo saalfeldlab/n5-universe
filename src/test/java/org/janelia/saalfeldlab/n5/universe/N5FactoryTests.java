@@ -7,7 +7,6 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
-import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.junit.Test;
@@ -40,39 +39,39 @@ public class N5FactoryTests {
 		final URI zarrExtSlash = new URI("file:///tmp/a.zarr/");
 		final URI unknownExt = new URI("file:///tmp/a.abc");
 
-		assertNull("no extension null", N5Factory.StorageFormat.guessStorageFromUri(noExt));
+		assertNull("no extension null", StorageFormat.guessStorageFromUri(noExt));
 
 		/**
 		 * h5 tests fail now because these test whether the file exists. It
 		 * should not do that, if, for example, we're making a writer.
 		 */
-		assertEquals("h5 extension == h5", StorageFormat.HDF5, N5Factory.StorageFormat.guessStorageFromUri(h5Ext));
-		assertNotEquals("h5 extension != n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(h5Ext));
-		assertNotEquals("h5 extension != zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(h5Ext));
+		assertEquals("h5 extension == h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(h5Ext));
+		assertNotEquals("h5 extension != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(h5Ext));
+		assertNotEquals("h5 extension != zarr", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(h5Ext));
 
-		assertEquals("hdf5 extension == h5", StorageFormat.HDF5, N5Factory.StorageFormat.guessStorageFromUri(hdf5Ext));
-		assertNotEquals("hdf5 extension != n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(hdf5Ext));
-		assertNotEquals("hdf5 extension != zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(hdf5Ext));
+		assertEquals("hdf5 extension == h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(hdf5Ext));
+		assertNotEquals("hdf5 extension != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(hdf5Ext));
+		assertNotEquals("hdf5 extension != zarr", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(hdf5Ext));
 
-		assertNotEquals("n5 extension != h5", StorageFormat.HDF5, N5Factory.StorageFormat.guessStorageFromUri(n5Ext));
-		assertEquals("n5 extension == n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(n5Ext));
-		assertNotEquals("n5 extension != zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(n5Ext));
+		assertNotEquals("n5 extension != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(n5Ext));
+		assertEquals("n5 extension == n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(n5Ext));
+		assertNotEquals("n5 extension != zarr", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(n5Ext));
 
-		assertNotEquals("n5 extension slash != h5", StorageFormat.HDF5, N5Factory.StorageFormat.guessStorageFromUri(n5ExtSlash));
-		assertEquals("n5 extension slash == n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(n5ExtSlash));
-		assertNotEquals("n5 extension slash != zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(n5ExtSlash));
+		assertNotEquals("n5 extension slash != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(n5ExtSlash));
+		assertEquals("n5 extension slash == n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(n5ExtSlash));
+		assertNotEquals("n5 extension slash != zarr", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(n5ExtSlash));
 
-		assertNotEquals("zarr extension != h5", StorageFormat.HDF5, N5Factory.StorageFormat.guessStorageFromUri(zarrExt));
-		assertNotEquals("zarr extension != n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(zarrExt));
-		assertEquals("zarr extension == zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(zarrExt));
+		assertNotEquals("zarr extension != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(zarrExt));
+		assertNotEquals("zarr extension != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(zarrExt));
+		assertEquals("zarr extension == zarr", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(zarrExt));
 
-		assertNotEquals("zarr extension slash != h5", StorageFormat.HDF5, N5Factory.StorageFormat.guessStorageFromUri(zarrExtSlash));
-		assertNotEquals("zarr extension slash != n5", StorageFormat.N5, N5Factory.StorageFormat.guessStorageFromUri(zarrExtSlash));
-		assertEquals("zarr extension slash == zarr", StorageFormat.ZARR, N5Factory.StorageFormat.guessStorageFromUri(zarrExtSlash));
+		assertNotEquals("zarr extension slash != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(zarrExtSlash));
+		assertNotEquals("zarr extension slash != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(zarrExtSlash));
+		assertEquals("zarr extension slash == zarr", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(zarrExtSlash));
 
-		assertNull("unknown extension != h5", N5Factory.StorageFormat.guessStorageFromUri(unknownExt));
-		assertNull("unknown extension != n5", N5Factory.StorageFormat.guessStorageFromUri(unknownExt));
-		assertNull("unknown extension != zarr", N5Factory.StorageFormat.guessStorageFromUri(unknownExt));
+		assertNull("unknown extension != h5", StorageFormat.guessStorageFromUri(unknownExt));
+		assertNull("unknown extension != n5", StorageFormat.guessStorageFromUri(unknownExt));
+		assertNull("unknown extension != zarr", StorageFormat.guessStorageFromUri(unknownExt));
 	}
 
 	@Test
