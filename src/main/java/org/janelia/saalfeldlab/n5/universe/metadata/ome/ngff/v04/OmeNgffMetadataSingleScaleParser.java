@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Map.Entry;
 
@@ -10,6 +11,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -20,7 +22,7 @@ public class OmeNgffMetadataSingleScaleParser implements N5MetadataParser<NgffSi
 	private boolean reverse;
 
 	public OmeNgffMetadataSingleScaleParser() {
-		this( false );
+		this( true );
 	}
 
 	public OmeNgffMetadataSingleScaleParser(final boolean reverse) {
@@ -33,6 +35,14 @@ public class OmeNgffMetadataSingleScaleParser implements N5MetadataParser<NgffSi
 	public void writeMetadata(NgffSingleScaleAxesMetadata t, N5Writer n5, String path) throws Exception {
 
 		final JsonObject jsonElem = gson.toJsonTree(t).getAsJsonObject();
+
+		if( reverse ) {
+		// flip axes
+			final JsonArray axes = jsonElem.getAsJsonObject().get("axes").getAsJsonArray();
+			Collections.reverse(axes.asList());
+		}
+		// coordinate transform parameters are flipped by their adapters, so nothing needs to be done here
+
 		for( final Entry<String, JsonElement> e : jsonElem.entrySet() )
 			n5.setAttribute(path, e.getKey(), e.getValue());
 	}
@@ -40,12 +50,13 @@ public class OmeNgffMetadataSingleScaleParser implements N5MetadataParser<NgffSi
 	@Override
 	public Optional<NgffSingleScaleAxesMetadata> parseMetadata(N5Reader n5, N5TreeNode node) {
 
-		// TODO implement me
-//		try {
-//			return Optional.of(n5.getAttribute(node.getNodeName(), null, NgffSingleScaleAxesMetadata.class));
-//		} catch( final N5Exception e ) {
-			return Optional.empty();
-//		}
+		/*
+		 * not clear what this method should do, if anything. 
+		 * because according to spec, metadata are defined only min "multiscales".
+		 * 
+		 * So, return empty.
+		 */
+		return Optional.empty();
 	}
 
 }
