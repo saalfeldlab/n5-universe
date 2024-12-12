@@ -105,7 +105,7 @@ public class N5DatasetDiscoverer {
 
 	public static final N5MetadataParser<?>[] DEFAULT_GROUP_PARSERS = new N5MetadataParser<?>[] {
 			new OmeNgffMetadataParser(), new N5CosemMultiScaleMetadata.CosemMultiScaleParser(),
-			new N5ViewerMultiscaleMetadataParser(), new CanonicalMetadataParser(), };
+			new N5ViewerMultiscaleMetadataParser(), new CanonicalMetadataParser() };
 
 	public static final N5MetadataParser<?>[] DEFAULT_SHALLOW_GROUP_PARSERS = new N5MetadataParser<?>[] {
 			new OmeNgffMetadataParser(true) };
@@ -304,13 +304,14 @@ public class N5DatasetDiscoverer {
 	 * @throws IOException the exception
 	 */
 	public static void parseMetadataShallow(final N5Reader n5, final N5TreeNode node,
-			final List<N5MetadataParser<?>> metadataParsers, final List<N5MetadataParser<?>> groupParsers)
-			throws IOException {
+			final List<N5MetadataParser<?>> metadataParsers, final List<N5MetadataParser<?>> groupParsers) {
+
+		System.out.println("parse shallow for: " + node.getPath());
 
 		// Go through all parsers to populate metadata
 		for (final N5MetadataParser<?> parser : metadataParsers) {
 			try {
-				Optional<? extends N5Metadata> parsedMeta;
+				final Optional<? extends N5Metadata> parsedMeta;
 				parsedMeta = parser.apply(n5, node);
 
 				parsedMeta.ifPresent(node::setMetadata);
@@ -321,7 +322,7 @@ public class N5DatasetDiscoverer {
 		}
 
 		// this may be a group (e.g. multiscale pyramid) try to parse groups
-		for (final N5MetadataParser<?> gp : groupParsers) {
+		for (final N5MetadataParser<?> gp : DEFAULT_SHALLOW_GROUP_PARSERS) {
 			final Optional<? extends N5Metadata> groupMeta = gp.apply(n5, node);
 			groupMeta.ifPresent(node::setMetadata);
 			if (groupMeta.isPresent())
@@ -389,6 +390,28 @@ public class N5DatasetDiscoverer {
 		if (comparator != null)
 			sort(node, comparator, null);
 	}
+	
+	public N5TreeNode discoverShallow(final String base) {
+
+		return discoverShallow(base, x -> {});
+	}
+	
+	public N5TreeNode discoverShallow(final String base, final Consumer<N5TreeNode> callback) {
+
+		root = new N5TreeNode(base);
+		return discoverShallow(root, callback);
+	}
+	
+	public N5TreeNode discoverShallow(final N5TreeNode base) {
+
+		return discoverShallow(base, x -> {});
+	}
+	
+	public N5TreeNode discoverShallow(final N5TreeNode base, final Consumer<N5TreeNode> callback) {
+
+		parseMetadataShallow(n5, root, metadataParsers, groupParsers);
+		return root;
+	}
 
 	/**
 	 * Recursively discovers and parses metadata for datasets that are children of
@@ -401,14 +424,12 @@ public class N5DatasetDiscoverer {
 	 */
 	public N5TreeNode discoverAndParseRecursive(final String base) throws IOException {
 
-		return discoverAndParseRecursive(base, x -> {
-		});
+		return discoverAndParseRecursive(base, x -> {});
 	}
 
 	public N5TreeNode discoverAndParseRecursive(final String base, final Consumer<N5TreeNode> callback)
 			throws IOException {
 
-		groupSeparator = n5.getGroupSeparator();
 		root = new N5TreeNode(base);
 		discoverAndParseRecursive(root, callback);
 		return root;
@@ -422,8 +443,9 @@ public class N5DatasetDiscoverer {
 	public N5TreeNode discoverAndParseRecursive(final N5TreeNode root, final Consumer<N5TreeNode> callback)
 			throws IOException {
 
-		groupSeparator = n5.getGroupSeparator();
+		discoverShallow(root, callback);
 
+		groupSeparator = n5.getGroupSeparator();
 		String[] datasetPaths;
 		try {
 			datasetPaths = n5.deepList(root.getPath(), executor);
@@ -433,7 +455,9 @@ public class N5DatasetDiscoverer {
 		}
 		callback.accept(root);
 
-		parseMetadataRecursive(root, callback);
+		// because we did a shallow metadata parsing already, skip parsing for this node
+		// when parsing recursively
+		parseMetadataRecursive(root, callback, true);
 		sortAndTrimRecursive(root, callback);
 
 		return root;
@@ -509,7 +533,7 @@ public class N5DatasetDiscoverer {
 		parseMetadataRecursive(rootNode, x -> {
 		});
 	}
-
+	
 	/**
 	 * Parses metadata for the given node and all children in parallel using this
 	 * object's executor. The given function is called for every node after parsing
@@ -519,6 +543,19 @@ public class N5DatasetDiscoverer {
 	 * @param callback the callback function
 	 */
 	public void parseMetadataRecursive(final N5TreeNode rootNode, final Consumer<N5TreeNode> callback) {
+		parseMetadataRecursive(rootNode, callback, false);
+	}
+
+	/**
+	 * Parses metadata for the given node and all children in parallel using this
+	 * object's executor. The given function is called for every node after parsing
+	 * is completed, successful or not.
+	 *
+	 * @param rootNode the root node
+	 * @param callback the callback function
+	 * @param skipRoot skip parsing for this node
+	 */
+	public void parseMetadataRecursive(final N5TreeNode rootNode, final Consumer<N5TreeNode> callback, final boolean skipParsing) {
 		/* depth first, check if we have children */
 		final List<N5TreeNode> children = rootNode.childrenList();
 		final ArrayList<Future<?>> childrenFutures = new ArrayList<Future<?>>();
@@ -558,12 +595,15 @@ public class N5DatasetDiscoverer {
 			}
 		}
 
-		try {
-			N5DatasetDiscoverer.parseMetadata(n5, rootNode, metadataParsers, groupParsers);
-		} catch (final Exception e) {
+		if( !skipParsing) {
+			try {
+				System.out.println("Parsing for: " + rootNode.getPath());
+				N5DatasetDiscoverer.parseMetadata(n5, rootNode, metadataParsers, groupParsers);
+			} catch (final Exception e) {
+			}
+			LOG.debug("parsed metadata for: {}:\t found: {}", rootNode.getPath(),
+					rootNode.getMetadata() == null ? "NONE" : rootNode.getMetadata().getClass().getSimpleName());
 		}
-		LOG.debug("parsed metadata for: {}:\t found: {}", rootNode.getPath(),
-				rootNode.getMetadata() == null ? "NONE" : rootNode.getMetadata().getClass().getSimpleName());
 
 		callback.accept(rootNode);
 
@@ -586,21 +626,33 @@ public class N5DatasetDiscoverer {
 		return Arrays.asList(parsers);
 	}
 
-	public static N5TreeNode discover(final N5Reader n5, final List<N5MetadataParser<?>> parsers,
+
+	public static N5TreeNode discover(final N5Reader n5, final String basePath, final List<N5MetadataParser<?>> parsers,
 			final List<N5MetadataParser<?>> groupParsers) {
 
 		final N5DatasetDiscoverer discoverer = new N5DatasetDiscoverer(n5, Executors.newCachedThreadPool(), parsers,
 				groupParsers);
 		try {
-			return discoverer.discoverAndParseRecursive("");
+			return discoverer.discoverAndParseRecursive(basePath);
 		} catch (final IOException e) {
 		}
 		return null;
 	}
 
+	public static N5TreeNode discover(final N5Reader n5, final List<N5MetadataParser<?>> parsers,
+			final List<N5MetadataParser<?>> groupParsers) {
+
+		return discover(n5, "", parsers, groupParsers);
+	}
+
 	public static N5TreeNode discover(final N5Reader n5, final List<N5MetadataParser<?>> parsers) {
 
 		return discover(n5, parsers, null);
+	}
+	
+	public static N5TreeNode discover(final N5Reader n5, final String basePath) {
+
+		return discover(n5, basePath, Arrays.asList(DEFAULT_PARSERS), Arrays.asList(DEFAULT_GROUP_PARSERS));
 	}
 
 	public static N5TreeNode discover(final N5Reader n5) {
@@ -618,12 +670,8 @@ public class N5DatasetDiscoverer {
 	public static N5TreeNode discoverShallow(final N5Reader n5, final String dataset) {
 
 		final N5TreeNode node = new N5TreeNode(dataset);
-
-		try {
-			parseMetadataShallow(n5, node, Arrays.asList(DEFAULT_PARSERS),
-					Arrays.asList(DEFAULT_SHALLOW_GROUP_PARSERS));
-		} catch (IOException e) {
-		}
+		parseMetadataShallow(n5, node, Arrays.asList(DEFAULT_PARSERS),
+				Arrays.asList(DEFAULT_SHALLOW_GROUP_PARSERS));
 
 		return node;
 	}
@@ -641,23 +689,22 @@ public class N5DatasetDiscoverer {
 
 	public static void main(String[] args) throws IOException {
 
-//		final N5Reader zarr = new N5Factory().openReader("/home/john/tmp/mr.avg.ome.zarr");
+		final N5Reader zarr = new N5Factory().openReader("/home/john/tmp/mr.avg.ome.zarr");
 //		final N5Reader zarr = new N5Factory()
 //				.openReader("https://storage.googleapis.com/jax-public-ngff/KOMP/adult_lacZ/ndp/Moxd1/23420_K35061_FGut.zarr");
-//
+
 //		System.out.println(zarr);
 //		System.out.println(zarr.exists(""));
 		
-//		Storage gcs = GoogleCloudUtils.createGoogleCloudStorage(null);
-//		StorageOptions opts = gcs.getOptions();
-//		System.out.println(opts);
-		
-
 //		N5TreeNode root = N5DatasetDiscoverer.discoverShallow(zarr, "/");
 //		System.out.println(root);
-//		System.out.println(root.getMetadata());
+//		System.out.println("metadata: " + root.getMetadata());
 //		System.out.println(root.printRecursive());
 
+		N5TreeNode root = N5DatasetDiscoverer.discover(zarr);
+		System.out.println(root);
+		System.out.println("metadata: " + root.getMetadata());
+		System.out.println(root.printRecursive());
 
 //		OmeNgffMetadataParser parser = new OmeNgffMetadataParser( true );
 //		Optional<OmeNgffMetadata> meta = parser.parseMetadata(zarr, "");

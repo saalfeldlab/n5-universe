@@ -87,6 +87,7 @@ public class N5Factory implements Serializable {
 	private boolean zarrMapN5DatasetAttributes = true;
 	private boolean zarrMergeAttributes = true;
 	private String googleCloudProjectId = null;
+	private boolean googleCloudCreateBucket = false;
 	private String s3Region = null;
 	private AWSCredentials s3Credentials = null;
 	private ClientConfiguration s3ClientConfiguration = null;
@@ -132,6 +133,12 @@ public class N5Factory implements Serializable {
 	public N5Factory zarrMergeAttributes(final boolean mergeAttributes) {
 
 		zarrMergeAttributes = mergeAttributes;
+		return this;
+	}
+
+	public N5Factory googleCloudCreateBucket(final boolean createBucket) {
+
+		googleCloudCreateBucket = createBucket;
 		return this;
 	}
 
