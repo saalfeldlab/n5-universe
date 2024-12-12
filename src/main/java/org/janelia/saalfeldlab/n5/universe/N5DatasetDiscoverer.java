@@ -306,8 +306,6 @@ public class N5DatasetDiscoverer {
 	public static void parseMetadataShallow(final N5Reader n5, final N5TreeNode node,
 			final List<N5MetadataParser<?>> metadataParsers, final List<N5MetadataParser<?>> groupParsers) {
 
-		System.out.println("parse shallow for: " + node.getPath());
-
 		// Go through all parsers to populate metadata
 		for (final N5MetadataParser<?> parser : metadataParsers) {
 			try {
@@ -553,9 +551,9 @@ public class N5DatasetDiscoverer {
 	 *
 	 * @param rootNode the root node
 	 * @param callback the callback function
-	 * @param skipRoot skip parsing for this node
+	 * @param skipParsingIfPresent skip parsing the root node if metadata are already present
 	 */
-	public void parseMetadataRecursive(final N5TreeNode rootNode, final Consumer<N5TreeNode> callback, final boolean skipParsing) {
+	public void parseMetadataRecursive(final N5TreeNode rootNode, final Consumer<N5TreeNode> callback, final boolean skipParsingIfPresent) {
 		/* depth first, check if we have children */
 		final List<N5TreeNode> children = rootNode.childrenList();
 		final ArrayList<Future<?>> childrenFutures = new ArrayList<Future<?>>();
@@ -595,16 +593,16 @@ public class N5DatasetDiscoverer {
 			}
 		}
 
-		if( !skipParsing) {
+		// Parse if either explicitly requested (not skipping)
+		// or if metadata are not present
+		if( !skipParsingIfPresent || rootNode.getMetadata() == null ) {
 			try {
-				System.out.println("Parsing for: " + rootNode.getPath());
 				N5DatasetDiscoverer.parseMetadata(n5, rootNode, metadataParsers, groupParsers);
 			} catch (final Exception e) {
 			}
 			LOG.debug("parsed metadata for: {}:\t found: {}", rootNode.getPath(),
 					rootNode.getMetadata() == null ? "NONE" : rootNode.getMetadata().getClass().getSimpleName());
 		}
-
 		callback.accept(rootNode);
 
 		if (rootNode.getMetadata() instanceof N5MetadataGroup) {
