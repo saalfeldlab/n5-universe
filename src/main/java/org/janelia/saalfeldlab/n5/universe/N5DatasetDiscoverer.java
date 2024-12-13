@@ -686,33 +686,5 @@ public class N5DatasetDiscoverer {
 		return discoverShallow(n5, "/");
 	}
 
-	public static void main(String[] args) throws IOException {
-
-		final N5Reader zarr = new N5Factory().openReader("/home/john/tmp/mr.avg.ome.zarr");
-//		final N5Reader zarr = new N5Factory()
-//				.openReader("https://storage.googleapis.com/jax-public-ngff/KOMP/adult_lacZ/ndp/Moxd1/23420_K35061_FGut.zarr");
-
-//		System.out.println(zarr);
-//		System.out.println(zarr.exists(""));
-		
-//		N5TreeNode root = N5DatasetDiscoverer.discoverShallow(zarr, "/");
-//		System.out.println(root);
-//		System.out.println("metadata: " + root.getMetadata());
-//		System.out.println(root.printRecursive());
-
-		N5TreeNode root = N5DatasetDiscoverer.discover(zarr);
-		System.out.println(root);
-		System.out.println("metadata: " + root.getMetadata());
-		System.out.println(root.printRecursive());
-
-//		OmeNgffMetadataParser parser = new OmeNgffMetadataParser( true );
-//		Optional<OmeNgffMetadata> meta = parser.parseMetadata(zarr, "");
-//		System.out.println(meta.isPresent());
-//		if(meta.isPresent()) {
-//			System.out.println(meta.get());
-//		}
-
-	}
-
 }
 
