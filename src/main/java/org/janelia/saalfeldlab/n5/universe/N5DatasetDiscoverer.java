@@ -301,7 +301,6 @@ public class N5DatasetDiscoverer {
 	 * @param node            the tree node
 	 * @param metadataParsers list of metadata parsers
 	 * @param groupParsers    list of group parsers
-	 * @throws IOException the exception
 	 */
 	public static void parseMetadataShallow(final N5Reader n5, final N5TreeNode node,
 			final List<N5MetadataParser<?>> metadataParsers, final List<N5MetadataParser<?>> groupParsers) {
@@ -665,7 +664,7 @@ public class N5DatasetDiscoverer {
 	 * 
 	 * @param n5      the reader
 	 * @param dataset the dataset
-	 * @return a shallow node
+	 * @return a node with shallow-parsed metadata
 	 */
 	public static N5TreeNode discoverShallow(final N5Reader n5, final String dataset) {
 
@@ -680,7 +679,7 @@ public class N5DatasetDiscoverer {
 	 * Discovers metadata present at the root without listing
 	 * 
 	 * @param n5 the reader
-	 * @return
+	 * @return the root tree node
 	 */
 	public static N5TreeNode discoverShallow(final N5Reader n5) {
 
