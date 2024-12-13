@@ -407,8 +407,8 @@ public class N5DatasetDiscoverer {
 	
 	public N5TreeNode discoverShallow(final N5TreeNode base, final Consumer<N5TreeNode> callback) {
 
-		parseMetadataShallow(n5, root, metadataParsers, groupParsers);
-		return root;
+		parseMetadataShallow(n5, base, metadataParsers, groupParsers);
+		return base;
 	}
 
 	/**
@@ -442,14 +442,16 @@ public class N5DatasetDiscoverer {
 			throws IOException {
 
 		discoverShallow(root, callback);
+		callback.accept(root);
+		sortAndTrimRecursive(root, callback);
 
 		groupSeparator = n5.getGroupSeparator();
 		String[] datasetPaths;
 		try {
 			datasetPaths = n5.deepList(root.getPath(), executor);
 			N5TreeNode.fromFlatList(root, datasetPaths, groupSeparator);
-		} catch (final Exception e) {
-			return null;
+		} catch (final Exception ignore) {
+			return root;
 		}
 		callback.accept(root);
 
