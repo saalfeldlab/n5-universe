@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>39.0.0</version>
+		<version>40.0.0</version>
 		<relativePath />
 	</parent>
 
@@ -110,7 +110,11 @@
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
-    
+
+		<n5-aws-s3.version>4.2.2</n5-aws-s3.version>
+		<n5-google-cloud.version>4.1.2</n5-google-cloud.version>
+		<n5-zarr.version>1.4.0</n5-zarr.version>
+
 		<jackson-jq.version>1.0.0-preview.20191208</jackson-jq.version>
 		<alphanumeric-comparator.version>1.4.1</alphanumeric-comparator.version>
 
