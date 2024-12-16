@@ -454,9 +454,7 @@ public class N5DatasetDiscoverer {
 		}
 		callback.accept(root);
 
-		// because we did a shallow metadata parsing already, skip parsing for this node
-		// when parsing recursively
-		parseMetadataRecursive(root, callback, true);
+		parseMetadataRecursive(root, callback);
 		sortAndTrimRecursive(root, callback);
 
 		return root;
@@ -542,13 +540,16 @@ public class N5DatasetDiscoverer {
 	 * @param callback the callback function
 	 */
 	public void parseMetadataRecursive(final N5TreeNode rootNode, final Consumer<N5TreeNode> callback) {
-		parseMetadataRecursive(rootNode, callback, false);
+		parseMetadataRecursive(rootNode, callback, true);
 	}
 
 	/**
 	 * Parses metadata for the given node and all children in parallel using this
 	 * object's executor. The given function is called for every node after parsing
 	 * is completed, successful or not.
+	 * <p> 
+	 * The skipParsingIfPresent argument allows parsing to be skipped if metadata for this node
+	 * are already present. This should generally be true.
 	 *
 	 * @param rootNode the root node
 	 * @param callback the callback function
@@ -596,7 +597,7 @@ public class N5DatasetDiscoverer {
 
 		// Parse if either explicitly requested (not skipping)
 		// or if metadata are not present
-		if( !skipParsingIfPresent || rootNode.getMetadata() == null ) {
+		if (!skipParsingIfPresent || rootNode.getMetadata() == null) {
 			try {
 				N5DatasetDiscoverer.parseMetadata(n5, rootNode, metadataParsers, groupParsers);
 			} catch (final Exception e) {
