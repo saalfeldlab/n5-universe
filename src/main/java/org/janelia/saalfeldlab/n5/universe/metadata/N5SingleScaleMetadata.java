@@ -91,8 +91,10 @@ public class N5SingleScaleMetadata extends AbstractN5SpatialDatasetMetadata impl
 	this.pixelResolution = pixelResolution;
 	this.offset = offset;
 	/* These are allowed to be null, if we wish to use implementation defaults */
+
+	final Double defaultMaxIntensity = attributes != null ? IntensityMetadata.maxForDataType(attributes.getDataType()) : new Double(255);
 	this.minIntensity = minIntensity != null ? minIntensity : 0;
-	this.maxIntensity = maxIntensity != null ? maxIntensity : IntensityMetadata.maxForDataType(attributes.getDataType());
+	this.maxIntensity = maxIntensity != null ? maxIntensity : defaultMaxIntensity;
 	this.isLabelMultiset = isLabelMultiset;
 
 	if (unit == null)
