@@ -33,7 +33,10 @@ public class ShardWritingDemos {
 	public static void main(String[] args) throws IOException {
 
 		highLevel();
+
 		midLevel();
+		midLevelBatch();
+
 		lowLevelVirtual();
 		lowLevelBatch();
 	}
@@ -97,6 +100,60 @@ public class ShardWritingDemos {
 
 	}
 
+	public static void midLevelBatch() {
+
+		final String dset = "midLevelBatch";
+		final long[] imageSize = new long[] { 32, 27 };
+		final int[] shardSize = new int[] { 16, 9 };
+		final int[] blockSize = new int[] { 4, 3 };
+		final int numBlockElements = Arrays.stream(blockSize).reduce(1, (x, y) -> x * y);
+
+		try( final N5Writer zarr = new N5Factory().openWriter("zarr3:/home/john/tests/codeReview/sharded.zarr") ) {
+
+			/*
+			 * If you need control over everything, this is here.
+			 */
+			final ShardedDatasetAttributes attributes = new ShardedDatasetAttributes(
+					imageSize,
+					shardSize,
+					blockSize,
+					DataType.INT32,
+					new Codec[]{
+							// codecs applied to image data
+							new BytesCodec(ByteOrder.BIG_ENDIAN)
+					},
+					new DeterministicSizeCodec[]{
+							// codecs applied to the shard index, must not be compressors
+							new BytesCodec(ByteOrder.LITTLE_ENDIAN), 
+							new Crc32cChecksumCodec()
+					},
+					IndexLocation.START
+			);
+
+			// manually create a dataset
+			zarr.createDataset(dset, attributes);
+
+			// Manually write several blocks
+			// In this case, the blocks that belong to the same shard are combined before writing
+
+			// should this be a collection?
+			// alternatively, this could be a generator over blocks
+			// eventually need to also pass an ExecutorService here
+
+			// could also be a generator of a collection
+			// we'd like to have an iterator over "writable units"
+			// where the writable units are blocks are shards.
+			// downstream code would be responsible for filling those units
+			zarr.writeBlocks(dset, attributes, 
+							new IntArrayDataBlock( blockSize, new long[] {1,1}, generateArray(numBlockElements, x -> 1)),
+							new IntArrayDataBlock( blockSize, new long[] {0,1}, generateArray(numBlockElements, x -> 2)),
+							new IntArrayDataBlock( blockSize, new long[] {4,0}, generateArray(numBlockElements, x -> 3))
+					);
+
+		}
+
+	}
+
 	public static void lowLevelVirtual() {
 
 		final String dset = "lowLevelVirtual";
@@ -137,7 +194,12 @@ public class ShardWritingDemos {
 				zarr.getKeyValueAccess(),
 				zarr.absoluteDataBlockPath(dset, 0, 0) // path for this shard
 			);
+
+			// 
+
 			// write to disk
+
+			// the block location here could be relative to the shard
 			shard00.writeBlock(new IntArrayDataBlock(blockSize, new long[] {1,1}, generateArray(numBlockElements, x -> 1)));
 			// write to disk
 			shard00.writeBlock(new IntArrayDataBlock(blockSize, new long[] {0,1}, generateArray(numBlockElements, x -> 2)));
