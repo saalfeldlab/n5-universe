@@ -23,6 +23,7 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.ShardedDatasetAttributes;
 import org.janelia.saalfeldlab.n5.shard.Shard;
+import org.janelia.saalfeldlab.n5.shard.ShardParameters;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.translation.JqUtils;
 
@@ -340,7 +341,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	@Override
-	public <T> void writeShard(String datasetPath, ShardedDatasetAttributes datasetAttributes, Shard<T> shard) throws N5Exception {
+	public 	<T,A extends DatasetAttributes & ShardParameters> void writeShard( final String datasetPath, final A datasetAttributes, final Shard<T> shard) throws N5Exception {
 	}
 
 	@Override
@@ -352,8 +353,6 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 		return null;
 	}
-
-
 
 	@SuppressWarnings("unchecked")
 	public static  <N extends GsonN5Reader & N5Reader > ContainerMetadataNode build(
@@ -506,5 +505,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 
 		return "attributes.json";
 	}
+
+
 
 }
