@@ -16,6 +16,14 @@ public class Axis {
 
 	protected boolean discrete;
 
+	/**
+	 * see https://ngff.openmicroscopy.org/0.4/index.html#axes-md
+	 * 
+	 * @param name must be unique across all name fields (typical: t,c,z,y,x)
+	 * @param type Axis.SPACE, Axis.CHANNEL, Axis.TIME, Axis.DISPLACEMENT or Axis.ARRAY (optional)
+	 * @param unit must be chosen from a list of allowed units, can otherwise lead to issues down the road, e.g. in Neuroglancer (optional)
+	 * @param discrete not part of the spec yet, DISCRETE means don't interpolate between values (optional)
+	 */
 	public Axis( final String type, final String name, final String unit, final boolean discrete )
 	{
 		this.type = type;
@@ -24,6 +32,34 @@ public class Axis {
 		this.discrete = discrete;
 	}
 
+	/**
+	 * see https://ngff.openmicroscopy.org/0.4/index.html#axes-md
+	 * 
+	 * @param name must be unique across all name fields (typical: t,c,z,y,x)
+	 */
+	public Axis( final String name )
+	{
+		this( null, name, null, false );
+	}
+
+	/**
+	 * see https://ngff.openmicroscopy.org/0.4/index.html#axes-md
+	 * 
+	 * @param name must be unique across all name fields (typical: t,c,z,y,x)
+	 * @param type Axis.SPACE, Axis.CHANNEL, Axis.TIME, Axis.DISPLACEMENT or Axis.ARRAY (optional)
+	 */
+	public Axis( final String type, final String name )
+	{
+		this( type, name, null, false );
+	}
+
+	/**
+	 * see https://ngff.openmicroscopy.org/0.4/index.html#axes-md
+	 * 
+	 * @param name must be unique across all name fields (typical: t,c,z,y,x)
+	 * @param type Axis.SPACE, Axis.CHANNEL, Axis.TIME, Axis.DISPLACEMENT or Axis.ARRAY (optional)
+	 * @param unit must be chosen from a list of allowed units, can otherwise lead to issues down the road, e.g. in Neuroglancer (optional)
+	 */
 	public Axis( final String type, final String name, final String unit )
 	{
 		this( type, name, unit, false );
