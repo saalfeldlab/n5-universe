@@ -509,9 +509,10 @@ public class N5Factory implements Serializable {
 
 		for (final StorageFormat format : StorageFormat.values()) {
 			try {
-				final N5Reader reader = openReader(format, access, containerPath);
-				if (!reader.getVersion().equals(EMPTY_VERSION))
-					return openWriter(format, access, containerPath);
+				try (final N5Reader reader = openReader(format, access, containerPath)) {
+					if (!reader.getVersion().equals(EMPTY_VERSION))
+						return openWriter(format, access, containerPath);
+				}
 			} catch (final Throwable ignored) {
 			}
 		}
