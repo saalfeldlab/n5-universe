@@ -9,6 +9,8 @@ import org.janelia.saalfeldlab.n5.GsonN5Reader;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
+import org.janelia.saalfeldlab.n5.shard.Shard;
+import org.janelia.saalfeldlab.n5.shard.ShardParameters;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
 
 import com.google.gson.Gson;
@@ -66,6 +68,14 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 
 		return n5.readBlock( originalPath( pathName ), datasetAttributes, gridPosition);
+	}
+	
+
+	@Override
+	public <A extends DatasetAttributes & ShardParameters> Shard<?> readShard(String datasetPath, A datasetAttributes,
+			long... shardGridPosition) {
+
+		return n5.readShard(originalPath(datasetPath), datasetAttributes, shardGridPosition);
 	}
 
 	@Override

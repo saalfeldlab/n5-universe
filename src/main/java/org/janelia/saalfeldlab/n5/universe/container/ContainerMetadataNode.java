@@ -151,6 +151,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	/**
 	 * Adds path attributes to this node and recursively to its children.
 	 *
+	 *
 	 * @param thisPath path to a node
 	 */
 	public void addPathsRecursive( String thisPath ) {
@@ -341,10 +342,6 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	@Override
-	public 	<T,A extends DatasetAttributes & ShardParameters> void writeShard( final String datasetPath, final A datasetAttributes, final Shard<T> shard) throws N5Exception {
-	}
-
-	@Override
 	public boolean deleteBlock(String pathName, long... gridPosition) {
 		return false;
 	}
@@ -353,6 +350,16 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 		return null;
 	}
+
+	@Override
+	public <A extends DatasetAttributes & ShardParameters> Shard<?> readShard(String datasetPath, A datasetAttributes,
+			long... shardGridPosition) {
+		return null;
+	}
+
+	@Override
+	public <T, A extends DatasetAttributes & ShardParameters> void writeShard(String datasetPath, A datasetAttributes,
+			Shard<T> shard) throws N5Exception { }
 
 	@SuppressWarnings("unchecked")
 	public static  <N extends GsonN5Reader & N5Reader > ContainerMetadataNode build(
@@ -505,7 +512,6 @@ public class ContainerMetadataNode implements GsonN5Writer {
 
 		return "attributes.json";
 	}
-
 
 
 }

@@ -118,7 +118,10 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	}
 
 	@Override
-	public 	<T,A extends DatasetAttributes & ShardParameters> void writeShard( final String datasetPath, final A datasetAttributes, final Shard<T> shard) throws N5Exception {
+	public <T, A extends DatasetAttributes & ShardParameters> void writeShard(String datasetPath, A datasetAttributes,
+			Shard<T> shard) throws N5Exception {
+
+		writer.writeShard(originalPath(datasetPath), datasetAttributes, shard);
 	}
 
 }
