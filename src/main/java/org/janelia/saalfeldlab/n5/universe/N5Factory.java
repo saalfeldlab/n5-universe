@@ -676,7 +676,7 @@ public class N5Factory implements Serializable {
 	}
 
 	public enum StorageFormat {
-		ZARR3(Pattern.compile("zarr3", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr3$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
+		ZARR3(Pattern.compile("zarr3", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr(3?)$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 		ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 		N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 		HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
