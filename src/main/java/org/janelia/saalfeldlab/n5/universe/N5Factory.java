@@ -27,7 +27,6 @@
 package org.janelia.saalfeldlab.n5.universe;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -49,6 +48,7 @@ import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Reader.Version;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
@@ -87,6 +87,8 @@ import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 public class N5Factory implements Serializable {
 
 	private static final N5Factory FACTORY = new N5Factory();
+
+	private static final Version EMPTY_VERSION = new Version(0,0,0);
 
 	private static final long serialVersionUID = -6823715427289454617L;
 	private final static Pattern HTTPS_SCHEME = Pattern.compile("http(s)?", Pattern.CASE_INSENSITIVE);
@@ -492,16 +494,62 @@ public class N5Factory implements Serializable {
 
 		return openN5Container(uri, this::openWriter, this::openWriter);
 	}
+	
+	/**
+	 * Opens a writer at the given containerPath that is compatible with any existing version information
+	 * at that path. E.g., if a zarr.json is present with version information, a ZarrV3Writer will be returned.
+	 * Returns null if no compatible data is found.
+	 *
+	 * @param access the key value access
+	 * @param containerPath a container path
+	 * @return an N5Writer, or null
+	 */
+	@Nullable
+	private N5Writer openCompatibleWriter(final KeyValueAccess access, final String containerPath) {
+
+		for (final StorageFormat format : StorageFormat.values()) {
+			try {
+				final N5Reader reader = openReader(format, access, containerPath);
+				if (!reader.getVersion().equals(EMPTY_VERSION))
+					return openWriter(format, access, containerPath);
+			} catch (final Throwable ignored) {
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Attempts to open a multiple N5Writers for the given container path and returns the 
+	 * first to succeed.
+	 *
+	 * @param access the key value access
+	 * @param containerPath the container path
+	 * @return an N5Writer, or null if all attempts failed
+	 */
+	@Nullable
+	private N5Writer openValidWriter(final KeyValueAccess access, final String containerPath) {
+
+		for (final StorageFormat format : StorageFormat.values()) {
+			try {
+				return openWriter(format, access, containerPath);
+			} catch (final Throwable ignored) {
+			}
+		}
+		return null;
+	}
 
 	private N5Writer openWriter(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, final String containerPath) {
 
 		if (storage == null) {
-			for (final StorageFormat format : StorageFormat.values()) {
-				try {
-					return openWriter(format, access, containerPath);
-				} catch (final Throwable ignored) {
-				}
-			}
+			
+			N5Writer writer = openCompatibleWriter(access, containerPath);
+			if (writer != null)
+				return writer;
+
+			writer = openValidWriter(access, containerPath);
+			if (writer != null)
+				return writer;
+
 			throw new N5Exception("Unable to open " + containerPath + " as N5Writer");
 
 		} else {
@@ -646,18 +694,6 @@ public class N5Factory implements Serializable {
 
 			this.schemePattern = schemePattern;
 			this.uriTest = test;
-		}
-
-		public static StorageFormat guessStorageFromUri(URI uri, KeyValueAccess kva) {
-
-			// TODO: for Diyi!
-			final N5URI n5uri = new N5URI(uri);
-			final String absolutePath = uri.getPath(); // not sure if this is correct
-			try {
-				final String[] listResults = kva.list(absolutePath); // get a list of file at this path given by this
-			} catch (IOException e) { }
-
-			return null;
 		}
 
 		public static StorageFormat guessStorageFromUri(URI uri) {

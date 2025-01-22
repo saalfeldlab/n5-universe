@@ -11,6 +11,8 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.universe.N5Factory.StorageFormat;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 import org.junit.Test;
 
 import java.io.File;
@@ -189,15 +191,13 @@ public class N5FactoryTests {
 			tmpEmptyDir.mkdirs();
 			tmpEmptyDir.deleteOnExit();
 
-
-
 			final Class<?>[] writerTypes = new Class[]{
 					null,
 					N5HDF5Writer.class,
 					ZarrKeyValueWriter.class,
-					ZarrKeyValueWriter.class,
-					ZarrKeyValueWriter.class,
-					ZarrKeyValueWriter.class
+					N5KeyValueWriter.class,
+					ZarrV3KeyValueWriter.class,
+					ZarrV3KeyValueWriter.class
 			};
 
 			for (int i = 0; i < paths.length; i++) {
@@ -224,9 +224,11 @@ public class N5FactoryTests {
 					"a_non_hdf5_file",
 					"an_hdf5_file",
 					"a_zarr_directory",
+					"a_zarr3_directory",
 					"an_n5_directory",
 					"an_empty_directory",
-					"a_non_existent_path"
+					"a_non_existent_path",
+					
 			};
 
 			final Path tmpPath = tmp.toPath();
@@ -237,18 +239,18 @@ public class N5FactoryTests {
 
 			factory.openWriter(StorageFormat.HDF5, tmpPath.resolve(paths[1]).toFile().getCanonicalPath()).close();
 			factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[2]).toFile().getCanonicalPath()).close();
-			factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[3]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.ZARR3, tmpPath.resolve(paths[3]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[4]).toFile().getCanonicalPath()).close();
 
-			final File tmpEmptyDir = tmpPath.resolve(paths[4]).toFile();
+			final File tmpEmptyDir = tmpPath.resolve(paths[5]).toFile();
 			tmpEmptyDir.mkdirs();
 			tmpEmptyDir.deleteOnExit();
-
-
 
 			final Class<?>[] readerTypes = new Class[]{
 					null,
 					N5HDF5Reader.class,
 					ZarrKeyValueReader.class,
+					ZarrV3KeyValueReader.class,
 					N5KeyValueReader.class,
 					N5KeyValueReader.class,
 					null
@@ -263,17 +265,6 @@ public class N5FactoryTests {
 			tmp.delete();
 		}
 	}
-	
-	@Test
-	public void testZarr2VsZarr3Disambiguation() throws IOException, URISyntaxException {
-
-		// TODO: Diyi!
-		final URI uri = new URI("src/test/resources/metadata.zarr?");
-		final FileSystemKeyValueAccess kva = new FileSystemKeyValueAccess(FileSystems.getDefault());
-
-		final StorageFormat format = N5Factory.StorageFormat.guessStorageFromUri(uri, kva);
-		assertEquals("zarr 2", StorageFormat.ZARR, format);
-	}
 
 	private void checkWriterTypeFromFactory(N5Factory factory, String uri, Class<?> expected, String messageSuffix) {
 
@@ -283,7 +274,7 @@ public class N5FactoryTests {
 		}
 
 		final N5Writer n5 = factory.openWriter(uri);
-		assertNotNull(	"null n5 for " + uri, n5);
+		assertNotNull("null n5 for " + uri, n5);
 		assertEquals(expected.getName() + messageSuffix, expected, n5.getClass());
 		n5.remove();
 	}
@@ -296,7 +287,7 @@ public class N5FactoryTests {
 		}
 
 		final N5Reader n5 = factory.openReader(uri);
-		assertNotNull(	"null n5 for " + uri, n5);
+		assertNotNull("null n5 for " + uri, n5);
 		assertEquals(expected.getName() + messageSuffix, expected, n5.getClass());
 	}
 }
