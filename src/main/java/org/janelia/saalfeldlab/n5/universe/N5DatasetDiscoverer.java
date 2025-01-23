@@ -341,10 +341,12 @@ public class N5DatasetDiscoverer {
 		// this may be a group (e.g. multiscale pyramid) try to parse groups
 		if ((node.getMetadata() == null) && !node.childrenList().isEmpty() && groupParsers != null) {
 			for (final N5MetadataParser<?> gp : groupParsers) {
-				final Optional<? extends N5Metadata> groupMeta = gp.apply(n5, node);
-				groupMeta.ifPresent(node::setMetadata);
-				if (groupMeta.isPresent())
-					break;
+				try {
+					final Optional<? extends N5Metadata> groupMeta = gp.apply(n5, node);
+					groupMeta.ifPresent(node::setMetadata);
+					if (groupMeta.isPresent())
+						break;
+				} catch(Exception ignored ) {}
 			}
 		}
 	}
