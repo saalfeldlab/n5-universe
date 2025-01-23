@@ -18,7 +18,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.AxisAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.DatasetAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.NgffSingleScaleAxesMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.*;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformationAdapter;
@@ -29,16 +28,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>, N5MetadataWriter<OmeNgffMetadata> {
+public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Metadata>, N5MetadataWriter<OmeNgffV05Metadata> {
 
 	private final Gson gson;
 
-	public OmeNgffMetadataParser(final boolean reverse) {
+	public OmeNgffV05MetadataParser(final boolean reverse) {
 
 		gson = gsonBuilder().create();
 	}
 
-	public OmeNgffMetadataParser() {
+	public OmeNgffV05MetadataParser() {
 
 		this(false);
 	}
@@ -53,7 +52,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 	}
 
 	@Override
-	public Optional<OmeNgffMetadata> parseMetadata(final N5Reader n5, final N5TreeNode node) {
+	public Optional<OmeNgffV05Metadata> parseMetadata(final N5Reader n5, final N5TreeNode node) {
 
 		OmeNgffMultiScaleMetadata[] multiscales;
 		try {
@@ -115,11 +114,11 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			multiscales[j] = new OmeNgffMultiScaleMetadata(ms, msChildrenMeta);
 		}
 
-		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales));
+		return Optional.of(new OmeNgffV05Metadata(node.getPath(), multiscales));
 	}
 
 	@Override
-	public void writeMetadata(final OmeNgffMetadata t, final N5Writer n5, final String groupPath) throws Exception {
+	public void writeMetadata(final OmeNgffV05Metadata t, final N5Writer n5, final String groupPath) throws Exception {
 
 		final OmeNgffMultiScaleMetadata[] ms = t.multiscales;
 		final JsonElement jsonElem = gson.toJsonTree(ms);

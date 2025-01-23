@@ -10,11 +10,11 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTrans
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
 
-public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAxesMetadata>
+public class OmeNgffV05Metadata extends SpatialMultiscaleMetadata<NgffSingleScaleAxesMetadata>
 {
 	public final OmeNgffMultiScaleMetadata[] multiscales;
 
-	public OmeNgffMetadata(final String path, final OmeNgffMultiScaleMetadata[] multiscales)
+	public OmeNgffV05Metadata(final String path, final OmeNgffMultiScaleMetadata[] multiscales)
 	{
 		// assumes children metadata are the same for all multiscales, which should be true
 		super(path, multiscales[0].getChildrenMetadata());
@@ -33,7 +33,7 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 	 * @param translations array of translations. size: [numScales][numDimensions]. May be null.
 	 * @return OmeNgffMetadata
 	 */
-	public static OmeNgffMetadata buildForWriting( final int numDimensions,
+	public static OmeNgffV05Metadata buildForWriting( final int numDimensions,
 			final String name,
 			final Axis[] axes,
 			final String[] scalePaths,
@@ -43,8 +43,7 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 		// TODO make this a constructor? (yes, says Caleb, and John)
 
 		assert scalePaths.length == scales.length;
-
-    assert translations == null || scalePaths.length == translations.length;
+		assert translations == null || scalePaths.length == translations.length;
 
 		final int numScales = scalePaths.length;
 		final String version = "0.5";
@@ -70,7 +69,7 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 				type, version, axes,
 				datasets, null, cts, null);
 
-		return new OmeNgffMetadata("", new OmeNgffMultiScaleMetadata[]{ ms });
+		return new OmeNgffV05Metadata("", new OmeNgffMultiScaleMetadata[]{ ms });
 	}
 
 }
