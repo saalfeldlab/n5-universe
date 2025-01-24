@@ -365,13 +365,37 @@ public class N5Factory implements Serializable {
 		return openN5Container(uri, this::openReader, this::openReader);
 	}
 
+	/**
+	 * Opens a reader at the given containerPath that is compatible with any existing version information
+	 * at that path. E.g., if a zarr.json is present with version information, a Zarr v2 reader will be returned,
+	 * and if a .zgroup is present, a Zarr v2 reader will be returned. Returns null if no compatible data is found.
+	 *
+	 * @param access the key value access
+	 * @param containerPath a container path
+	 * @return an N5Reader, or null
+	 */
+	@Nullable
+	private N5Reader openCompatibleReader(final KeyValueAccess access, final String containerPath) {
+
+		for (final StorageFormat format : StorageFormat.values()) {
+			try {
+				try (final N5Reader reader = openReader(format, access, containerPath)) {
+					if (!reader.getVersion().equals(EMPTY_VERSION))
+						return reader;
+				}
+			} catch (final Throwable ignored) {
+			}
+		}
+		return null;
+	}
+
 	private N5Reader openReader(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, String containerPath) {
 
 		if (storage == null) {
 			for (final StorageFormat format : StorageFormat.values()) {
 				try {
 					return openReader(format, access, containerPath);
-				} catch (final Throwable e) {
+				} catch (final Throwable ignored) {
 				}
 			}
 			throw new N5Exception("Unable to open " + containerPath + " as N5Reader");
@@ -510,9 +534,11 @@ public class N5Factory implements Serializable {
 		for (final StorageFormat format : StorageFormat.values()) {
 			try {
 				try (final N5Reader reader = openReader(format, access, containerPath)) {
-					if (!reader.getVersion().equals(EMPTY_VERSION))
+					if (!reader.getVersion().equals(EMPTY_VERSION)) {
+						reader.close(); // close the reader before opening the writer
 						return openWriter(format, access, containerPath);
-				}
+					}
+				} // close the reader when done with it
 			} catch (final Throwable ignored) {
 			}
 		}
@@ -543,10 +569,17 @@ public class N5Factory implements Serializable {
 
 		if (storage == null) {
 			
+			// if the container path exists, return a writer of the same format that already exists
 			N5Writer writer = openCompatibleWriter(access, containerPath);
 			if (writer != null)
 				return writer;
+	
+			// use the extension to select a format
+			final StorageFormat storageGuess = StorageFormat.guessStorageFromUri(parseUriFromString(containerPath));
+			if (storageGuess != null)
+				return openWriter(storageGuess, access, containerPath);
 
+			// finally, return the first valid format
 			writer = openValidWriter(access, containerPath);
 			if (writer != null)
 				return writer;
@@ -600,25 +633,26 @@ public class N5Factory implements Serializable {
 			final URI uri,
 			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
 
-		final KeyValueAccess kva = getKeyValueAccess(uri);
-		if (kva == null)
-			throw new N5Exception("Cannot get KeyValueAccess at " + uri);
-		return openWithKva.apply(storageFormat, kva, uri.toString());
+		// in the cae of HDF5, the KeyValueAccess may be null
+		return openWithKva.apply(storageFormat, getKeyValueAccess(uri), uri.toString());
 	}
 
 	private <T extends N5Reader> T openN5Container(
 			final String containerUri,
 			final BiFunction<StorageFormat, URI, T> openWithFormat,
 			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
+		
 
-		final Pair<StorageFormat, URI> storageAndUri;
+		final Pair<StorageFormat, String> storageAndUri;
+		URI uri;
 		try {
-			storageAndUri = StorageFormat.parseUri(containerUri);
-		} catch (final URISyntaxException e) {
+			storageAndUri = StorageFormat.getStorageFromNestedScheme(containerUri);
+			uri = parseUriFromString(storageAndUri.getB());
+		} catch (final N5Exception e) {
 			throw new N5Exception("Unable to open " + containerUri + " as N5 Container", e);
 		}
 		final StorageFormat format = storageAndUri.getA();
-		final URI uri = storageAndUri.getB();
+
 		if (format != null)
 			return openWithFormat.apply(format, uri);
 		else
