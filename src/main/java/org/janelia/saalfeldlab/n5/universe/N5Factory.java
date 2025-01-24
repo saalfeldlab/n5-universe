@@ -410,7 +410,7 @@ public class N5Factory implements Serializable {
 			for (final StorageFormat format : orderedStorageFormats()) {
 				try {
 					return openReader(format, access, location);
-				} catch (final Throwable e) {
+				} catch (final Throwable ignored) {
 				}
 			}
 			throw new N5Exception("Unable to open " + location + " as N5Reader");
