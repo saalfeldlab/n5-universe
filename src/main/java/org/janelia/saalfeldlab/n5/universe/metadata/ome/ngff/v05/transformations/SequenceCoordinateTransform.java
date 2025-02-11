@@ -7,18 +7,25 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.serialization.NameConfig;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.RealTransform;
 import net.imglib2.realtransform.RealTransformSequence;
-//import net.imglib2.realtransform.SubsetRealTransform;
 
+@NameConfig.Name("sequence")
 public class SequenceCoordinateTransform extends AbstractCoordinateTransform<RealTransformSequence> implements RealCoordinateTransform<RealTransformSequence> {
 
 	public static final String TYPE = "sequence";
 
+	@NameConfig.Parameter()
 	private final CoordinateTransform<?>[] transformations;
+
+	protected SequenceCoordinateTransform() {
+		super(TYPE);
+		transformations = null;
+	}
 
 	public SequenceCoordinateTransform(
 			final CoordinateTransform<?>[] transformations) {
@@ -47,56 +54,13 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 			this.transformations[i] = transformationList.get( i );
 	}
 
-//	public RealTransformSequence getTransformSubspaces()
-//	{
-//		System.out.println( "getTransform" );
-//		final ArrayList< String[] > axOrders = axisOrdersForTransform( getTransformations(), getOutputSpaceObj().getAxisLabels() );
-//		for( final String[] axes : axOrders )
-//			System.out.println(String.join(" ", axes ));
-//
-//		System.out.println( "" );
-//
-//		final ArrayList< int[] > inIdxes = inputIndexesFromAxisOrders( getTransformations(), axOrders );
-//		for( final int[] idxs : inIdxes )
-//			System.out.println( Arrays.toString( idxs ));
-//
-//		System.out.println( "" );
-//
-//		final ArrayList< int[] > outIdxes = outputIndexesFromAxisOrders( getTransformations(), axOrders );
-//		for( final int[] idxs : outIdxes )
-//			System.out.println( Arrays.toString( idxs ));
-//
-//		final RealTransformSequence totalTransform = new RealTransformSequence();
-//		final CoordinateTransform[] tforms = getTransformations();
-//		for( int i = 0; i < tforms.length; i++ )
-//		{
-//			final int[] inIdx = inIdxes.get( i );
-//			final int[] outIdx = outIdxes.get( i );
-//			System.out.println( "inIdx : " + Arrays.toString( inIdx ));
-//			System.out.println( "outIdx: " + Arrays.toString( outIdx ));
-//
-//			/*
-//			 * The else part of this statement would be nice to have but doesn't work in some cases:
-//			 * e.g. SubspaceTransformsDemo.ij2xy
-//			 * TODO explain further somewhere
-//			 */
-////			if( isReindexed( inIdx ) || isReindexed( outIdx ))
-//				totalTransform.add( new SubsetRealTransform( tforms[i].getTransform(), inIdx, outIdx ));
-////			else
-////				totalTransform.add( tforms[i].getTransform() );
-//		}
-//
-//		return totalTransform;
-//	}
-
 	@Override
 	public RealTransformSequence getTransform()
 	{
 		// with permutations
-		System.out.println( "getTransform" );
-		final ArrayList< String[] > axOrders = axisOrdersForTransform( getTransformations(), getOutputSpaceObj().getAxisNames() );
-		for( final String[] axes : axOrders )
-			System.out.println(String.join(" ", axes ));
+//		final ArrayList< String[] > axOrders = axisOrdersForTransform( getTransformations(), getOutputSpaceObj().getAxisNames() );
+//		for( final String[] axes : axOrders )
+//			System.out.println(String.join(" ", axes ));
 
 		final RealTransformSequence totalTransform = new RealTransformSequence();
 		final CoordinateTransform[] tforms = getTransformations();
@@ -136,14 +100,12 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 				return null;
 		}
 
-
 //		Arrays.stream( transformations )
 //			.map( NgffCoordinateTransformation::create )
 //			.forEach( x -> affine.preConcatenate( ( AffineGet ) x.getTransform() ));
 
 		return affine;
 	}
-
 
 	public RealTransformSequence getTransformNoSubsets()
 	{
@@ -172,98 +134,6 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 	public CoordinateTransform<?>[] getTransformations() {
 		return transformations;
 	}
-
-//	@Override
-//	public AxisPoint applyAxes( final AxisPoint src )
-//	{
-//		System.out.println( " ");
-//		System.out.println( "sequence apply axes");
-//		System.out.println( "src space: " + src );
-//		AxisPoint dst = src;
-//		for( final CoordinateTransform<?> t : transformations )
-//		{
-//			dst.setAxisOrder( t.getInputAxes() );
-//			dst = t.applyAxes(dst);
-//			dst.setAxisOrder( t.getOutputAxes() );
-//		}
-//		dst.setAxisOrder( getOutputAxes() );
-//		return dst;
-//	}
-//
-//	@Override
-//	public RealCoordinate applyAppend( final RealCoordinate src )
-//	{
-//		System.out.println( " ");
-//		System.out.println( "sequence apply append");
-//		System.out.println( "src space: " + src.getSpace() );
-//		RealCoordinate dst = src;
-//		for( final CoordinateTransform<?> t : transformations )
-//		{
-//			dst = t.applyAppend(dst);
-//			System.out.println( " tmp space: " + dst.getSpace() );
-//		}
-//		return dst;
-//	}
-//
-//	@Override
-//	public RealCoordinate apply( final RealCoordinate src, final RealCoordinate dst )
-//	{
-//
-//		int N = dst.numDimensions() > src.numDimensions() ?
-//				dst.numDimensions() : src.numDimensions();
-//
-//		// this already is not enough since the
-//		// number of dimensions may increase at an intermediate step
-//		// TODO make a test for this and fix
-//		final RealCoordinate tmp1 = new RealCoordinate( N );
-//		final RealCoordinate tmp2 = new RealCoordinate( N );
-//		RealCoordinate tmp = tmp1;
-//		RealCoordinate other = tmp2;
-//
-//		int i = 0;
-//		for( final CoordinateTransform<?> t : transformations )
-//		{
-//		    final int nDimsIncrease = t.getTransform().numTargetDimensions() - t.getTransform().numSourceDimensions();
-//			if( nDimsIncrease > 0 )
-//			{
-//				N += nDimsIncrease;
-////				RealCoordinate b = new RealCoordinate( N );
-////				a.setPosition( tmp );
-////				a.setSpace( );
-////
-////				tmp = a;
-////				other = b;
-//			}
-//
-//			if( other.numDimensions() < N )
-//			{
-//				other = new RealCoordinate( N );
-//			}
-//
-//			if( i == 0 )
-//				t.apply(src, tmp);
-//			else if( i == transformations.length - 1 )
-//				t.apply(tmp, dst);
-//			else
-//			{
-//				t.apply(tmp, other);
-//
-//				if( tmp == tmp1 )
-//				{
-//					other = tmp1;
-//					tmp = tmp2;
-//				}
-//				else
-//				{
-//					other = tmp2;
-//					tmp = tmp1;
-//				}
-//			}
-//			i++;
-//		}
-//
-//		return dst;
-//	}
 
 	/**
 	 * Checks if the list of transformations is valid.
@@ -414,19 +284,7 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 
 		Collections.reverse( cAxisList );
 		return cAxisList;
-
-//		System.out.println( " ");
-//		for( HashSet<String> s : cAxisList )
-//			System.out.println(String.join(" ", s) );
-//
-//		Collections.reverse( cAxisList );
-//
-//		System.out.println( " ");
-//		for( HashSet<String> s : cAxisList )
-//			System.out.println(String.join(" ", s) );
-
 	}
-
 
 	private static <T> int firstIndex( final List<T> list, final List<T> search )
 	{
