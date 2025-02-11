@@ -14,13 +14,13 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 
 	protected String type;
 
-	@NameConfig.Parameter
+	@NameConfig.Parameter(optional = true)
 	protected String name;
 
-	@NameConfig.Parameter
+	@NameConfig.Parameter(optional = true)
 	protected String input;
 
-	@NameConfig.Parameter
+	@NameConfig.Parameter(optional = true)
 	protected String output;
 
 	// implement
