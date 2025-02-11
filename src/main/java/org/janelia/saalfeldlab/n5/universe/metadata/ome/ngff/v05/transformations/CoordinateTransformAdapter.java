@@ -2,6 +2,8 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformation
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
@@ -66,11 +68,6 @@ public class CoordinateTransformAdapter
 			break;
 		case("affine"):
 			out = context.deserialize( jobj, AffineCoordinateTransform.class );
-//			out = AffineCoordinateTransform.deserialize(context, jobj);
-
-			break;
-		case("matrix"):
-			out = context.deserialize( jobj, MatrixCoordinateTransform.class );
 			break;
 		case("thin-plate-spline"):
 			out = context.deserialize( jobj, ThinPlateSplineCoordinateTransform.class );
@@ -211,115 +208,39 @@ public class CoordinateTransformAdapter
 		return elem;
 	}
 
-	public static void test1()
-	{
+	public static JsonElement serializeGeneric( final CoordinateTransform<?> ct ) {
 
-//		final String affineString = "{"
-//				+ "\"type\": \"affine\","
-//				+ "\"affine\" : [ 11.0, 0.0, 0.1, 0.0, 12.0, 0.2 ]"
-//				+ "}";
-//
-//		final String scaleString = "{"
-//				+ "\"type\": \"scale\","
-//				+ "\"scale\" : [ 11.0, -8.0 ]"
-//				+ "}";
-//
-//		final String translationString = "{"
-//				+ "\"type\": \"translation\","
-//				+ "\"translation\" : [ -0.9, 2.1 ]"
-//				+ "}";
-//
-//		final String idString = "{"
-//				+ "\"type\": \"identity\""
-//				+ "}";
-//
-//		final String seqString = "{"
-//				+ "\"type\": \"sequence\","
-//				+ "\"transformations\": ["
-//				+ scaleString + "," + translationString
-//				+ "]}";
-//
-//		final CoordinateTransformAdapter adapter = new CoordinateTransformAdapter( null );
-//
-//		final GsonBuilder gsonBuilder = new GsonBuilder();
-////		gsonBuilder.registerTypeHierarchyAdapter(SpatialTransform.class, adapter );
-//		gsonBuilder.registerTypeAdapter( CoordinateTransform.class, adapter );
-//		gsonBuilder.disableHtmlEscaping();
-//
-//		final Gson gson = gsonBuilder.create();
-//
-//		CoordinateTransform parsedAffine = gson.fromJson(affineString, CoordinateTransform.class);
-//		System.out.println( affineString );
-//		System.out.println( parsedAffine );
-//		System.out.println( gson.toJson( parsedAffine ));
-//		System.out.println( " " );
-//
-//		CoordinateTransform parsedScale = gson.fromJson(scaleString, CoordinateTransform.class);
-//		System.out.println( scaleString );
-//		System.out.println( parsedScale );
-//		System.out.println( gson.toJson( parsedScale));
-//		System.out.println( " " );
-//
-//		CoordinateTransform parsedTranslation = gson.fromJson(translationString, CoordinateTransform.class);
-//		System.out.println( translationString );
-//		System.out.println( parsedTranslation );
-//		System.out.println( gson.toJson( parsedTranslation));
-//		System.out.println( " " );
-//
-//		CoordinateTransform parsedId = gson.fromJson(idString, CoordinateTransform.class);
-//		System.out.println( idString );
-//		System.out.println( parsedId );
-//		System.out.println( gson.toJson( parsedId ));
-//		System.out.println( " " );
+		final JsonObject json = new JsonObject();
+		serializeString(json, CoordinateTransform.TYPE_KEY, ct::getType);
+		serializeString(json, CoordinateTransform.NAME_KEY, ct::getName);
 
+		serializeStringArray( json, CoordinateTransform.INPUT_KEY, ct::getInputAxes);
+		serializeStringArray( json, CoordinateTransform.OUTPUT_KEY, ct::getOutputAxes);
 
-//		CoordinateTransform parsedSeq = gson.fromJson(seqString, CoordinateTransform.class);
-//		System.out.println( seqString );
-//		System.out.println( parsedSeq );
-//		System.out.println( gson.toJson( parsedSeq ));
-//		System.out.println( " " );
+		serializeString(json, CoordinateTransform.INPUT_KEY, ct::getInput);
+		serializeString(json, CoordinateTransform.OUTPUT_KEY, ct::getOutput);
 
-//		ScaleCoordinateTransform s = new ScaleCoordinateTransform( new double[] {1, 2 });
-//		TranslationCoordinateTransform t = new TranslationCoordinateTransform( new double[] {3, 4 });
-//		SequenceCoordinateTransform seq = new SequenceCoordinateTransform( new RealCoordinateTransform[] { s, t }, "", "" );
-//
-//		System.out.println( gson.toJson(seq) );
+		return json;
+	}
+	
+	private static void serializeString(JsonObject json, final String key, Supplier<String> getter) {
+
+		final String val = getter.get();
+		if( val != null )
+			json.addProperty(key, val);
 
 	}
 
-	public static void seqTest()
-	{
-		final String scaleString = "{"
-				+ "\"type\": \"scale\","
-				+ "\"scale\" : [ 11.0, -8.0 ]"
-				+ "}";
+	private static void serializeStringArray(JsonObject json, final String key, Supplier<String[]> getter) {
 
-		final String translationString = "{"
-				+ "\"type\": \"translation\","
-				+ "\"translation\" : [ -0.9, 2.1 ]"
-				+ "}";
+		final String[] val = getter.get();
+		if( val != null ) {
+			final JsonArray arr = new JsonArray();
+			Arrays.stream(val).forEach( s -> { arr.add(s); });
+			json.add(key, arr);
+		}
 
-		final String seqString = "{"
-				+ "\"name\": \"myseq\","
-				+ "\"output_space\": \"out\","
-				+ "\"type\": \"sequence\","
-				+ "\"transformations\": ["
-				+ scaleString + "," + translationString
-				+ "]}";
-
-		final GsonBuilder gsonBuilder = new GsonBuilder();
-		gsonBuilder.registerTypeAdapter(CoordinateTransform.class, new CoordinateTransformAdapter(null));
-		final Gson gson = gsonBuilder.create();
-
-
-		final CoordinateTransform ct = gson.fromJson(seqString, CoordinateTransform.class);
-//		SequenceCoordinateTransform ct = gson.fromJson(seqString, SequenceCoordinateTransform.class);
-		System.out.println( ct );
 	}
 
-	public static void main( final String[] args )
-	{
-		seqTest();
-	}
 
 }

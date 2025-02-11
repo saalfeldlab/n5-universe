@@ -19,6 +19,7 @@ import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Unit;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AffineCoordinateTransformAdapter;
@@ -51,35 +52,6 @@ import net.imglib2.util.ValuePair;
 import net.imglib2.view.Views;
 
 public class Common {
-
-	public static void main( String[] args )
-	{
-//		final double[] flatMtx = DoubleStream.iterate(0, x -> x + 1 ).limit(12).toArray();
-//		final double[] flatMtx = new double[] {
-//				1.0, 0.02,  0.03, 104,
-//				0.05, 6.0,  0.07, 108,
-//				0.09, 0.10, 11.0, 112
-//		};
-		final double[] flatMtx = new double[] {
-				1.0, 0.0, 0.0, 10,
-				0.0, 2.0, 0.0, 20,
-				0.0, 0.0, 3.0, 30
-		};
-		System.out.println( Arrays.toString(flatMtx));
-
-		final AffineTransform affine3 = new AffineTransform(flatMtx);
-		System.out.println( Arrays.toString(affine3.getRowPackedCopy()));
-
-		final AffineGet affine2a = removeDimension( 0, affine3 );
-		System.out.println( Arrays.toString(affine2a.getRowPackedCopy()));
-
-		final AffineGet affine2b = removeDimension( 1, affine3 );
-		System.out.println( Arrays.toString(affine2b.getRowPackedCopy()));
-
-		final AffineGet affine2c = removeDimension( 2, affine3 );
-		System.out.println( Arrays.toString(affine2c.getRowPackedCopy()));
-
-	}
 
 	public static AffineGet removeDimension( final int dim, final AffineGet in )
 	{
@@ -166,6 +138,14 @@ public class Common {
 					new double[]{ 0, 0, 0});
 			tgt.preConcatenate(c);
 		}
+	}
+
+	public static CoordinateSystem makeSpace( final String name, final String type, final Unit unit, final String... labels)
+	{
+		return new CoordinateSystem( name,
+				Arrays.stream(labels)
+					.map( x -> new Axis(x, type, unit.name() ))
+					.toArray( Axis[]::new ));
 	}
 
 	public static CoordinateSystem makeSpace( final String name, final String type, final String unit, final String... labels)

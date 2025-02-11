@@ -1,13 +1,17 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Optional;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
@@ -17,6 +21,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalSpatialDatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.SpatialMetadataCanonical;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.transforms.AffineSpatialTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.transforms.ScaleOffsetSpatialTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.transforms.ScaleSpatialTransform;
@@ -37,6 +42,8 @@ import net.imglib2.img.basictypeaccess.array.DoubleArray;
 import net.imglib2.realtransform.AbstractScale;
 import net.imglib2.realtransform.AbstractTranslation;
 import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.ScaleAndTranslation;
 import net.imglib2.realtransform.ScaleGet;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
@@ -69,7 +76,6 @@ public class TransformTests {
 	{
 		final URL configUrl = TransformTests.class.getResource( "/n5.jq" );
 		final File baseDir = new File( configUrl.getFile() ).getParentFile();
-		System.out.println( "baseDir: " + baseDir );
 		containerDir = new File( baseDir, "transforms.n5" );
 
 		try {
@@ -166,6 +172,78 @@ public class TransformTests {
 		n5.setAttribute("img", "spatialTransform", transform);
 
 		testParsedTransformSeq("img");
+	}
+
+	@Test
+	public void testFlatten() {
+
+		// 2D
+		final double[] flat2d = new double[] {1,2,3,4,5,6};
+		final double[][] mtx2d = new double[][]{
+			{1,2,3},
+			{4,5,6},
+		};
+
+		assertArrayEquals(flat2d, TransformUtils.flatten(mtx2d), 1e-6);
+
+		final double[][] unFlatten2d = TransformUtils.toAffineMatrix(flat2d);
+		assertEquals( 2, unFlatten2d.length);
+		assertEquals( 3, unFlatten2d[0].length);
+		assertArrayEquals(mtx2d[0], unFlatten2d[0], 1e-6);
+		assertArrayEquals(mtx2d[1], unFlatten2d[1], 1e-6);
+
+		// 3D
+		final double[] flat3d = new double[] {
+				1, 2, 3, 4,
+				5, 6, 7, 8,
+				9,10,11,12
+		};
+
+		final double[][] mtx3d = new double[][]{
+				{1, 2, 3, 4},
+				{5, 6, 7, 8},
+				{9,10,11,12}
+		};
+
+		assertArrayEquals(flat3d, TransformUtils.flatten(mtx3d), 1e-6);
+
+		final double[][] unFlatten3d = TransformUtils.toAffineMatrix(flat3d);
+		assertEquals( 3, unFlatten3d.length);
+		assertEquals( 4, unFlatten3d[0].length);
+		assertArrayEquals(mtx3d[0], unFlatten3d[0], 1e-6);
+		assertArrayEquals(mtx3d[1], unFlatten3d[1], 1e-6);
+		assertArrayEquals(mtx3d[2], unFlatten3d[2], 1e-6);
+	}
+
+	@Test
+	public void testAffineCoordinateReversal() {
+
+		final double[] pt = new double[] {10, 1};
+		final double[] ptR = new double[] {1, 10};
+
+		final double[] res = new double[2];
+		final double[] resR = new double[2];
+
+		final double[][] affineMtx = new double[][]{
+			{3,1,5},
+			{2,4,6},
+		};
+
+		final double[][] affineMtxR = TransformUtils.reverseCoordinates(affineMtx);
+		assertArrayEquals( new double[] {4,2,6}, affineMtxR[0], 1e-6);
+		assertArrayEquals( new double[] {1,3,5}, affineMtxR[1], 1e-6);
+
+		AffineTransform2D affine = new AffineTransform2D();
+		affine.set(affineMtx);
+		affine.apply(pt, res);
+
+		AffineTransform2D affineR = new AffineTransform2D();
+		affineR.set(affineMtxR);
+		affineR.apply(ptR, resR);
+
+		// ensure that reversed inputs result in reversed outputs
+		ArrayUtils.reverse(resR);
+		assertArrayEquals(res, resR, 1e-6);
 	}
 
 	private void testParsedTransformSeq( final String dataset )

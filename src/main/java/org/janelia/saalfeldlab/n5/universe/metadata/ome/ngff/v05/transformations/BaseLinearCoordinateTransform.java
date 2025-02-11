@@ -15,7 +15,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 public class BaseLinearCoordinateTransform<T extends AffineGet> extends AbstractLinearCoordinateTransform<T,double[]> 
 	implements InvertibleCoordinateTransform<T> {
 
-	protected JsonElement affine;
+	protected JsonElement affineJson;
 
 	public transient double[] affineFlat;
 
@@ -34,7 +34,7 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 
 	public BaseLinearCoordinateTransform( final BaseLinearCoordinateTransform<T> other ) {
 		super(other.type, other.path);
-		this.affine = other.affine;
+		this.affineJson = other.affineJson;
 		this.affineFlat = other.affineFlat;
 		this.transform = other.transform;
 		this.name = other.name;
@@ -81,22 +81,26 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 
 	public JsonElement getJsonParameter() {
 
-		return affine;
+		return affineJson;
 	}
 
 	protected void buildJsonParameter() {
 
-		if( affineFlat != null )
-			affine = new Gson().toJsonTree(affineFlat);
+		if (affineFlat != null) {
+			final double[][] affineFOrder = TransformUtils.toAffineMatrix(affineFlat);
+			final double[][] affineCOrder = TransformUtils.reverseCoordinates(affineFOrder);
+			affineJson = (new Gson()).toJsonTree(affineCOrder);
+		}
 	}
 
 	public void interpretParameters() {
 
-		if (!affine.isJsonArray())
+		final JsonElement affineJson = getJsonParameter();
+		if (!affineJson.isJsonArray())
 			return;
 
-		final JsonArray arr = affine.getAsJsonArray();
-		final JsonElement e0 = affine.getAsJsonArray().get(0);
+		final JsonArray arr = affineJson.getAsJsonArray();
+		final JsonElement e0 = affineJson.getAsJsonArray().get(0);
 		if (e0.isJsonPrimitive()) {
 			affineFlat = new double[arr.size()];
 			for (int i = 0; i < arr.size(); i++)
@@ -115,7 +119,7 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 					nested[row][col] = jsonRowArray.get(col).getAsDouble();
 			}
 
-			affineFlat = TransformUtils.flatten(nested);
+			affineFlat = TransformUtils.flatten(TransformUtils.reverseCoordinates(nested));
 		}
 	}
 
@@ -161,8 +165,12 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 	@Override
 	public T getTransform() {
 
-		if (affine != null && transform == null)
+		if (getJsonParameter() != null && affineFlat == null)
+			interpretParameters();
+
+		if (affineFlat != null)
 			buildTransform(affineFlat);
+
 		return transform;
 	}
 
@@ -171,7 +179,7 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 
 		if (affineFlat != null)
 			return getTransform();
-		else if (affine != null) {
+		else if (affineJson != null) {
 			interpretParameters();
 			if (affineFlat != null)
 				return getTransform();

@@ -15,6 +15,10 @@ public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> e
 
 	protected transient boolean serializeFlatArray = true;
 
+	protected AbstractLinearCoordinateTransform() {
+		super();
+	}
+
 	public AbstractLinearCoordinateTransform( final String type ) {
 		super( type );
 	}

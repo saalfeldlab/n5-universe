@@ -1,8 +1,11 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import org.janelia.saalfeldlab.n5.universe.serialization.NameConfig;
+
 import net.imglib2.realtransform.InvertibleRealTransform;
 import net.imglib2.realtransform.InvertibleRealTransformSequence;
 
+@NameConfig.Name("identity")
 public class IdentityCoordinateTransform extends AbstractCoordinateTransform<InvertibleRealTransform>
 	implements RealCoordinateTransform<InvertibleRealTransform> , InvertibleCoordinateTransform<InvertibleRealTransform> {
 

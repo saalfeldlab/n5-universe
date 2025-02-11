@@ -1,5 +1,8 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import org.janelia.saalfeldlab.n5.universe.serialization.NameConfig;
+import org.janelia.saalfeldlab.n5.universe.serialization.N5Annotations;
+
 import org.janelia.saalfeldlab.n5.N5Reader;
 
 import net.imglib2.realtransform.Scale;
@@ -7,13 +10,21 @@ import net.imglib2.realtransform.Scale2D;
 import net.imglib2.realtransform.Scale3D;
 import net.imglib2.realtransform.ScaleGet;
 
+@NameConfig.Name("scale")
 public class ScaleCoordinateTransform extends AbstractLinearCoordinateTransform<ScaleGet,double[]> implements InvertibleCoordinateTransform<ScaleGet> {
 
 	public static final String TYPE = "scale";
 
+	@N5Annotations.ReverseArray
+	@NameConfig.Parameter()
 	public double[] scale;
 
 	public transient ScaleGet transform;
+
+	private ScaleCoordinateTransform() {
+		// for serialization
+		super();
+	}
 
 	public ScaleCoordinateTransform( final double[] scale ) {
 		super(TYPE, null, null, null );

@@ -1,6 +1,8 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.serialization.N5Annotations;
+import org.janelia.saalfeldlab.n5.universe.serialization.NameConfig;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.Translation;
@@ -8,15 +10,22 @@ import net.imglib2.realtransform.Translation2D;
 import net.imglib2.realtransform.Translation3D;
 import net.imglib2.realtransform.TranslationGet;
 
+@NameConfig.Name("translation")
 public class TranslationCoordinateTransform extends AbstractLinearCoordinateTransform<TranslationGet,double[]>
 	implements InvertibleCoordinateTransform<TranslationGet> {
 
 	public static final String TYPE = "translation";
 
+	@N5Annotations.ReverseArray
+	@NameConfig.Parameter()
 	public double[] translation;
 
 	public transient AffineGet transform;
 
+	private TranslationCoordinateTransform() {
+		// for serialization
+		super();
+	}
 
 	public TranslationCoordinateTransform( final double[] translation) {
 		this("", translation);

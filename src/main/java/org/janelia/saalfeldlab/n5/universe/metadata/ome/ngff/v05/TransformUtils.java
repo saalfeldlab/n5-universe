@@ -46,6 +46,21 @@ public class TransformUtils
 		return mtx;
 	}
 
+	public static double[][] affineToRotation( final AffineGet affine ) {
+
+		if (affine == null)
+			return null;
+
+		// AffineGets always have numSourceDimensions == numTargetDimensions
+		final int N = affine.numSourceDimensions();
+		final double[][] mtx = new double[N][N];
+		for( int i = 0; i < N; i++ )
+			for( int j = 0; j < N; j++ )
+				mtx[i][j] = affine.get(i, j);
+
+		return mtx;
+	}
+
 	public static AffineTransform3D spatialTransform3D( AffineGet affine, Axis[] axes )
 	{
 		final int numSpatialDims = (int)Arrays.stream(axes)
@@ -130,7 +145,7 @@ public class TransformUtils
 	 * @param arr the 2d array
 	 * @return a flattened version
 	 */
-	public static double[] flatten( final double[][] arr ) {
+	public static double[] flatten(final double[][] arr) {
 
 		final double[] out = new double[arr.length * arr[0].length];
 		int k = 0;
@@ -141,8 +156,44 @@ public class TransformUtils
 		return out;
 	}
 
+	public static double[][] toAffineMatrix(double[] flatAffine) {
+
+		int N = flatAffine.length;
+		int nd = (int) Math.floor(Math.sqrt(N));
+
+		if (N != nd * (nd + 1)) {
+			return null;
+		}
+
+		double[][] mtx = new double[nd][nd + 1];
+		int k = 0;
+		for (int i = 0; i < nd; i++)
+			for (int j = 0; j < nd + 1; j++)
+				mtx[i][j] = flatAffine[k++];
+
+		return mtx;
+	}
+
+	public static double[][] toRotationMatrix(double[] flatAffine) {
+
+		int N = flatAffine.length;
+		int nd = (int) Math.sqrt(N);
+
+		if (N != nd * nd) {
+			return null;
+		}
+
+		double[][] mtx = new double[nd][nd + 1];
+		int k = 0;
+		for (int i = 0; i < nd; i++)
+			for (int j = 0; j < nd; j++)
+				mtx[i][j] = flatAffine[k++];
+
+		return mtx;
+	}
+
 	/**
-	 * Returns a "row-major" flattened array, i.e., the first index is contiguous in the output.
+	 * Returns a "column-major" flattened array, i.e., the second index is contiguous in the output.
 	 *
 	 * @param arr the 2d array
 	 * @return a flattened version
@@ -154,6 +205,66 @@ public class TransformUtils
 		for (int j = 0; j < arr[0].length; j++)
 			for (int i = 0; i < arr.length; i++)
 				out[k++] = arr[i][j];
+
+		return out;
+	}
+
+	/**
+	 * Interpreting the input 2D array as a transformation matrix in homogeneous coordinates,
+	 * this returns a new matrix with the equivalent behavior o 
+	 * <p> 
+	 * For example, if the input matrix operates on column vectors with coordinates [x,y,z],
+	 * the output matrix operates on column vectors with coordinates [z,y,x].
+	 * <p>
+	 * A 2D example, for input matrix:
+	 * 		[ xx xy tx ]
+	 * 		[ yx yy ty ]
+	 * this method returns
+	 * 		[ yy yx ty ]
+	 * 		[ xy xx tx ]
+	 */
+	public static double[][] reverseCoordinates( final double[][] arr ) {
+
+		assert arr.length == arr[0].length - 1;
+
+		final int nd = arr.length;
+		final double[][] out = new double[nd][nd+1];
+		// reverse all rows (ignore last column)
+		for (int i = 0; i < nd; i++)
+			for (int j = 0; j < nd; j++)
+				out[i][j] = arr[nd-i-1][nd-j-1];
+
+		// last column
+		for (int i = 0; i < nd; i++)
+			out[i][nd] = arr[nd-i-1][nd];
+
+		return out;
+	}
+	
+	/**
+	 * Interpreting the input 2D array as a square transformation matrix,
+	 * this returns a new matrix with the equivalent behavior o 
+	 * <p> 
+	 * For example, if the input matrix operates on column vectors with coordinates [x,y,z],
+	 * the output matrix operates on column vectors with coordinates [z,y,x].
+	 * <p>
+	 * A 2D example, for input matrix:
+	 * 		[ xx xy ]
+	 * 		[ yx yy ]
+	 * this method returns
+	 * 		[ yy yx ]
+	 * 		[ xy xx ]
+	 */
+	public static double[][] reverseCoordinatesRotation( final double[][] arr ) {
+
+		assert arr.length == arr[0].length;
+
+		final int nd = arr.length;
+		final double[][] out = new double[nd][nd];
+		// reverse all rows (ignore last column)
+		for (int i = 0; i < nd; i++)
+			for (int j = 0; j < nd; j++)
+				out[i][j] = arr[nd-i-1][nd-j-1];
 
 		return out;
 	}

@@ -10,6 +10,11 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 
 	protected transient String absolutePath;
 
+	public AbstractParametrizedTransform() {
+		super();
+		path = null;
+	}
+
 	public AbstractParametrizedTransform( String type ) {
 		this( type, null );
 	}
