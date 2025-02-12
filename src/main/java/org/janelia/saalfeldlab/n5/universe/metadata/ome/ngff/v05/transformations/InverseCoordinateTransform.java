@@ -1,10 +1,18 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import org.janelia.saalfeldlab.n5.universe.serialization.NameConfig;
+
 import net.imglib2.realtransform.RealTransform;
 
+@NameConfig.Name("inverseOf")
 public class InverseCoordinateTransform<T extends RealTransform,C extends CoordinateTransform<T>> extends AbstractCoordinateTransform<T> {
 
+	@NameConfig.Parameter
 	protected C transform;
+
+	protected InverseCoordinateTransform() {
+		// for serialization
+	}
 
 	public InverseCoordinateTransform( final String name, final C ct ) {
 		// input and output spaces / axes must be swapped
