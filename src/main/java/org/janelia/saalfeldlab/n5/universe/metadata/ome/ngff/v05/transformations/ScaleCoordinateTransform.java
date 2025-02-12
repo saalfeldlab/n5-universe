@@ -23,7 +23,7 @@ public class ScaleCoordinateTransform extends AbstractLinearCoordinateTransform<
 
 	private ScaleCoordinateTransform() {
 		// for serialization
-		super();
+		super(TYPE);
 	}
 
 	public ScaleCoordinateTransform( final double[] scale ) {

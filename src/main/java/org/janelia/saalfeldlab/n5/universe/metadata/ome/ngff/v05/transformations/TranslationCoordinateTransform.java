@@ -24,7 +24,7 @@ public class TranslationCoordinateTransform extends AbstractLinearCoordinateTran
 
 	private TranslationCoordinateTransform() {
 		// for serialization
-		super();
+		super(TYPE);
 	}
 
 	public TranslationCoordinateTransform( final double[] translation) {
