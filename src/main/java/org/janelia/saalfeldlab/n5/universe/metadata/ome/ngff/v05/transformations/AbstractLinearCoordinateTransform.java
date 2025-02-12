@@ -13,8 +13,6 @@ import net.imglib2.util.Util;
 
 public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> extends AbstractParametrizedTransform<T,P> implements LinearCoordinateTransform<T> {
 
-	protected transient boolean serializeFlatArray = true;
-
 	protected AbstractLinearCoordinateTransform() {
 		super();
 	}
@@ -58,16 +56,6 @@ public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> e
 	@Override
 	public abstract T buildTransform( P parameters );
 
-	public boolean serializeAsFlatArray() {
-
-		return serializeFlatArray;
-	}
-
-	public void setSerializeAsFlatArray(final boolean serializeFlatArray) {
-
-		this.serializeFlatArray = serializeFlatArray;
-	}
-
 	protected static <T extends RealType<T> & NativeType<T>> double[] getDoubleArray(final N5Reader n5, final String path) {
 
 		if( n5 == null )
@@ -76,9 +64,8 @@ public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> e
 		if (n5.exists(path)) {
 			try {
 				@SuppressWarnings("unchecked")
-				final
-				CachedCellImg<T, ?> data = (CachedCellImg<T, ?>) N5Utils.open(n5, path);
-				if (data.numDimensions() != 1 || !(Util.getTypeFromInterval(data) instanceof RealType))
+				final CachedCellImg<T, ?> data = (CachedCellImg<T, ?>) N5Utils.open(n5, path);
+				if (data.numDimensions() != 1 || !(data.getType() instanceof RealType))
 					return null;
 
 				final double[] params = new double[(int) data.dimension(0)];
@@ -100,10 +87,8 @@ public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> e
 
 		if (n5.exists(path)) {
 			try {
-				@SuppressWarnings("unchecked")
-				final
-				CachedCellImg<T, ?> data = (CachedCellImg<T, ?>) N5Utils.open(n5, path);
-				if (data.numDimensions() != 2 || !(Util.getTypeFromInterval(data) instanceof RealType))
+				final CachedCellImg<T, ?> data = (CachedCellImg<T, ?>) N5Utils.open(n5, path);
+				if (data.numDimensions() != 2 || !(data.getType() instanceof RealType))
 					return null;
 
 				final double[][] params = new double[(int) data.dimension(0)] [(int) data.dimension(1)];

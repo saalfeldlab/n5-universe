@@ -50,7 +50,7 @@ public class AffineCoordinateTransform extends BaseLinearCoordinateTransform<Aff
 
 	public AffineCoordinateTransform( final String name, final String path,
 			final String inputSpace, final String outputSpace) {
-		super(TYPE, name, path, inputSpace, outputSpace  );
+		super(TYPE, name, path, inputSpace, outputSpace );
 	}
 
 	public JsonElement getJsonParameter() {

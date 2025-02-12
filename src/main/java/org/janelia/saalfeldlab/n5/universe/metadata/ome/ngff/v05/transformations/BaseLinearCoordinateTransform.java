@@ -153,13 +153,9 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 		if (n5 == null)
 			return null;
 
-		final double[] paramsFlat = getDoubleArray(n5, getParameterPath());
-		if (paramsFlat != null)
-			return paramsFlat;
-
-		// TODO doc why flattenColMajor is needed
-		final double[][] params2d = getDoubleArray2(n5, getParameterPath());
-		return TransformUtils.flattenColMajor(params2d);
+		final double[][] affineCOrder = getDoubleArray2(n5, getParameterPath());
+		final double[][] affineFOrder = TransformUtils.reverseCoordinates(affineCOrder);
+		return TransformUtils.flatten(affineFOrder);
 	}
 
 	@Override
