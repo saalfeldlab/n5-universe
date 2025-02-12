@@ -1,11 +1,13 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
 import org.janelia.saalfeldlab.n5.N5URI;
+import org.janelia.saalfeldlab.n5.universe.serialization.NameConfig;
 
 import net.imglib2.realtransform.RealTransform;
 
 public abstract class AbstractParametrizedTransform<T extends RealTransform,P> extends AbstractCoordinateTransform<T> implements ParametrizedTransform<T,P> {
 
+	@NameConfig.Parameter(optional = true)
 	protected final String path;
 
 	protected transient String absolutePath;
