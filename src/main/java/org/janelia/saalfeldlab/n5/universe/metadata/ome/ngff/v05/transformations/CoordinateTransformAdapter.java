@@ -72,10 +72,10 @@ public class CoordinateTransformAdapter
 		case("thin-plate-spline"):
 			out = context.deserialize( jobj, ThinPlateSplineCoordinateTransform.class );
 			break;
-		case(DisplacementFieldCoordinateTransform.KEY):
+		case(DisplacementFieldCoordinateTransform.TYPE):
 			out = context.deserialize( jobj, DisplacementFieldCoordinateTransform.class );
 			break;
-		case(CoordinateFieldCoordinateTransform.KEY):
+		case(CoordinateFieldCoordinateTransform.TYPE):
 			out = context.deserialize( jobj, CoordinateFieldCoordinateTransform.class );
 			break;
 		case("bijection"):
@@ -171,11 +171,11 @@ public class CoordinateTransformAdapter
 			final BijectionCoordinateTransform bct = (BijectionCoordinateTransform)src;
 			final JsonObject obj =  (JsonObject) context.serialize(src);
 
-			final RealCoordinateTransform<?> fwd = bct.getForward();
+			final CoordinateTransform<?> fwd = bct.getForward();
 			final Type ftype = TypeToken.of(fwd.getClass()).getType();
 			obj.add("forward", serialize( fwd, ftype, context ));
 
-			final RealCoordinateTransform<?> inv = bct.getInverse();
+			final CoordinateTransform<?> inv = bct.getInverse();
 			final Type itype = TypeToken.of(inv.getClass()).getType();
 			obj.add("inverse", serialize( inv, itype, context ));
 
@@ -185,9 +185,8 @@ public class CoordinateTransformAdapter
 		{
 			final AbstractLinearCoordinateTransform linCt = (AbstractLinearCoordinateTransform)src;
 			final JsonObject obj =  (JsonObject)context.serialize(linCt);
-			if( !linCt.serializeFlatArray) {
-				obj.add("affine",
-						context.serialize(TransformUtils.affineToMatrix(linCt.getTransform())));
+			if (linCt.getParameterPath() != null) {
+				obj.add("affine", context.serialize(TransformUtils.affineToMatrix(linCt.getTransform())));
 			}
 			return obj;
 		}

@@ -5,7 +5,9 @@ import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.serialization.NameConfig;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
@@ -14,9 +16,10 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.view.composite.RealComposite;
 
+@NameConfig.Name("coordinates")
 public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends AbstractParametrizedFieldTransform<PositionFieldTransform, T> {
 
-	public transient static final String KEY = "coordinates";
+	public transient static final String TYPE = "coordinates";
 
 	protected transient PositionFieldTransform transform;
 
@@ -24,20 +27,24 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 
 	protected static final transient String vectorAxisType = "coordinate";
 
+	public CoordinateFieldCoordinateTransform() {
+		super(TYPE);
+	}
+
 	public CoordinateFieldCoordinateTransform( final String name, final RealRandomAccessible<RealComposite<T>> field, final String interpolation,
 			final String input, final String output) {
-		super("coordinate_field", name, null, interpolation, input, output);
+		super(TYPE, name, null, interpolation, input, output);
 		buildTransform( field );
 	}
 
 	public CoordinateFieldCoordinateTransform(final String name, final N5Reader n5, final String path, final String interpolation,
 			final String input, final String output) {
-		super("coordinate_field", name, path, interpolation, input, output);
+		super(TYPE, name, path, interpolation, input, output);
 	}
 
 	public CoordinateFieldCoordinateTransform( final String name, final String path, final String interpolation,
 			final String input, final String output) {
-		super("coordinate_field", name, path, interpolation, input, output);
+		super(TYPE, name, path, interpolation, input, output);
 	}
 
 	@Override
@@ -64,7 +71,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 	{
 		CoordinateSystem[] spaces;
 		try {
-			spaces = n5.getAttribute(getParameterPath(), CoordinateSystem.KEY, CoordinateSystem[].class);
+			spaces = n5.getAttribute(getParameterPath(), "ome/" + CoordinateSystem.KEY, CoordinateSystem[].class);
 
 			final CoordinateSystem space = spaces[0];
 			for( int i = 0; i < space.numDimensions(); i++ )
@@ -76,21 +83,33 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		return -1;
 	}
 
-	public static <T extends RealType<T> & NativeType<T>> CoordinateFieldCoordinateTransform writePositionFieldTransform(
-			final N5Writer n5, final String dataset, final RandomAccessibleInterval<T> posField,
+	public static <T extends RealType<T> & NativeType<T>> CoordinateFieldCoordinateTransform<?> writeCoordinateField(
+			final N5Writer n5, final String dataset, final RandomAccessibleInterval<T> coordinateField,
 			final int[] blockSize, final Compression compression,
-			 final CoordinateSystem[] spaces, final CoordinateTransform[] transforms ) {
+			 final CoordinateSystem input, final CoordinateSystem output,
+			 final CoordinateTransform<?>[] transforms ) {
 
-		try {
-			N5Utils.save(posField, n5, dataset, blockSize, compression);
-			n5.setAttribute(dataset, "spaces", spaces);
-			n5.setAttribute(dataset, "transformations", transforms);
-		} catch (final N5Exception e) {
-			e.printStackTrace();
-		}
+		CoordinateSystem pfieldCoordinateSystem = createPositionFieldCoordinateSystem(input);
 
-		return null;
+		final CoordinateFieldCoordinateTransform<T> cf = new CoordinateFieldCoordinateTransform<>("", 
+				dataset, "linear", input.getName(), output.getName());
+
+		final RandomAccessibleInterval<T> reversedField = AbstractParametrizedFieldTransform.reverseCoordinates(coordinateField);
+		N5Utils.save(reversedField, n5, dataset, blockSize, compression);
+		n5.setAttribute(dataset, "ome/" + CoordinateSystem.KEY, new CoordinateSystem[]{pfieldCoordinateSystem});
+		n5.setAttribute(dataset, "ome/" + CoordinateTransform.KEY, transforms);
+
+		return cf;
 	}
 
+	public static CoordinateSystem createPositionFieldCoordinateSystem(final CoordinateSystem output) {
+
+		final Axis[] vecAxes = new Axis[output.getAxes().length + 1];
+		vecAxes[0] = new Axis("coordinate", "c", null, true);
+		for (int i = 1; i < vecAxes.length; i++)
+			vecAxes[i] = output.getAxes()[i - 1];
+
+		return new CoordinateSystem(output.getName(), vecAxes);
+	}
 
 }
