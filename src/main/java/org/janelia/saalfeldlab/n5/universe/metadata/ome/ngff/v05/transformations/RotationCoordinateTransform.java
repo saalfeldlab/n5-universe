@@ -12,10 +12,10 @@ import net.imglib2.realtransform.AffineGet;
 @NameConfig.Name("rotation")
 public class RotationCoordinateTransform extends BaseLinearCoordinateTransform<AffineGet> {
 
-	public static String TYPE = "rotation";
+	public static final String TYPE = "rotation";
 
 	@NameConfig.Parameter()
-	public JsonElement rotation;
+	protected JsonElement rotation;
 
 	private static final double EPSILON = 1e-6;
 
