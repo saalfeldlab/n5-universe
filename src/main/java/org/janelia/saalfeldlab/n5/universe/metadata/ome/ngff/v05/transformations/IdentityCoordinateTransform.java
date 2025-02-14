@@ -7,7 +7,7 @@ import net.imglib2.realtransform.InvertibleRealTransformSequence;
 
 @NameConfig.Name("identity")
 public class IdentityCoordinateTransform extends AbstractCoordinateTransform<InvertibleRealTransform>
-	implements RealCoordinateTransform<InvertibleRealTransform> , InvertibleCoordinateTransform<InvertibleRealTransform> {
+	implements InvertibleCoordinateTransform<InvertibleRealTransform> {
 
 	public static final String TYPE = "identity";
 

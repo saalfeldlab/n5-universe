@@ -17,7 +17,7 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.view.composite.RealComposite;
 
 @NameConfig.Name("displacements")
-public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends AbstractParametrizedFieldTransform<DisplacementFieldTransform,T> implements RealCoordinateTransform<DisplacementFieldTransform>{
+public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends AbstractParametrizedFieldTransform<DisplacementFieldTransform,T> {
 
 	public transient static final String TYPE = "displacements";
 

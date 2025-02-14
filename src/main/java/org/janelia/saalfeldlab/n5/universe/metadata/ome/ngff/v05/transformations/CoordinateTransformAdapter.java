@@ -86,8 +86,8 @@ public class CoordinateTransformAdapter
 				out = null;
 			}
 			else {
-				final RealCoordinateTransform<?> fwd = context.deserialize( btmp.get("forward"), CoordinateTransform.class );
-				final RealCoordinateTransform<?> inv = context.deserialize( btmp.get("inverse"), CoordinateTransform.class );
+				final CoordinateTransform<?> fwd = context.deserialize( btmp.get("forward"), CoordinateTransform.class );
+				final CoordinateTransform<?> inv = context.deserialize( btmp.get("inverse"), CoordinateTransform.class );
 				out = new BijectionCoordinateTransform(bid.getName(), bid.getInput(), bid.getOutput(), fwd, inv );
 			}
 			break;
@@ -100,7 +100,7 @@ public class CoordinateTransformAdapter
 			if( jobj.has("transformations"))
 			{
 				final JsonArray ja = jobj.get("transformations").getAsJsonArray();
-				final RealCoordinateTransform[] transforms = new RealCoordinateTransform[ ja.size() ];
+				final CoordinateTransform[] transforms = new CoordinateTransform[ ja.size() ];
 				for( int i=0; i < ja.size(); i++) {
 					final JsonElement e = ja.get(i).getAsJsonObject();
 					transforms[i] = context.deserialize( e, CoordinateTransform.class );
@@ -114,7 +114,7 @@ public class CoordinateTransformAdapter
 			break;
 		case("stacked"):
 			final IdentityCoordinateTransform sid = context.deserialize( jobj, IdentityCoordinateTransform.class );
-			final RealCoordinateTransform[] transforms = parseTransformList( jobj, "transformations", context );
+			final CoordinateTransform[] transforms = parseTransformList( jobj, "transformations", context );
 			out = new StackedCoordinateTransform(sid.getName(), sid.getInput(), sid.getOutput(), Arrays.asList( transforms ));
 			break;
 		}
@@ -127,9 +127,9 @@ public class CoordinateTransformAdapter
 		return out;
 	}
 
-	private final RealCoordinateTransform[] parseTransformList( final JsonObject elem, final String key, final JsonDeserializationContext context ) {
+	private final CoordinateTransform[] parseTransformList( final JsonObject elem, final String key, final JsonDeserializationContext context ) {
 		final JsonArray ja = elem.get(key).getAsJsonArray();
-		final RealCoordinateTransform[] transforms = new RealCoordinateTransform[ja.size()];
+		final CoordinateTransform[] transforms = new CoordinateTransform[ja.size()];
 		for (int i = 0; i < ja.size(); i++) {
 			final JsonElement e = ja.get(i).getAsJsonObject();
 			transforms[i] = context.deserialize(e, CoordinateTransform.class);

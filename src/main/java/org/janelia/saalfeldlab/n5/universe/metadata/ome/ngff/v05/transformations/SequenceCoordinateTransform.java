@@ -15,7 +15,7 @@ import net.imglib2.realtransform.RealTransform;
 import net.imglib2.realtransform.RealTransformSequence;
 
 @NameConfig.Name("sequence")
-public class SequenceCoordinateTransform extends AbstractCoordinateTransform<RealTransformSequence> implements RealCoordinateTransform<RealTransformSequence> {
+public class SequenceCoordinateTransform extends AbstractCoordinateTransform<RealTransformSequence> {
 
 	public static final String TYPE = "sequence";
 

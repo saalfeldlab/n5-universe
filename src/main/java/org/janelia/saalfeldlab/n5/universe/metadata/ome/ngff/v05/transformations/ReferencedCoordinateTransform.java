@@ -4,7 +4,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.Common;
 
 import net.imglib2.realtransform.RealTransform;
 
-public class ReferencedCoordinateTransform<T extends RealTransform> implements RealCoordinateTransform<T> {
+public class ReferencedCoordinateTransform<T extends RealTransform> extends AbstractCoordinateTransform<T> {
 
 	public static transient final String TYPE = "transformReference";
 
