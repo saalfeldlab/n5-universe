@@ -30,7 +30,7 @@ import java.lang.reflect.Modifier;
 
 public class ReflectionUtils {
 
-	public static <T> void setFieldValue(
+	static <T> void setFieldValue(
 			final Object object,
 			final String fieldName,
 			final T value) throws NoSuchFieldException, IllegalAccessException {
@@ -66,8 +66,7 @@ public class ReflectionUtils {
 		}
 	}
 
-	
-	public static Field getHierarchyField(Class<?> clazz, final String fieldName ) throws NoSuchFieldException {
+	static Field getHierarchyField(Class<?> clazz, final String fieldName ) throws NoSuchFieldException {
 
 		Class<?> current = clazz;
 		NoSuchFieldException firstException = new NoSuchFieldException("weird");
