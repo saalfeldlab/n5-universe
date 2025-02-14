@@ -12,27 +12,23 @@ public class CoordinateSystem
 
 	protected final Axis[] axes;
 
-	public CoordinateSystem( final String name, int nd )
-	{
+	public CoordinateSystem(final String name, int nd) {
 		this.name = name;
 		axes = new Axis[nd];
 		for (int i = 0; i < nd; i++)
 			axes[i] = AxisUtils.unknownAxis();
 	}
 
-	public CoordinateSystem( final String name, final Axis[] axes )
-	{
+	public CoordinateSystem(final String name, final Axis[] axes) {
 		this.name = name;
 		this.axes = axes;
 	}
 
-	public String getName()
-	{
+	public String getName() {
 		return name;
 	}
 
-	public Axis[] getAxes()
-	{
+	public Axis[] getAxes() {
 		return axes;
 	}
 
@@ -67,10 +63,9 @@ public class CoordinateSystem
 	 * @param b an array of strings
 	 * @return true if every element of b is in a
 	 */
-	public static boolean isSuperspaceOf( final String[] a, final String[] b )
-	{
-		for( final String l : b )
-			if( !contains( l, a ))
+	public static boolean isSuperspaceOf(final String[] a, final String[] b) {
+		for (final String l : b)
+			if (!contains(l, a))
 				return false;
 
 		return true;
@@ -102,33 +97,29 @@ public class CoordinateSystem
 	 * @param b an array of strings
 	 * @return true if every element of a is in b
 	 */
-	public static boolean isSubspaceOf( final String[] a, final String[] b )
-	{
-		for( final String l : a )
-			if( !contains( l, b ))
+	public static boolean isSubspaceOf(final String[] a, final String[] b) {
+		for (final String l : a)
+			if (!contains(l, b))
 				return false;
 
 		return true;
 	}
 
-	public boolean isSubspaceOf( final String[] axisLabels )
-	{
-		for( final String l : getAxisNames() )
-			if( !contains( l, axisLabels ))
+	public boolean isSubspaceOf(final String[] axisLabels) {
+		for (final String l : getAxisNames())
+			if (!contains(l, axisLabels))
 				return false;
 
 		return true;
 	}
 
-	public CoordinateSystem subSpace( final String name, final String... axisLabels )
-	{
-		return new CoordinateSystem( name,
-				Arrays.stream(axes).filter( x -> {return AxisUtils.contains(x.getName(), axisLabels);})
-				.toArray( Axis[]::new ));
+	public CoordinateSystem subSpace(final String name, final String... axisLabels) {
+		return new CoordinateSystem(name, Arrays.stream(axes).filter(x -> {
+			return AxisUtils.contains(x.getName(), axisLabels);
+		}).toArray(Axis[]::new));
 	}
 
-	public CoordinateSystem union( final String name, final CoordinateSystem space )
-	{
+	public CoordinateSystem union(final String name, final CoordinateSystem space) {
 		return new CoordinateSystem( name,
 				Stream.concat(
 						Arrays.stream(axes),
@@ -136,8 +127,7 @@ public class CoordinateSystem
 				.toArray( Axis[]::new ));
 	}
 
-	public CoordinateSystem intersection( final String name, final CoordinateSystem space )
-	{
+	public CoordinateSystem intersection(final String name, final CoordinateSystem space) {
 		return subSpace( name, space.getAxisNames() );
 	}
 
