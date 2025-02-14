@@ -28,9 +28,9 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 
 	protected transient String[] outputAxes;
 
-	protected transient CoordinateSystem inputSpaceObj;
+	protected transient CoordinateSystem inputCoordinateSystem;
 
-	protected transient CoordinateSystem outputSpaceObj;
+	protected transient CoordinateSystem outputCoordinateSystem;
 
 	@Override
 	public abstract T getTransform();
@@ -114,8 +114,8 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	{
 		if (inputAxes != null)
 			return inputAxes;
-		else if (inputSpaceObj != null)
-			return inputSpaceObj.getAxisNames();
+		else if (inputCoordinateSystem != null)
+			return inputCoordinateSystem.getAxisNames();
 		else
 			return null;
 	}
@@ -125,8 +125,8 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	{
 		if (outputAxes != null)
 			return outputAxes;
-		else if (outputSpaceObj != null)
-			return outputSpaceObj.getAxisNames();
+		else if (outputCoordinateSystem != null)
+			return outputCoordinateSystem.getAxisNames();
 		else
 			return null;
 	}
@@ -160,22 +160,22 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		return output;
 	}
 
-	public void setInput( final CoordinateSystem inputSpace ) {
-		this.inputSpaceObj = inputSpace;
+	public void setInput(final CoordinateSystem inputCoordinateSystem) {
+		this.inputCoordinateSystem = inputCoordinateSystem;
 	}
 
-	public void setOutput( final CoordinateSystem outputSpace ) {
-		this.outputSpaceObj = outputSpace;
+	public void setOutput(final CoordinateSystem outputCoordinateSystem) {
+		this.outputCoordinateSystem = outputCoordinateSystem;
 	}
 
-	public CoordinateSystem getInputSpaceObj()
+	public CoordinateSystem getInputCoordinateSystem()
 	{
-		return inputSpaceObj;
+		return inputCoordinateSystem;
 	}
 
-	public CoordinateSystem getOutputSpaceObj()
+	public CoordinateSystem getOutputCoordinateSystem()
 	{
-		return outputSpaceObj;
+		return outputCoordinateSystem;
 	}
 
 	public AbstractCoordinateTransform<T> setNameSpaces( final String name, final String in, final String out )
