@@ -144,7 +144,7 @@ public class Common {
 	{
 		return new CoordinateSystem( name,
 				Arrays.stream(labels)
-					.map( x -> new Axis(x, type, unit.name() ))
+					.map( x -> new Axis(type, x, unit.name() ))
 					.toArray( Axis[]::new ));
 	}
 
@@ -152,7 +152,7 @@ public class Common {
 	{
 		return new CoordinateSystem( name,
 				Arrays.stream(labels)
-					.map( x -> new Axis(x, type, unit ))
+					.map( x -> new Axis(type, x, unit ))
 					.toArray( Axis[]::new ));
 	}
 
@@ -160,7 +160,7 @@ public class Common {
 	{
 		final Axis[] axes = Stream.concat(
 				Stream.of( new Axis( "d", "displacement", unit)),
-				Arrays.stream(labels).map( x -> new Axis(x, type, unit )))
+				Arrays.stream(labels).map( x -> new Axis(type, x, unit )))
 			.toArray( Axis[]::new );
 
 		return new CoordinateSystem( name, axes);
