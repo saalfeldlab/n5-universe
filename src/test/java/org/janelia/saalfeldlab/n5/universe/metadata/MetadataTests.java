@@ -8,6 +8,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,8 +30,8 @@ public class MetadataTests {
 	@Before
 	public void setUp() throws IOException {
 
-		final String n5Root = "src/test/resources/test.n5";
-		n5 = new N5FSReader(n5Root);
+		final File testRoot = new File(getClass().getClassLoader().getResource("test.n5").getFile());
+		n5 = new N5FSReader(testRoot.getAbsolutePath());
 	}
 
 	@Test
@@ -46,8 +47,9 @@ public class MetadataTests {
 		try {
 			final N5TreeNode n5root = discoverer.discoverAndParseRecursive("/cosem_ms");
 
-			Assert.assertNotNull(n5root.getPath(), n5root.getMetadata());
-			Assert.assertTrue("is multiscale cosem", n5root.getMetadata() instanceof N5CosemMultiScaleMetadata);
+			final N5Metadata meta = n5root.getMetadata();
+			Assert.assertNotNull(n5root.getPath(), meta);
+			Assert.assertTrue("is multiscale cosem", meta instanceof N5CosemMultiScaleMetadata);
 
 			N5CosemMultiScaleMetadata grpMeta = (N5CosemMultiScaleMetadata) n5root.getMetadata();
 			// check ordering of paths
