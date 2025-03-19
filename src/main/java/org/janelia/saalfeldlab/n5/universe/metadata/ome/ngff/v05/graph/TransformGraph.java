@@ -16,7 +16,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.InvertibleCoordinateTransform;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.StackedCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.ByDimensionCoordinateTransform;
 
 import com.google.gson.Gson;
 
@@ -195,10 +195,12 @@ public class TransformGraph
 
 		}
 
-		final StackedCoordinateTransform totalTransform = new StackedCoordinateTransform(
-				from.getName() + " > " + to.getName(), from.getName(), to.getName(), tList);
+		CoordinateTransform<?>[] tforms = tList.stream().toArray( n -> new CoordinateTransform[n]);
+		final ByDimensionCoordinateTransform totalTransform = new ByDimensionCoordinateTransform(
+				from.getName() + " > " + to.getName(), from, to, tforms);
 
-		totalTransform.setSpaces(spaces);
+		totalTransform.setInput(from);
+		totalTransform.setOutput(to);
 		totalTransform.buildTransform();
 
 		return totalTransform;
@@ -216,8 +218,9 @@ public class TransformGraph
 				}).findAny().ifPresent( t -> tList.add( t ));
 		}
 
-		final StackedCoordinateTransform totalTransform = new StackedCoordinateTransform(
-				"name", from.getName(), to.getName(), tList);
+		CoordinateTransform<?>[] tforms = tList.stream().toArray( n -> new CoordinateTransform[n]);
+		final ByDimensionCoordinateTransform totalTransform = new ByDimensionCoordinateTransform(
+				from.getName() + " > " + to.getName(), from, to, tforms);
 
 		return totalTransform;
 	}

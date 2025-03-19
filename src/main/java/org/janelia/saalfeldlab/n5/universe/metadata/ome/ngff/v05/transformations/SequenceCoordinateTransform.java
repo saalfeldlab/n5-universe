@@ -40,7 +40,7 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 
 	public SequenceCoordinateTransform( final String name,
 			final String input, final String output,
-			final CoordinateTransform<?>[] transformations) {
+			final CoordinateTransform<?>... transformations) {
 		super(TYPE, name, input, output);
 		this.transformations = transformations;
 	}

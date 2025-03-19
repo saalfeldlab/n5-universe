@@ -1,5 +1,9 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.axes;
 
+import java.util.Arrays;
+
+import com.google.gson.JsonElement;
+
 public class Axis {
 
 	public static final String SPACE = "space";
@@ -70,11 +74,15 @@ public class Axis {
 	}
 
 	public String getName() {
-		return name;
+		return name == null ? "" : name;
 	}
 
 	public String getUnit() {
-		return unit;
+		return unit == null ? "" : unit;
+	}
+
+	public Axis copy() {
+		return new Axis( type, name, unit, discrete );
 	}
 
 	@Override
@@ -82,7 +90,7 @@ public class Axis {
 
 		if (other instanceof Axis) {
 			final Axis axis = (Axis) other;
-			return name.equals(axis.name) && type.equals(axis.type) && unit.equals(axis.unit);
+			return getName().equals(axis.getName()) && type.equals(axis.type) && getUnit().equals(axis.getUnit());
 		}
 		return false;
 	}
@@ -95,15 +103,41 @@ public class Axis {
 
 	public static Axis defaultArray(final int index) {
 
-		return new Axis(String.format("dim_%d", index), ARRAY, null, true);
+		return new Axis(ARRAY, String.format("dim_%d", index), null, true);
 	}
 
 	public static Axis[] space(final String unit, final String... names) {
 
 		final Axis[] axes = new Axis[names.length];
 		for (int i = 0; i < names.length; i++)
-			axes[i] = new Axis(names[i], SPACE, unit, false);
+			axes[i] = new Axis(SPACE, names[i], unit, false);
 
 		return axes;
+	}
+
+	public static boolean allAxesAreArray( final Axis[] axes ) {
+		return Arrays.stream( axes ).allMatch( x -> x.getType().equals( ARRAY ) );
+	}
+
+	public static void reverseIfAllArray( final Axis[] axes ) {
+
+		if ( allAxesAreArray(axes) )
+			reverse( axes );
+	}
+
+	/**
+	 * Reverse in-place.
+	 *
+	 * @param axes an array of axes
+	 */
+	public static void reverse(final Axis[] axes) {
+		Axis a;
+		final int max = axes.length - 1;
+		for (int i = (max - 1) / 2; i >= 0; --i) {
+			final int j = max - i;
+			a = axes[i];
+			axes[i] = axes[j];
+			axes[j] = a;
+		}	
 	}
 }

@@ -50,7 +50,7 @@ public class MapAxisCoordinateTransform extends AbstractCoordinateTransform<Affi
 	public MapAxisCoordinateTransform( final String name,
 			final CoordinateSystem input, CoordinateSystem output,
 			Map<String,String> axisMapping) {
-		super(TYPE, name, input.getName(), output.getName());
+		super(TYPE, name, input, output);
 
 		inputAxes = input.getAxisNames();
 		outputAxes = output.getAxisNames();
@@ -237,6 +237,5 @@ public class MapAxisCoordinateTransform extends AbstractCoordinateTransform<Affi
 		}
 		return -1;
 	}
-
 
 }

@@ -1,7 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
 import org.janelia.saalfeldlab.n5.Compression;
-import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
@@ -47,9 +46,23 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		super(TYPE, name, path, interpolation, input, output);
 	}
 
+	public CoordinateFieldCoordinateTransform( final String name, final String path, final String interpolation) {
+		this( name, path, interpolation, (String)null, (String)null );
+	}
+
+	public CoordinateFieldCoordinateTransform(final String path, final String interpolation) {
+		this( null, path, interpolation, (String)null, (String)null );
+	}
+
+
 	@Override
 	public int getVectorAxisIndex() {
 		return positionAxisIndex;
+	}
+
+	@Override
+	public String getVectorAxisType() {
+		return vectorAxisType;
 	}
 
 	@Override
@@ -66,23 +79,6 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		return transform;
 	}
 
-	@Override
-	public int parseVectorAxisIndex( final N5Reader n5 )
-	{
-		CoordinateSystem[] spaces;
-		try {
-			spaces = n5.getAttribute(getParameterPath(), "ome/" + CoordinateSystem.KEY, CoordinateSystem[].class);
-
-			final CoordinateSystem space = spaces[0];
-			for( int i = 0; i < space.numDimensions(); i++ )
-				if( space.getAxisTypes()[i].equals(vectorAxisType))
-					return i;
-
-		} catch (final N5Exception e) { }
-
-		return -1;
-	}
-
 	public static <T extends RealType<T> & NativeType<T>> CoordinateFieldCoordinateTransform<?> writeCoordinateField(
 			final N5Writer n5, final String dataset, final RandomAccessibleInterval<T> coordinateField,
 			final int[] blockSize, final Compression compression,
@@ -90,6 +86,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 			 final CoordinateTransform<?>[] transforms ) {
 
 		CoordinateSystem pfieldCoordinateSystem = createPositionFieldCoordinateSystem(input);
+		pfieldCoordinateSystem.reverseInPlace();
 
 		final CoordinateFieldCoordinateTransform<T> cf = new CoordinateFieldCoordinateTransform<>("", 
 				dataset, "linear", input.getName(), output.getName());

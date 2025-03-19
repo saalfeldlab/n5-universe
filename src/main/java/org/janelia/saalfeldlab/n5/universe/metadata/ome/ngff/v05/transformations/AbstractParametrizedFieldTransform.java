@@ -1,11 +1,13 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.Common;
 import org.janelia.saalfeldlab.n5.universe.serialization.NameConfig;
 
@@ -55,17 +57,40 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		this.interpolation = interpolation;
 	}
 
-	public int getVectorAxisIndex() {
-		return vectorAxisIndex;
-	}
-
 	public String getInterpolation() {
 		return interpolation;
 	}
 
-	public abstract int parseVectorAxisIndex( N5Reader n5 );
+	public int getVectorAxisIndex() {
+		return vectorAxisIndex;
+	}
+
+	public abstract String getVectorAxisType();
+
+	public int parseVectorAxisIndex( N5Reader n5 ) {
+
+		CoordinateSystem[] spaces;
+		try {
+
+			spaces = n5.getAttribute(getParameterPath(), "ome/" + CoordinateSystem.KEY, CoordinateSystem[].class);
+			Arrays.stream(spaces).forEach(CoordinateSystem::reverseInPlace);
+
+			if( spaces == null || spaces.length == 0)
+				return -1;
+
+			final String vectorAxisType = getVectorAxisType();
+			final CoordinateSystem space = spaces[0];
+			for( int i = 0; i < space.numDimensions(); i++ )
+				if( space.getAxis(i).getType().equals(vectorAxisType))
+					return i;
+
+		} catch (final N5Exception e) { }
+
+		throw new N5Exception("No displacement axis found at: " + getParameterPath());	
+	}
 
 	public RealRandomAccessible<RealComposite<S>> getField() {
+
 		return field;
 	}
 
@@ -88,7 +113,9 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 			return null;
 		}
 
+		// TODO this will need generalizing if vectorAxisIndex != 0
 		final RandomAccessibleInterval<S> fieldRev = reverseCoordinates(fieldRaw);
+
 		final CompositeIntervalView< S, RealComposite< S > >  collapsedFirst =
 				Views.collapseReal(
 						Views.moveAxis(fieldRev, 0, fieldRev.numDimensions() - 1 ) );
@@ -225,6 +252,9 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 				@SuppressWarnings("rawtypes")
 				final ParametrizedTransform pct = (ParametrizedTransform)ct;
 				final String path = pct.getParameterPath();
+				if( path == null )
+					return pct;
+
 				if( pct.getParameterPath().equals("."))
 					continue;
 				else if( N5URI.normalizeGroupPath(group).equals(N5URI.normalizeGroupPath(path)))

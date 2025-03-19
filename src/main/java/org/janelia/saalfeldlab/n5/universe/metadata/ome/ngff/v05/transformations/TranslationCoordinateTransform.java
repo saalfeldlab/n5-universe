@@ -17,7 +17,7 @@ public class TranslationCoordinateTransform extends AbstractLinearCoordinateTran
 	public static final String TYPE = "translation";
 
 	@N5Annotations.ReverseArray
-	@NameConfig.Parameter()
+	@NameConfig.Parameter(optional = true)
 	public double[] translation;
 
 	public transient AffineGet transform;

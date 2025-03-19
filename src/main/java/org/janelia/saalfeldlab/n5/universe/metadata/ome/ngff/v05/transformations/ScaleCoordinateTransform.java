@@ -16,7 +16,7 @@ public class ScaleCoordinateTransform extends AbstractLinearCoordinateTransform<
 	public static final String TYPE = "scale";
 
 	@N5Annotations.ReverseArray
-	@NameConfig.Parameter()
+	@NameConfig.Parameter(optional = true)
 	public double[] scale;
 
 	public transient ScaleGet transform;
@@ -32,14 +32,14 @@ public class ScaleCoordinateTransform extends AbstractLinearCoordinateTransform<
 		buildTransform( scale );
 	}
 
-	public ScaleCoordinateTransform( String name,
+	public ScaleCoordinateTransform(String name,
 			final double[] scale) {
 		super(TYPE, name, null, null );
 		this.scale = scale;
 		buildTransform( scale );
 	}
 
-	public ScaleCoordinateTransform( String name,
+	public ScaleCoordinateTransform(String name,
 			final String[] inputAxes, String[] outputAxes,
 			final double[] scale) {
 		super(TYPE, name, null, inputAxes, outputAxes );
@@ -65,6 +65,12 @@ public class ScaleCoordinateTransform extends AbstractLinearCoordinateTransform<
 			final String path ) {
 		super(TYPE, name, path, inputSpace, outputSpace );
 		this.scale = null;
+	}
+
+	public ScaleCoordinateTransform( final String name, final String inputSpace, final String outputSpace, final String path,
+			final double[] scale) {
+		super(TYPE, name, path, inputSpace, outputSpace );
+		this.scale = scale;
 	}
 
 	public ScaleCoordinateTransform(ScaleCoordinateTransform other, final double[] scale) {

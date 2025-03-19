@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.axes;
 
 import java.util.Arrays;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -215,6 +216,36 @@ public class CoordinateSystem
 		return IntStream.range(0, numDimensions() )
 			.filter( i -> types[i].equals(type))
 			.toArray();
+	}
+	
+	/**
+	 * 
+	 * @return a new coordinate system with axes reversed
+	 */
+	public CoordinateSystem reverseAxes() {
+
+		final int N = axes.length;
+		final Axis[] revAxes = new Axis[N];
+		int j = N - 1;
+		for( int i = 0; i < N; i++)
+			revAxes[i] = axes[j--];
+
+		return new CoordinateSystem( name, revAxes );
+	}
+
+	public void reverseInPlace() {
+		reverseInPlaceIf( x -> true );
+	}
+
+	public void reverseInPlaceIfArray() {
+		Axis.reverseIfAllArray( axes );
+	}
+
+	public void reverseInPlaceIf(Predicate<CoordinateSystem> predicate) {
+
+		if( predicate.test(this)) {
+			Axis.reverse( axes );
+		}
 	}
 
 	@Override

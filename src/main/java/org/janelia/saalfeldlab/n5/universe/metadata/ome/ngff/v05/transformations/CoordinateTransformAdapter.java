@@ -112,11 +112,6 @@ public class CoordinateTransformAdapter
 			}
 
 			break;
-		case("stacked"):
-			final IdentityCoordinateTransform sid = context.deserialize( jobj, IdentityCoordinateTransform.class );
-			final CoordinateTransform[] transforms = parseTransformList( jobj, "transformations", context );
-			out = new StackedCoordinateTransform(sid.getName(), sid.getInput(), sid.getOutput(), Arrays.asList( transforms ));
-			break;
 		}
 		/*
 		 * Not necessary, since parsers or consuming code are responsible for calling

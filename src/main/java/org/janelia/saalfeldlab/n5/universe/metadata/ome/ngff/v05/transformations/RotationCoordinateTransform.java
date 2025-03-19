@@ -3,18 +3,23 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformation
 import org.ejml.data.DMatrixRMaj;
 import org.ejml.dense.row.CommonOps_DDRM;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.serialization.NameConfig;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 
 import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineTransform;
+import net.imglib2.realtransform.AffineTransform2D;
+import net.imglib2.realtransform.AffineTransform3D;
 
 @NameConfig.Name("rotation")
 public class RotationCoordinateTransform extends BaseLinearCoordinateTransform<AffineGet> {
 
 	public static final String TYPE = "rotation";
 
-	@NameConfig.Parameter()
+	@NameConfig.Parameter(optional = true)
 	protected JsonElement rotation;
 
 	private static final double EPSILON = 1e-6;
@@ -28,15 +33,20 @@ public class RotationCoordinateTransform extends BaseLinearCoordinateTransform<A
 		validate(ct.transform, EPSILON);
 	}
 
+	/**
+	 * Create a coordinate transform from a rotation matrix stored as a 2D array.
+	 *
+	 * @param matrix the matrix stored as double[rows][columns]
+	 */
 	public RotationCoordinateTransform( final double[][] matrix) {
-		super(TYPE, flattenRotationMatrix(matrix));
+		super(TYPE, TransformUtils.flattenRotation(matrix));
 		buildTransform(affineFlat);
 		validate(transform, EPSILON);
 	}
 
 	public RotationCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
 			final double[][] matrix) {
-		super(TYPE, name, inputSpace, outputSpace, flattenRotationMatrix(matrix));
+		super(TYPE, name, inputSpace, outputSpace, TransformUtils.flattenRotation(matrix));
 		buildTransform(affineFlat);
 		validate(transform, EPSILON);
 	}
@@ -52,13 +62,13 @@ public class RotationCoordinateTransform extends BaseLinearCoordinateTransform<A
 	public RotationCoordinateTransform( final String name, 
 			final String[] inputAxes, final String[] outputAxes,
 			final double[][] matrix ) {
-		super(TYPE, name, inputAxes, outputAxes, flattenRotationMatrix(matrix));
+		super(TYPE, name, inputAxes, outputAxes, TransformUtils.flattenRotation(matrix));
 		validate(transform, EPSILON);
 	}
 
-	public RotationCoordinateTransform( final String name, final String path,
-			final String inputSpace, final String outputSpace) {
-		super(TYPE, name, path, inputSpace, outputSpace  );
+	public RotationCoordinateTransform( final String name, 
+			final String inputSpace, final String outputSpace, final String path) {
+		super(TYPE, name, path, inputSpace, outputSpace);
 	}
 
 	public JsonElement getJsonParameter() {
@@ -68,28 +78,54 @@ public class RotationCoordinateTransform extends BaseLinearCoordinateTransform<A
 	@Override
 	protected void buildJsonParameter() {
 
-		super.buildJsonParameter();
+		if (affineFlat != null) {
+			final double[][] rotationFOrder = TransformUtils.toRotationMatrix(affineFlat);
+			final double[][] rotationCOrder = TransformUtils.reverseCoordinatesRotation(rotationFOrder);
+			affineJson = (new Gson()).toJsonTree(rotationCOrder);
+		}
 		this.rotation = affineJson;
 	}
 	
-	/**
-	 * Turn an N x N matrix into a flattened (N+1) x (N+1) matrix in homogeneous coordinates.
-	 * 
-	 * 
-	 * @param matrix a rotation matrix
-	 * @return the corresponding flattened (row-major) matrix in homogeneous coordinates.
-	 */
-	private static double[] flattenRotationMatrix( double[][] matrix ) {
+	public void interpretParameters() {
+		final double[][] mtxCOrder = (new Gson()).fromJson(rotation, double[][].class);
+		final double[][] mtxFOrder = TransformUtils.reverseCoordinatesRotation(mtxCOrder);
+		affineFlat = TransformUtils.flattenRotation(mtxFOrder);
+	}
 
-		final int nd = matrix.length;
-		final double[] out = new double[nd * (nd+1)];
-		int pos = 0;
-		for( int r = 0; r < nd; r++) {
-			System.arraycopy(matrix[r], 0, out, pos, nd);
-			pos += (nd + 1);
+
+	@Override
+	public double[] getParameters(N5Reader n5) {
+
+		System.out.println("rot getParameters");
+		if (n5 == null)
+			return null;
+
+		final double[][] rotationCOrder = getDoubleArray2(n5, getParameterPath());
+		final double[][] rotationFOrder = TransformUtils.reverseCoordinatesRotation(rotationCOrder);
+		return TransformUtils.flattenRotation(rotationFOrder);
+	}
+
+	@Override
+	public AffineGet buildTransform(double[] parameters) {
+
+		if (parameters == null)
+			return null;
+
+		if (parameters.length == 6) {
+			AffineTransform2D tmp = new AffineTransform2D();
+			tmp.set(parameters);
+			transform = tmp;
+		} else if (parameters.length == 12) {
+			AffineTransform3D tmp = new AffineTransform3D();
+			tmp.set(parameters);
+			transform = tmp;
+		} else {
+			int nd = (int)Math.floor(Math.sqrt(parameters.length));
+			AffineTransform tmp = new AffineTransform(nd);
+			tmp.set(parameters);
+			transform = tmp;
 		}
-
-		return out;
+		return transform;
 	}
 
 	private static void validate(AffineGet affine, double eps) {

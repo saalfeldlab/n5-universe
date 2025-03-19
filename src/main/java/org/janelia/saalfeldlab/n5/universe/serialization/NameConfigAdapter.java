@@ -164,6 +164,11 @@ public class NameConfigAdapter<T> implements JsonDeserializer<T>, JsonSerializer
 				field.setAccessible(true);
 				final Object value = field.get(object);
 				field.setAccessible(isAccessible);
+
+				if (value == null && field.getAnnotation(NameConfig.Parameter.class).optional()) {
+					continue;
+				}
+
 				final JsonElement serialized = context.serialize(value);
 				if (field.getAnnotation(N5Annotations.ReverseArray.class) != null) {
 					final JsonArray reversedArray = reverseJsonArray(serialized.getAsJsonArray());

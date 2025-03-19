@@ -19,11 +19,11 @@ public abstract class MultiscaleMetadata<T extends N5DatasetMetadata & SpatialMe
 
   static final Predicate<String> scaleLevelPredicate = Pattern.compile("^s\\d+$").asPredicate();
 
-  protected final String basePath;
+  protected transient final String basePath;
 
-  final private String[] paths;
+  final private transient String[] paths;
 
-  final private String[] units;
+  final private transient String[] units;
 
   final protected transient T[] childrenMetadata;
 

@@ -37,6 +37,7 @@ public class AxisUtils {
 	public static final String zLabel = "z";
 	public static final String tLabel = "t";
 
+	public static final String arrayType = "array";
 	public static final String spaceType = "space";
 	public static final String timeType = "time";
 	public static final String channelType = "channel";
@@ -138,7 +139,7 @@ public class AxisUtils {
 	{
 		return Arrays.stream(labels).map( x -> {
 			final String type = getDefaultType( x );
-			return new Axis(x, type, "", type.equals(Axis.CHANNEL));
+			return new Axis(type, x, "", type.equals(Axis.CHANNEL));
 		}).toArray( Axis[]::new );
 	}
 

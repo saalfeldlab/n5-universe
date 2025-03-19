@@ -8,8 +8,10 @@ import java.util.stream.IntStream;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AbstractParametrizedFieldTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AffineCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.RotationCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.ScaleCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.SequenceCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.TranslationCoordinateTransform;
@@ -24,7 +26,6 @@ import net.imglib2.realtransform.AffineSet;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.realtransform.Scale;
 import net.imglib2.realtransform.ScaleAndTranslation;
 import net.imglib2.type.numeric.NumericType;
 
@@ -156,6 +157,26 @@ public class TransformUtils
 		return out;
 	}
 
+	/**
+	 * Turn an N x N matrix into a flattened (N+1) x (N+1) matrix in homogeneous coordinates.
+	 * 
+	 * 
+	 * @param matrix a rotation matrix
+	 * @return the corresponding flattened (row-major) matrix in homogeneous coordinates.
+	 */
+	public static double[] flattenRotation( double[][] matrix ) {
+
+		final int nd = matrix.length;
+		final double[] out = new double[nd * (nd+1)];
+		int pos = 0;
+		for( int r = 0; r < nd; r++) {
+			System.arraycopy(matrix[r], 0, out, pos, nd);
+			pos += (nd + 1);
+		}
+
+		return out;
+	}
+
 	public static double[][] toAffineMatrix(double[] flatAffine) {
 
 		int N = flatAffine.length;
@@ -179,15 +200,18 @@ public class TransformUtils
 		int N = flatAffine.length;
 		int nd = (int) Math.sqrt(N);
 
-		if (N != nd * nd) {
+		if (N != nd * (nd + 1)) {
 			return null;
 		}
 
-		double[][] mtx = new double[nd][nd + 1];
+		double[][] mtx = new double[nd][nd];
 		int k = 0;
-		for (int i = 0; i < nd; i++)
-			for (int j = 0; j < nd; j++)
-				mtx[i][j] = flatAffine[k++];
+		for (int row = 0; row < nd; row++) {
+			for (int col = 0; col < nd; col++) {
+				mtx[row][col] = flatAffine[k++];
+			}
+			k++; // bump the index once for for the n+1
+		}
 
 		return mtx;
 	}
@@ -325,6 +349,16 @@ public class TransformUtils
 
 		return out;
 	}
+	
+	public static AffineTransform3D toAffine3D(final AffineGet affine) {
+
+		if (affine instanceof AffineTransform3D)
+			return (AffineTransform3D) affine;
+
+		final int[] indexes = IntStream.range(0, affine.numSourceDimensions()).toArray();
+		return (AffineTransform3D) superAffine(affine, 3, indexes);
+
+	}
 
 	public static AffineTransform3D toAffine3D( SequenceCoordinateTransform seq )
 	{
@@ -334,31 +368,36 @@ public class TransformUtils
 				.collect( Collectors.toList() ));
 	}
 
+//	public static AffineTransform3D toAffine3D( ByDimensionCoordinateTransform byDimension )
+//	{
+//
+//	}
+
 	public static AffineTransform3D toAffine3D( Collection<CoordinateTransform<?>> transforms )
 	{
 		return toAffine3D( null, transforms );
 	}
 
-	public static AffineGet toAffine( CoordinateTransform< ? > transform, int nd )
-	{
-		if( transform.getType().equals( ScaleCoordinateTransform.TYPE ))
-		{
-			return ((ScaleCoordinateTransform)transform).getTransform();
-		}
-		else if( transform.getType().equals( TranslationCoordinateTransform.TYPE ))
-		{
-			return ((TranslationCoordinateTransform)transform).getTransform();
-		}
-		else if( transform.getType().equals( SequenceCoordinateTransform.TYPE ))
-		{
+	public static AffineGet toAffine( CoordinateTransform< ? > transform, int nd ) {
+		
+		switch (transform.getType()) {
+		
+		case IdentityCoordinateTransform.TYPE:
+			return new AffineTransform(nd);
+		case ScaleCoordinateTransform.TYPE:
+		case TranslationCoordinateTransform.TYPE:
+		case RotationCoordinateTransform.TYPE:
+		case AffineCoordinateTransform.TYPE:
+			return (AffineGet)transform.getTransform();
+		case SequenceCoordinateTransform.TYPE:
 			final SequenceCoordinateTransform seq = (SequenceCoordinateTransform) transform;
-			if( seq.isAffine() )
-				return seq.asAffine( nd );
+			if (seq.isAffine())
+				return seq.asAffine(nd);
 			else
 				return null;
-		}
-		else
+		default:
 			return null;
+		}
 	}
 
 	public static AffineTransform3D toAffine3D( N5Reader n5, Collection<CoordinateTransform<?>> transforms )

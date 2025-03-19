@@ -175,7 +175,7 @@ public class BaseLinearCoordinateTransform<T extends AffineGet> extends Abstract
 
 		if (affineFlat != null)
 			return getTransform();
-		else if (affineJson != null) {
+		else if (getJsonParameter() != null) {
 			interpretParameters();
 			if (affineFlat != null)
 				return getTransform();

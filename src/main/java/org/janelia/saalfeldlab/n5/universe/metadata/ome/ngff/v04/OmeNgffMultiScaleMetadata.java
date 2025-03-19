@@ -396,7 +396,10 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			}
 		}
 		return true;
-
+	}
+	
+	public static OmeNgffMultiscalesBuilder builder() {
+		return new OmeNgffMultiscalesBuilder();
 	}
 
 }
