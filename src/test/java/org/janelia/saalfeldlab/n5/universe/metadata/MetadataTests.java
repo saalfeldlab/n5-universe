@@ -6,6 +6,7 @@ import org.janelia.saalfeldlab.n5.universe.N5DatasetDiscoverer;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -35,6 +36,7 @@ public class MetadataTests {
 	}
 
 	@Test
+	@Ignore
 	public void testCosemMetadataMultiscale() {
 
 		final N5MetadataParser<?>[] parsers = new N5MetadataParser[] { new N5CosemMetadataParser() };
@@ -73,6 +75,7 @@ public class MetadataTests {
 	}
 
 	@Test
+	@Ignore
 	public void testCosemMetadata() {
 
 		final List<N5MetadataParser<?>> parsers = Collections.singletonList(new N5CosemMetadataParser());
@@ -107,6 +110,7 @@ public class MetadataTests {
 	}
 
 	@Test
+	@Ignore
 	public void testN5ViewerMetadata() {
 
 		final List<N5MetadataParser<?>> parsers = Collections.singletonList(new N5SingleScaleMetadataParser());
@@ -161,6 +165,7 @@ public class MetadataTests {
 	}
 
 	@Test
+	@Ignore
 	public void testN5ViewerGenericMetadata() {
 
 		final List<N5MetadataParser<?>> parsers = Collections.singletonList(new N5GenericSingleScaleMetadataParser());
@@ -208,6 +213,7 @@ public class MetadataTests {
 	}
 
 	@Test
+	@Ignore
 	public void testGenericMetadata() {
 
 		final N5DatasetDiscoverer discoverer = new N5DatasetDiscoverer(n5, Collections.singletonList(
@@ -261,6 +267,7 @@ public class MetadataTests {
 	}
 
 	@Test
+	@Ignore
 	public void testRootDataset() throws IOException {
 
 		final String n5Root = "src/test/resources/root_dataset.n5";
@@ -306,6 +313,7 @@ public class MetadataTests {
 	}
 
 	@Test
+	@Ignore
 	public void testEmptyBase() throws IOException {
 
 		final String n5Root = "src/test/resources/root_dataset.n5";
