@@ -22,6 +22,7 @@ public class UnitTest {
 
 		assertEquals(Unit.micrometer, Unit.fromString("micrometer"));
 		assertEquals(Unit.micrometer, Unit.fromString("um"));
+		assertEquals(Unit.micrometer, Unit.fromString(Unit.MICRO + "m"));
 		assertEquals(Unit.micrometer, Unit.fromString(Unit.MU + "m"));
 
 		assertEquals(Unit.yard, Unit.fromString("yard"));

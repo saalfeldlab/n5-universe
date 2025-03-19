@@ -24,7 +24,8 @@ public enum Unit {
 
 	private final String type;
 
-	public static final char MU = 'μ';
+	public static final char MICRO = '\u00B5';
+	public static final char MU = '\u03BC';
 
 	Unit(String type) {
 
@@ -117,7 +118,9 @@ public enum Unit {
 			return "milli";
 		case 'u':
 			return "micro";
-		case 'μ':
+		case MU:
+			return "micro";
+		case MICRO:
 			return "micro";
 		case 'n':
 			return "nano";
