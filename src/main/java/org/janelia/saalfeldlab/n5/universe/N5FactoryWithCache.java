@@ -187,6 +187,6 @@ public class N5FactoryWithCache extends N5Factory {
 	private static URI normalizeUri(URI uri) {
 		if (uri.isAbsolute())
 			return uri.normalize();
-		return Paths.get(uri.toString()).toUri().normalize();
+		return Paths.get(uri.toString()).normalize().toUri().normalize();
 	}
 }
