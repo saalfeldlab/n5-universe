@@ -8,10 +8,7 @@ import org.janelia.saalfeldlab.n5.hdf5.HDF5Utils;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,7 +43,7 @@ public enum StorageFormat {
 		return null;
 	}
 
-	public static Pair<StorageFormat, URI> parseUri(String uri) throws URISyntaxException {
+	public static Pair<StorageFormat, URI> parseUri(String uri) {
 
 		final Pair<StorageFormat, String> storageFromScheme = getStorageFromNestedScheme(uri);
 		final URI asUri = N5Factory.parseUriFromString(storageFromScheme.getB());

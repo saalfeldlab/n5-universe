@@ -26,15 +26,13 @@
  */
 package org.janelia.saalfeldlab.n5.universe;
 
-import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.function.BiFunction;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
-
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.services.s3.AmazonS3;
+import com.google.cloud.storage.Storage;
+import com.google.gson.GsonBuilder;
+import net.imglib2.util.Pair;
 import org.apache.commons.lang3.function.TriFunction;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
@@ -53,14 +51,13 @@ import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.s3.AmazonS3;
-import com.google.cloud.storage.Storage;
-import com.google.gson.GsonBuilder;
-
-import net.imglib2.util.Pair;
+import javax.annotation.Nullable;
+import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.function.BiFunction;
+import java.util.regex.Pattern;
 
 /**
  * Factory for various N5 readers and writers. Implementation specific
@@ -493,19 +490,15 @@ public class N5Factory implements Serializable {
 			final BiFunction<StorageFormat, URI, T> openWithFormat
 	) {
 
-		try {
-			final URI asUri = StorageFormat.parseUri(uri).getB();
-			return openWithFormat.apply(format, asUri);
-		} catch (final URISyntaxException e) {
-			throw new N5Exception("Cannot create N5 Container (" + format + ") at " + uri, e);
-		}
+		final URI asUri = StorageFormat.parseUri(uri).getB();
+		return openWithFormat.apply(format, asUri);
 	}
 
 	private <T extends N5Reader> T openN5ContainerWithBackend(
 			final KeyValueAccessBackend backend,
 			final String containerUri,
 			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithBackend
-	) throws URISyntaxException {
+	) {
 
 		final Pair<StorageFormat, URI> formatAndUri = StorageFormat.parseUri(containerUri);
 		final URI uri = formatAndUri.getB();
@@ -532,12 +525,7 @@ public class N5Factory implements Serializable {
 			final BiFunction<StorageFormat, URI, T> openWithFormat,
 			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
 
-		final Pair<StorageFormat, URI> storageAndUri;
-		try {
-			storageAndUri = StorageFormat.parseUri(containerUri);
-		} catch (final URISyntaxException e) {
-			throw new N5Exception("Unable to open " + containerUri + " as N5 Container", e);
-		}
+		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(containerUri);
 		final StorageFormat format = storageAndUri.getA();
 		final URI uri = storageAndUri.getB();
 		if (format != null)
