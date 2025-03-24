@@ -117,7 +117,7 @@ public class N5FactoryWithCache extends N5Factory {
 			writerCache.remove(uri);
 			return null;
 		}
-		
+
 		return writer;
 	}
 
@@ -168,5 +168,10 @@ public class N5FactoryWithCache extends N5Factory {
 		boolean removed = readerCache.remove(uri) != null;
 		removed |= writerCache.remove(uri) != null;
 		return removed;
+	}
+
+	public boolean remove(String uri) {
+		final Pair<StorageFormat, URI> storageFormatURIPair = StorageFormat.parseUri(uri);
+		return remove(storageFormatURIPair.getB());
 	}
 }
