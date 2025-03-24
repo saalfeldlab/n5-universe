@@ -244,8 +244,6 @@ public class N5FactoryTests {
 			tmpEmptyDir.mkdirs();
 			tmpEmptyDir.deleteOnExit();
 
-
-
 			final Class<?>[] readerTypes = new Class[]{
 					null,
 					N5HDF5Reader.class,
@@ -316,7 +314,7 @@ public class N5FactoryTests {
 
 
 			/* path normalization */
-			final N5Reader expected = readerFromStorageType;
+			N5Reader expected = readerFromStorageType;
 
 			final N5Reader readerFromUri = cachedFactory.openReader(tmp.toURI().toString());
 			assertSame(readerFromUri, expected);
@@ -335,6 +333,35 @@ public class N5FactoryTests {
 
 			final N5Reader readerRelative = cachedFactory.openReader(relPath);
 			assertSame(readerRelative, expected);
+
+
+			/* clear and remove */
+			cachedFactory.clear();
+
+			final N5Reader readerAfterClear = cachedFactory.openReader(tmpPath);
+			assertNotSame(readerAfterClear, expected);
+			expected = readerAfterClear;
+
+			final N5Writer writerAfterClear = cachedFactory.openWriter(tmpPath);
+			assertNotSame(writerAfterClear, expected);
+
+			// remove
+			cachedFactory.remove(tmpPath);
+			final N5Reader readerAfterRemove = cachedFactory.openReader(tmpPath);
+			assertNotSame(readerAfterRemove, expected);
+			expected = readerAfterRemove;
+
+			final N5Writer writerAfterRemove = cachedFactory.openWriter(tmpPath);
+			assertNotSame(writerAfterRemove, writerAfterClear);
+
+			// remove normalization
+			cachedFactory.remove("zarr:" + tmpPath);
+			final N5Reader readerAfterRemovePrefix = cachedFactory.openReader(tmpPath);
+			assertNotSame(readerAfterRemovePrefix, expected);
+
+			final N5Writer writerAfterRemovePrefix = cachedFactory.openWriter(tmpPath);
+			assertNotSame(writerAfterRemovePrefix, writerAfterRemove);
+
 
 		} finally {
 			FileUtils.deleteDirectory(tmp);
