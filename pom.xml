@@ -111,6 +111,7 @@
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
+		<n5.version>3.4.0</n5.version>
 		<n5-aws-s3.version>4.2.2</n5-aws-s3.version>
 		<n5-google-cloud.version>4.1.2</n5-google-cloud.version>
 		<n5-zarr.version>1.4.0</n5-zarr.version>
