@@ -19,11 +19,16 @@ import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 
 public class N5FactoryTests {
@@ -259,7 +264,83 @@ public class N5FactoryTests {
 			FileUtils.deleteDirectory(tmp);
 		}
 	}
-	
+
+	@Test
+	public void testCachedFactoryKeys() throws IOException {
+
+		final N5FactoryWithCache cachedFactory = new N5FactoryWithCache();
+
+		File tmp = null;
+		try {
+			tmp = Files.createTempDirectory("n5-cachedFactory-test-").toFile();
+			final String tmpPath = tmp.getAbsolutePath();
+
+			/* Writers */
+			final N5Writer writer1 = cachedFactory.openWriter(tmpPath); // a ZarrKeyValueWriter
+			final N5Writer writer2 = cachedFactory.openWriter(tmpPath);
+			assertSame(writer2, writer1);
+
+			final N5Writer writerFromStoragePrefix = cachedFactory.openWriter("zarr:" + tmpPath);
+			assertSame(writerFromStoragePrefix, writer1);
+
+			final N5Writer writerFromStoragePrefix2 = cachedFactory.openWriter("zarr://" + tmpPath);
+			assertSame(writerFromStoragePrefix2, writer1);
+
+			final N5Writer writerdifferentStorageFormat = cachedFactory.openWriter(StorageFormat.N5, tmpPath);
+			assertNotSame(writerdifferentStorageFormat, writer1);
+
+			final N5Writer writerFromStorageType = cachedFactory.openWriter(StorageFormat.ZARR, tmpPath);
+			assertNotSame(writerFromStorageType, writerdifferentStorageFormat);
+			assertNotSame(writerFromStorageType, writer1);
+
+
+			/* Readers */
+			final N5Reader reader1 = cachedFactory.openReader(tmpPath);
+			assertNotSame(reader1, writer1);
+
+			final N5Reader reader2 = cachedFactory.openReader(tmpPath);
+			assertSame(reader2, reader1);
+
+			final N5Reader readerFromStoragePrefix = cachedFactory.openReader("zarr:" + tmpPath);
+			assertSame(readerFromStoragePrefix, reader1);
+
+			final N5Reader readerFromStoragePrefix2 = cachedFactory.openReader("zarr://" + tmpPath);
+			assertSame(readerFromStoragePrefix2, reader1);
+
+			final N5Reader readerDifferentStorageFormat = cachedFactory.openReader(StorageFormat.N5, tmpPath);
+			assertNotSame(readerDifferentStorageFormat, reader1);
+
+			final N5Reader readerFromStorageType = cachedFactory.openReader(StorageFormat.ZARR, tmpPath);
+			assertNotSame(readerFromStorageType, readerDifferentStorageFormat);
+			assertNotSame(readerFromStorageType, reader1);
+
+
+			/* path normalization */
+			final N5Reader expected = readerFromStorageType;
+
+			final N5Reader readerFromUri = cachedFactory.openReader(tmp.toURI().toString());
+			assertSame(readerFromUri, expected);
+
+			final N5Reader readerSlash = cachedFactory.openReader(tmpPath + "/");
+			assertSame(readerSlash, expected);
+
+			final N5Reader readerNotNormal = cachedFactory.openReader(tmpPath + "/foo/..");
+			assertSame(readerNotNormal, expected);
+
+
+			/* relative paths */
+			final String cwd = Paths.get("").toFile().getAbsolutePath();
+			final String suffix = Stream.generate(() -> "..").limit(cwd.split("/").length - 1).collect(Collectors.joining("/"));
+			final String relPath = cwd + "/" + suffix + tmpPath;
+
+			final N5Reader readerRelative = cachedFactory.openReader(relPath);
+			assertSame(readerRelative, expected);
+
+		} finally {
+			FileUtils.deleteDirectory(tmp);
+		}
+	}
+
 	private void checkWriterTypeFromFactory(N5Factory factory, String uri, Class<?> expected, String messageSuffix) {
 
 		if (expected == null) {
