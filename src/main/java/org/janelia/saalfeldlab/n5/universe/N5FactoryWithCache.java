@@ -29,10 +29,10 @@ public class N5FactoryWithCache extends N5Factory {
 
 	@Override public N5Reader openReader(StorageFormat format, URI uri) {
 
-		N5Reader reader = getReaderFromCache(uri);
+		final N5Reader reader = getReaderFromCache(uri);
 		if (reader != null)
-			reader = openAndCacheReader(format, uri);
-		return reader;
+			return reader;
+		return openAndCacheReader(format, uri);
 	}
 
 	private N5Reader openAndCacheReader(StorageFormat storageFormat, URI uri) {
@@ -85,10 +85,10 @@ public class N5FactoryWithCache extends N5Factory {
 
 	@Override public N5Writer openWriter(StorageFormat format, URI uri) {
 
-		N5Writer writer = getWriterFromCache(uri);
+		final N5Writer writer = getWriterFromCache(uri);
 		if (writer != null)
-			writer = openAndCacheWriter(format, uri);
-		return writer;
+			return writer;
+		return openAndCacheWriter(format, uri);
 	}
 
 	private N5Writer openAndCacheWriter(StorageFormat storageFormat, URI uri) {
