@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe;
 
+import org.codehaus.plexus.util.FileUtils;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
@@ -100,11 +101,11 @@ public class N5FactoryTests {
 
 			for (int i = 0; i < ext.length; i++) {
 				final String extUri = tmp.toPath().resolve("foo" + i + ext[i]).normalize().toUri() + trailing[i];
-				checkWriterTypeFromFactory( factory, extUri, readerTypes[i], " with extension");
+				checkWriterTypeFromFactory(factory, extUri, readerTypes[i], " with extension");
 			}
 
 		} finally {
-			tmp.delete();
+			FileUtils.deleteDirectory(tmp);
 		}
 
 	}
@@ -129,10 +130,10 @@ public class N5FactoryTests {
 			for (int i = 0; i < prefix.length; i++) {
 
 				final String prefixUri = prefix[i] + ":" + tmp.toPath().resolve("foo" + i).normalize().toUri();
-				checkWriterTypeFromFactory( factory, prefixUri, readerTypes[i], " with prefix");
+				checkWriterTypeFromFactory(factory, prefixUri, readerTypes[i], " with prefix");
 
 				final String prefixUriSlashes = prefix[i] + "://" + tmp.toPath().resolve("foo" + i).normalize().toUri();
-				checkWriterTypeFromFactory( factory, prefixUriSlashes, readerTypes[i], " with prefix slashes");
+				checkWriterTypeFromFactory(factory, prefixUriSlashes, readerTypes[i], " with prefix slashes");
 			}
 
 			// ensure that prefix is preferred to extensions
@@ -142,15 +143,15 @@ public class N5FactoryTests {
 				for (int j = 0; j < extensions.length; j++) {
 
 					final String prefixUri = prefix[i] + ":" + tmp.toPath().resolve("foo" + i + extensions[i]).normalize().toUri();
-					checkWriterTypeFromFactory( factory, prefixUri, readerTypes[i], " with prefix");
+					checkWriterTypeFromFactory(factory, prefixUri, readerTypes[i], " with prefix");
 
 					final String prefixUriSlashes = prefix[i] + "://" + tmp.toPath().resolve("foo" + i + extensions[i]).normalize().toUri();
-					checkWriterTypeFromFactory( factory, prefixUriSlashes, readerTypes[i], " with prefix slashes");
+					checkWriterTypeFromFactory(factory, prefixUriSlashes, readerTypes[i], " with prefix slashes");
 				}
 			}
 
 		} finally {
-			tmp.delete();
+			FileUtils.deleteDirectory(tmp);
 		}
 	}
 
@@ -186,28 +187,25 @@ public class N5FactoryTests {
 			tmpEmptyDir.mkdirs();
 			tmpEmptyDir.deleteOnExit();
 
-
-
 			final Class<?>[] writerTypes = new Class[]{
 					null,
 					N5HDF5Writer.class,
-					ZarrKeyValueWriter.class, //valid zarr, correct by key match
-					N5KeyValueWriter.class,  //valid n5, correct by key match
+					ZarrKeyValueWriter.class, // valid zarr, correct by key match
+					N5KeyValueWriter.class, // valid n5, correct by key match
 					ZarrKeyValueWriter.class, // empty directory, create new zarr
-					ZarrKeyValueWriter.class //directory doesn't exist, create new zarr
+					ZarrKeyValueWriter.class // directory doesn't exist, create new zarr
 			};
 
 			for (int i = 0; i < paths.length; i++) {
 
 				final String prefixUri = tmpPath.resolve(paths[i]).normalize().toUri().toString();
-				checkWriterTypeFromFactory( factory, prefixUri, writerTypes[i], " with path " + paths[i]);
+				checkWriterTypeFromFactory(factory, prefixUri, writerTypes[i], " with path " + paths[i]);
 			}
 
 		} finally {
-			tmp.delete();
+			FileUtils.deleteDirectory(tmp);
 		}
 	}
-
 
 	@Test
 	public void testDefaultForAmbiguousReaders() throws IOException {
@@ -254,11 +252,11 @@ public class N5FactoryTests {
 
 			for (int i = 0; i < paths.length; i++) {
 				final String prefixUri = tmpPath.resolve(paths[i]).normalize().toUri().toString();;
-				checkReaderTypeFromFactory( factory, prefixUri, readerTypes[i], " with path " + paths[i]);
+				checkReaderTypeFromFactory(factory, prefixUri, readerTypes[i], " with path " + paths[i]);
 			}
 
 		} finally {
-			tmp.delete();
+			FileUtils.deleteDirectory(tmp);
 		}
 	}
 	
@@ -270,7 +268,7 @@ public class N5FactoryTests {
 		}
 
 		final N5Writer n5 = factory.openWriter(uri);
-		assertNotNull(	"null n5 for " + uri, n5);
+		assertNotNull("null n5 for " + uri, n5);
 		assertEquals(expected.getName() + messageSuffix, expected, n5.getClass());
 		n5.remove();
 	}
@@ -283,7 +281,7 @@ public class N5FactoryTests {
 		}
 
 		final N5Reader n5 = factory.openReader(uri);
-		assertNotNull(	"null n5 for " + uri, n5);
+		assertNotNull("null n5 for " + uri, n5);
 		assertEquals(expected.getName() + messageSuffix, expected, n5.getClass());
 	}
 }
