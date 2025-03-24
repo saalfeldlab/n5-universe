@@ -149,6 +149,10 @@ public class N5FactoryWithCache extends N5Factory {
 
 	private boolean n5MatchesFormat(N5Reader reader, StorageFormat format) {
 
+		// succeed if no format to compare against
+		if (format == null)
+			return true;
+
 		switch (format) {
 		case N5:
 			return reader instanceof N5KeyValueReader;
