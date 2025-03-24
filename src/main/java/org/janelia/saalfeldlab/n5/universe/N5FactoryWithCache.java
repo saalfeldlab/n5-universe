@@ -3,8 +3,11 @@ package org.janelia.saalfeldlab.n5.universe;
 import com.google.gson.JsonElement;
 import net.imglib2.util.Pair;
 import org.janelia.saalfeldlab.n5.CachedGsonKeyValueN5Reader;
+import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
+import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -29,7 +32,7 @@ public class N5FactoryWithCache extends N5Factory {
 
 	@Override public N5Reader openReader(StorageFormat format, URI uri) {
 
-		final N5Reader reader = getReaderFromCache(uri);
+		final N5Reader reader = getReaderFromCache(format, uri);
 		if (reader != null)
 			return reader;
 		return openAndCacheReader(format, uri);
@@ -45,15 +48,17 @@ public class N5FactoryWithCache extends N5Factory {
 		return reader;
 	}
 
-	private synchronized N5Reader getReaderFromCache(URI uri) {
+	private synchronized N5Reader getReaderFromCache(StorageFormat format, URI uri) {
 
-		final URI normalUri = uri.normalize();
-		final N5Reader reader = readerCache.get(normalUri);
-		if (reader != null && !canRead(reader)) {
-			/* Can't from cached reader, clear from the cache and return null */
-			readerCache.remove(normalUri);
+		final N5Reader reader = readerCache.get(uri);
+		if (reader == null)
+			return null;
+
+		if (!n5MatchesFormat(reader, format) || !canRead(reader)) {
+			readerCache.remove(uri);
 			return null;
 		}
+
 		return reader;
 	}
 
@@ -85,7 +90,7 @@ public class N5FactoryWithCache extends N5Factory {
 
 	@Override public N5Writer openWriter(StorageFormat format, URI uri) {
 
-		final N5Writer writer = getWriterFromCache(uri);
+		final N5Writer writer = getWriterFromCache(format, uri);
 		if (writer != null)
 			return writer;
 		return openAndCacheWriter(format, uri);
@@ -101,14 +106,18 @@ public class N5FactoryWithCache extends N5Factory {
 		return writer;
 	}
 
-	private synchronized N5Writer getWriterFromCache(URI uri) {
+	private synchronized N5Writer getWriterFromCache(StorageFormat format, URI uri) {
+
 
 		final N5Writer writer = writerCache.get(uri);
-		if (writer != null && !canWrite(writer)) {
-			/* If we can't write, remove from the cache*/
+		if (writer == null)
+			return null;
+
+		if (!n5MatchesFormat(writer, format) || !canWrite(writer)) {
 			writerCache.remove(uri);
 			return null;
 		}
+		
 		return writer;
 	}
 
@@ -134,5 +143,30 @@ public class N5FactoryWithCache extends N5Factory {
 			} catch (Exception ignored) {
 			}
 		}
+	}
+
+	private boolean n5MatchesFormat(N5Reader reader, StorageFormat format) {
+
+		switch (format) {
+		case N5:
+			return reader instanceof N5KeyValueReader;
+		case ZARR:
+			return reader instanceof ZarrKeyValueReader;
+		case HDF5:
+			return reader instanceof N5HDF5Reader;
+		default:
+			return true; // StorageFormat has no other values, but Java 8 doesn't know that
+		}
+	}
+
+	public void clear() {
+		readerCache.clear();
+		writerCache.clear();
+	}
+
+	public boolean remove(URI uri) {
+		boolean removed = readerCache.remove(uri) != null;
+		removed |= writerCache.remove(uri) != null;
+		return removed;
 	}
 }
