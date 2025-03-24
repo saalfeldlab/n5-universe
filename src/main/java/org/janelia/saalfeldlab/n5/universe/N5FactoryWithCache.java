@@ -10,6 +10,7 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 
 import java.net.URI;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -32,7 +33,7 @@ public class N5FactoryWithCache extends N5Factory {
 
 	@Override public N5Reader openReader(StorageFormat format, URI uri) {
 
-		final URI normalUri = uri.normalize();
+		final URI normalUri = normalizeUri(uri);
 		final N5Reader reader = getReaderFromCache(format, normalUri);
 		if (reader != null)
 			return reader;
@@ -49,7 +50,7 @@ public class N5FactoryWithCache extends N5Factory {
 		return reader;
 	}
 
-	private synchronized N5Reader getReaderFromCache(StorageFormat format, URI uri) {
+	protected synchronized N5Reader getReaderFromCache(StorageFormat format, URI uri) {
 
 		final N5Reader reader = readerCache.get(uri);
 		if (reader == null)
@@ -91,7 +92,7 @@ public class N5FactoryWithCache extends N5Factory {
 
 	@Override public N5Writer openWriter(StorageFormat format, URI uri) {
 
-		final URI normalUri = uri.normalize();
+		final URI normalUri = normalizeUri(uri);
 		final N5Writer writer = getWriterFromCache(format, normalUri);
 		if (writer != null)
 			return writer;
@@ -108,7 +109,7 @@ public class N5FactoryWithCache extends N5Factory {
 		return writer;
 	}
 
-	private synchronized N5Writer getWriterFromCache(StorageFormat format, URI uri) {
+	protected synchronized N5Writer getWriterFromCache(StorageFormat format, URI uri) {
 
 
 		final N5Writer writer = writerCache.get(uri);
@@ -172,7 +173,7 @@ public class N5FactoryWithCache extends N5Factory {
 
 	public boolean remove(URI uri) {
 
-		final URI normalUri = uri.normalize();
+		final URI normalUri = normalizeUri(uri);
 		boolean removed = readerCache.remove(normalUri) != null;
 		removed |= writerCache.remove(normalUri) != null;
 		return removed;
@@ -181,5 +182,11 @@ public class N5FactoryWithCache extends N5Factory {
 	public boolean remove(String uri) {
 		final Pair<StorageFormat, URI> storageFormatURIPair = StorageFormat.parseUri(uri);
 		return remove(storageFormatURIPair.getB());
+	}
+
+	private static URI normalizeUri(URI uri) {
+		if (uri.isAbsolute())
+			return uri.normalize();
+		return Paths.get(uri.toString()).toUri().normalize();
 	}
 }
