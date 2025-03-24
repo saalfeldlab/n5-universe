@@ -32,10 +32,11 @@ public class N5FactoryWithCache extends N5Factory {
 
 	@Override public N5Reader openReader(StorageFormat format, URI uri) {
 
-		final N5Reader reader = getReaderFromCache(format, uri);
+		final URI normalUri = uri.normalize();
+		final N5Reader reader = getReaderFromCache(format, normalUri);
 		if (reader != null)
 			return reader;
-		return openAndCacheReader(format, uri);
+		return openAndCacheReader(format, normalUri);
 	}
 
 	private N5Reader openAndCacheReader(StorageFormat storageFormat, URI uri) {
@@ -44,7 +45,7 @@ public class N5FactoryWithCache extends N5Factory {
 		if (reader == null)
 			return null;
 
-		readerCache.put(uri.normalize(), reader);
+		readerCache.put(uri, reader);
 		return reader;
 	}
 
@@ -90,10 +91,11 @@ public class N5FactoryWithCache extends N5Factory {
 
 	@Override public N5Writer openWriter(StorageFormat format, URI uri) {
 
-		final N5Writer writer = getWriterFromCache(format, uri);
+		final URI normalUri = uri.normalize();
+		final N5Writer writer = getWriterFromCache(format, normalUri);
 		if (writer != null)
 			return writer;
-		return openAndCacheWriter(format, uri);
+		return openAndCacheWriter(format, normalUri);
 	}
 
 	private N5Writer openAndCacheWriter(StorageFormat storageFormat, URI uri) {
@@ -165,8 +167,10 @@ public class N5FactoryWithCache extends N5Factory {
 	}
 
 	public boolean remove(URI uri) {
-		boolean removed = readerCache.remove(uri) != null;
-		removed |= writerCache.remove(uri) != null;
+
+		final URI normalUri = uri.normalize();
+		boolean removed = readerCache.remove(normalUri) != null;
+		removed |= writerCache.remove(normalUri) != null;
 		return removed;
 	}
 
