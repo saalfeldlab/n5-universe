@@ -56,6 +56,7 @@ import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
@@ -90,6 +91,7 @@ public class N5Factory implements Serializable {
 	private ClientConfiguration s3ClientConfiguration = null;
 	private boolean s3Anonymous = true;
 	private String s3Endpoint;
+	private StorageFormat preferredStorageFormat = null;
 
 	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
 
@@ -166,6 +168,21 @@ public class N5Factory implements Serializable {
 	public N5Factory s3ClientConfiguration(final ClientConfiguration clientConfiguration) {
 
 		this.s3ClientConfiguration = clientConfiguration;
+		return this;
+	}
+	
+	/**
+	 * When N5Factory cannot determine the StorageFormat from the URI, it will attempt to
+	 * try and create a reader/writer with all known StorageFormat values.
+	 * The order of th StorageFormat will dictate which will formats will be attempted first.
+	 * Some URI's may be valid for multiple StorageFormat types. (e.g. N5 and Zarr Writer
+	 * at a new location). This format will be tried first if specified.
+	 *
+	 * @param format the storage format to try first.
+	 * @return this N5Factory
+	 */
+	public N5Factory preferredStorageFormat(final StorageFormat format) {
+		this.preferredStorageFormat = format;
 		return this;
 	}
 
@@ -331,10 +348,18 @@ public class N5Factory implements Serializable {
 		return openN5Container(uri, this::openReader, this::openReader);
 	}
 
+	StorageFormat[] orderedStorageFormats() {
+
+		return Arrays.stream(StorageFormat.values()).sorted((l, r) -> {
+			if (l == preferredStorageFormat) return -1;
+			return l.compareTo(r);
+		}).toArray(StorageFormat[]::new);
+	}
+
 	private N5Reader openReader(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, String containerPath) {
 
 		if (storage == null) {
-			for (final StorageFormat format : StorageFormat.values()) {
+			for (final StorageFormat format : orderedStorageFormats()) {
 				try {
 					return openReader(format, access, containerPath);
 				} catch (final Throwable e) {
@@ -462,7 +487,7 @@ public class N5Factory implements Serializable {
 	private N5Writer openWriter(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, final String containerPath) {
 
 		if (storage == null) {
-			for (final StorageFormat format : StorageFormat.values()) {
+			for (final StorageFormat format : orderedStorageFormats()) {
 				try {
 					return openWriter(format, access, containerPath);
 				} catch (final Throwable ignored) {

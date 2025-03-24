@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -32,6 +33,22 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 
 public class N5FactoryTests {
+
+	@Test
+	public void testStorageFormatOrderWithPreference() {
+
+		N5Factory factory = new N5Factory();
+		assertArrayEquals(StorageFormat.values(), factory.orderedStorageFormats());
+
+		factory.preferredStorageFormat(StorageFormat.N5);
+		assertArrayEquals(new StorageFormat[]{StorageFormat.N5, StorageFormat.ZARR, StorageFormat.HDF5}, factory.orderedStorageFormats());
+
+		factory.preferredStorageFormat(StorageFormat.ZARR);
+		assertArrayEquals(StorageFormat.values(), factory.orderedStorageFormats());
+
+		factory.preferredStorageFormat(StorageFormat.HDF5);
+		assertArrayEquals(new StorageFormat[]{StorageFormat.HDF5, StorageFormat.ZARR, StorageFormat.N5}, factory.orderedStorageFormats());
+	}
 
 	@Test
 	public void testStorageFormatGuesses() throws URISyntaxException {
