@@ -20,8 +20,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -334,7 +332,7 @@ public class N5FactoryTests {
 	}
 
 	@Test
-	public void testCachedFactoryKeys() throws IOException {
+	public void testCachedFactoryKeys() throws IOException, URISyntaxException {
 
 		final N5FactoryWithCache cachedFactory = new N5FactoryWithCache();
 
@@ -395,14 +393,39 @@ public class N5FactoryTests {
 			final N5Reader readerNotNormal = cachedFactory.openReader(tmpPath + "/foo/..");
 			assertSame(readerNotNormal, expected);
 
+			/* different methods of URI creation */
+			final N5Reader readerFromStringUri = cachedFactory.openReader(URI.create(tmpPath).toString());
+			assertSame(readerFromStringUri, expected);
+
+			final N5Reader readerFromUriConstructor = cachedFactory.openReader(new URI("file", null, tmpPath, null).toString());
+			assertSame(readerFromUriConstructor, expected);
+
+			final N5Reader readerFromFileUri = cachedFactory.openReader(tmp.toURI().toString());
+			assertSame(readerFromFileUri, expected);
+
+			final N5Reader readerFromPathUri = cachedFactory.openReader(tmp.toPath().toUri().toString());
+			assertSame(readerFromPathUri, expected);
+
 
 			/* relative paths */
-			final String cwd = Paths.get("").toFile().getAbsolutePath();
-			final String suffix = Stream.generate(() -> "..").limit(cwd.split("/").length - 1).collect(Collectors.joining("/"));
-			final String relPath = cwd + "/" + suffix + tmpPath;
+			final String rootName = "monkeySee.n5";
+			final String absPath = Paths.get(rootName).toFile().getAbsolutePath();
 
-			final N5Reader readerRelative = cachedFactory.openReader(relPath);
-			assertSame(readerRelative, expected);
+			final N5Writer writerAbs = cachedFactory.openWriter(absPath);
+			final N5Writer writerRel = cachedFactory.openWriter("./" + rootName);
+			assertSame(String.format("writers not same instance: %s \n%s\n", writerRel.getURI(), writerAbs.getURI()), 
+					writerRel, writerAbs);
+
+			final N5Writer writerRel2 = cachedFactory.openWriter(rootName);
+			assertSame(String.format("writers not same instance: %s \n%s\n", writerRel2.getURI(), writerAbs.getURI()),
+					writerRel2, writerAbs);
+
+			final N5Writer writerRel3 = cachedFactory.openWriter(rootName + "/foo/..");
+			assertSame(String.format("writers not same instance: %s \n%s\n", writerRel3.getURI(), writerAbs.getURI()),
+					writerRel3, writerAbs);
+
+			/*Clean up*/
+			writerAbs.remove();
 
 
 			/* clear and remove */
