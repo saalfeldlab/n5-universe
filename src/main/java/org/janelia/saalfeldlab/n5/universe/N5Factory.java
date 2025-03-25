@@ -26,15 +26,13 @@
  */
 package org.janelia.saalfeldlab.n5.universe;
 
-import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.function.BiFunction;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
-
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.services.s3.AmazonS3;
+import com.google.cloud.storage.Storage;
+import com.google.gson.GsonBuilder;
+import net.imglib2.util.Pair;
 import org.apache.commons.lang3.function.TriFunction;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
@@ -53,14 +51,14 @@ import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.s3.AmazonS3;
-import com.google.cloud.storage.Storage;
-import com.google.gson.GsonBuilder;
-
-import net.imglib2.util.Pair;
+import javax.annotation.Nullable;
+import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.function.BiFunction;
+import java.util.regex.Pattern;
 
 /**
  * Factory for various N5 readers and writers. Implementation specific
@@ -93,6 +91,7 @@ public class N5Factory implements Serializable {
 	private ClientConfiguration s3ClientConfiguration = null;
 	private boolean s3Anonymous = true;
 	private String s3Endpoint;
+	private StorageFormat preferredStorageFormat = null;
 
 	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
 
@@ -169,6 +168,21 @@ public class N5Factory implements Serializable {
 	public N5Factory s3ClientConfiguration(final ClientConfiguration clientConfiguration) {
 
 		this.s3ClientConfiguration = clientConfiguration;
+		return this;
+	}
+	
+	/**
+	 * When N5Factory cannot determine the StorageFormat from the URI, it will attempt to
+	 * try and create a reader/writer with all known StorageFormat values.
+	 * The order of th StorageFormat will dictate which will formats will be attempted first.
+	 * Some URI's may be valid for multiple StorageFormat types. (e.g. N5 and Zarr Writer
+	 * at a new location). This format will be tried first if specified.
+	 *
+	 * @param format the storage format to try first.
+	 * @return this N5Factory
+	 */
+	public N5Factory preferredStorageFormat(final StorageFormat format) {
+		this.preferredStorageFormat = format;
 		return this;
 	}
 
@@ -273,7 +287,7 @@ public class N5Factory implements Serializable {
 		return openN5ContainerWithStorageFormat(
 				StorageFormat.HDF5,
 				path,
-				(format, uri) -> openReader(format, null, uri.getPath())
+				(format, uri) -> openReader(format, null, uri)
 		);
 	}
 
@@ -313,40 +327,80 @@ public class N5Factory implements Serializable {
 		return openN5ContainerWithBackend(KeyValueAccessBackend.FILE, uri, this::openReader);
 	}
 
-	public N5Reader openReader(final StorageFormat format, final String uri) {
+	/**
+	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend} and {@link StorageFormat}.
+	 *
+	 * @param uri the root location of the store
+	 * @return the N5Reader
+	 */
+	public N5Reader openReader(final String uri) {
 
-		return openN5Container(format, parseUriFromString(uri), this::openReader);
+		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
+		final StorageFormat format = storageAndUri.getA();
+		final URI asUri = storageAndUri.getB();
+		return openReader(format, asUri);
 	}
 
+	/**
+	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend}.
+	 *
+	 * @param format of the data store this N5Reader is accessing
+	 * @param uri the root location of the store
+	 * @return the N5Reader
+	 */
+	public N5Reader openReader(final StorageFormat format, final String uri) {
+
+		return openReader(format, parseUriFromString(uri));
+	}
+
+	/**
+	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend}.
+	 *
+	 * @param format of the data store this N5Reader is accessing
+	 * @param uri the root location of the store
+	 * @return the N5Reader
+	 */
 	public N5Reader openReader(final StorageFormat format, final URI uri) {
 
 		return openN5Container(format, uri, this::openReader);
 	}
 
-	/**
-	 * Open an {@link N5Reader} based on some educated guessing from the url.
-	 *
-	 * @param uri the location of the root location of the store
-	 * @return the N5Reader
-	 */
-	public N5Reader openReader(final String uri) {
+	StorageFormat[] orderedStorageFormats() {
 
-		return openN5Container(uri, this::openReader, this::openReader);
+		return Arrays.stream(StorageFormat.values()).sorted((l, r) -> {
+			if (l == preferredStorageFormat) return -1;
+			return l.compareTo(r);
+		}).toArray(StorageFormat[]::new);
 	}
 
-	private N5Reader openReader(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, String containerPath) {
+
+
+	/**
+	 * Create an N5Reader at the {@code containerPath} requiring the specific {@link StorageFormat} and using {@link KeyValueAccess}.
+	 *
+	 * @param storage of the underlying data store this N5Reader is over
+	 * @param access to the key-value backend of the underlying data
+	 * @param location root URI of the resulting N5Reader
+	 * @return the N5Reader
+	 */
+	private N5Reader openReader(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, URI location) {
+
 
 		if (storage == null) {
-			for (final StorageFormat format : StorageFormat.values()) {
+			for (final StorageFormat format : orderedStorageFormats()) {
 				try {
-					return openReader(format, access, containerPath);
+					return openReader(format, access, location);
 				} catch (final Throwable e) {
 				}
 			}
-			throw new N5Exception("Unable to open " + containerPath + " as N5Reader");
+			throw new N5Exception("Unable to open " + location + " as N5Reader");
 
 		} else {
 
+			final String containerPath = location.getPath();
 			switch (storage) {
 			case N5:
 				return new N5KeyValueReader(access, containerPath, gsonBuilder, cacheAttributes);
@@ -411,7 +465,7 @@ public class N5Factory implements Serializable {
 		return openN5ContainerWithStorageFormat(
 				StorageFormat.HDF5,
 				path,
-				(format, uri) -> openWriter(format, null, uri.getPath())
+				(format, uri) -> openWriter(format, null, uri)
 		);
 	}
 
@@ -439,49 +493,76 @@ public class N5Factory implements Serializable {
 		return openN5ContainerWithBackend(KeyValueAccessBackend.AWS, uri, this::openWriter);
 	}
 
+	/**
+	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend} and {@link StorageFormat}.
+	 *
+	 * @param uri the root location of the store
+	 * @return the N5Writer
+	 */
+	public N5Writer openWriter(final String uri) {
+		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
+		final StorageFormat format = storageAndUri.getA();
+		final URI asUri = storageAndUri.getB();
+		return openWriter(format, asUri);
+	}
+
+	/**
+	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend}.
+	 *
+	 * @param format of the data store for this N5Writer
+	 * @param uri the root location of the store
+	 * @return the N5Writer
+	 */
 	public N5Writer openWriter(final StorageFormat format, final String uri) {
 
-
-		return openN5Container(format, parseUriFromString(uri), this::openWriter);
+		return openWriter(format, parseUriFromString(uri));
 
 	}
 
+	/**
+	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend}.
+	 *
+	 * @param format of the data store for this N5Writer
+	 * @param uri the root location of the store
+	 * @return the N5Writer
+	 */
 	public N5Writer openWriter(final StorageFormat format, final URI uri) {
 
 		return openN5Container(format, uri, this::openWriter);
 	}
 
 	/**
-	 * Open an {@link N5Writer} based on some educated guessing from the uri.
+	 * Create an N5Writer at the {@code location} requiring the specific {@link StorageFormat} and using {@link KeyValueAccess}.
 	 *
-	 * @param uri the location of the root location of the store
+	 * @param storage of the underlying data store this N5Writer is over
+	 * @param access to the key-value backend of the underlying data
+	 * @param location root location of the resulting N5Writer
 	 * @return the N5Writer
 	 */
-	public N5Writer openWriter(final String uri) {
-
-		return openN5Container(uri, this::openWriter, this::openWriter);
-	}
-
-	private N5Writer openWriter(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, final String containerPath) {
+	public N5Writer openWriter(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, final URI location) {
 
 		if (storage == null) {
-			for (final StorageFormat format : StorageFormat.values()) {
+			for (final StorageFormat format : orderedStorageFormats()) {
 				try {
-					return openWriter(format, access, containerPath);
+					return openWriter(format, access, location);
 				} catch (final Throwable ignored) {
 				}
 			}
-			throw new N5Exception("Unable to open " + containerPath + " as N5Writer");
+			throw new N5Exception("Unable to open " + location + " as N5Writer");
 
 		} else {
 
+			final String containerLocation = location.toString();
 			switch (storage) {
 			case ZARR:
-				return new ZarrKeyValueWriter(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+				return new ZarrKeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
 			case N5:
-				return new N5KeyValueWriter(access, containerPath, gsonBuilder, cacheAttributes);
+				return new N5KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
 			case HDF5:
-				return new N5HDF5Writer(containerPath, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
+				return new N5HDF5Writer(containerLocation, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
 			}
 		}
 		return null;
@@ -493,57 +574,34 @@ public class N5Factory implements Serializable {
 			final BiFunction<StorageFormat, URI, T> openWithFormat
 	) {
 
-		try {
-			final URI asUri = StorageFormat.parseUri(uri).getB();
-			return openWithFormat.apply(format, asUri);
-		} catch (final URISyntaxException e) {
-			throw new N5Exception("Cannot create N5 Container (" + format + ") at " + uri, e);
-		}
+		final URI asUri = StorageFormat.parseUri(uri).getB();
+		return openWithFormat.apply(format, asUri);
 	}
 
 	private <T extends N5Reader> T openN5ContainerWithBackend(
 			final KeyValueAccessBackend backend,
 			final String containerUri,
-			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithBackend
-	) throws URISyntaxException {
+			final TriFunction<StorageFormat, KeyValueAccess, URI, T> openWithBackend
+	) {
 
 		final Pair<StorageFormat, URI> formatAndUri = StorageFormat.parseUri(containerUri);
 		final URI uri = formatAndUri.getB();
 		final KeyValueAccess kva = backend.apply(uri, this);
 		StorageFormat format = formatAndUri.getA();
 		format = format != null? format : StorageFormat.guessStorageFromKeys(uri, kva);
-		return openWithBackend.apply(format, kva, uri.toString());
+		return openWithBackend.apply(format, kva, uri);
 	}
 
 	private <T extends N5Reader> T openN5Container(
 			final StorageFormat storageFormat,
 			final URI uri,
-			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
+			final TriFunction<StorageFormat, KeyValueAccess, URI, T> openWithKva) {
 
 		final KeyValueAccess kva = getKeyValueAccess(uri);
 		if (kva == null)
 			throw new N5Exception("Cannot get KeyValueAccess at " + uri);
 		final StorageFormat format = storageFormat != null ? storageFormat : StorageFormat.guessStorageFromKeys(uri, kva);
-		return openWithKva.apply(format, kva, uri.toString());
-	}
-
-	private <T extends N5Reader> T openN5Container(
-			final String containerUri,
-			final BiFunction<StorageFormat, URI, T> openWithFormat,
-			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
-
-		final Pair<StorageFormat, URI> storageAndUri;
-		try {
-			storageAndUri = StorageFormat.parseUri(containerUri);
-		} catch (final URISyntaxException e) {
-			throw new N5Exception("Unable to open " + containerUri + " as N5 Container", e);
-		}
-		final StorageFormat format = storageAndUri.getA();
-		final URI uri = storageAndUri.getB();
-		if (format != null)
-			return openWithFormat.apply(format, uri);
-		else
-			return openN5Container(null, uri, openWithKva);
+		return openWithKva.apply(format, kva, uri);
 	}
 
 	/**

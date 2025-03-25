@@ -69,7 +69,6 @@ public class TransformTests {
 	{
 		final URL configUrl = TransformTests.class.getResource( "/n5.jq" );
 		final File baseDir = new File( configUrl.getFile() ).getParentFile();
-		System.out.println( "baseDir: " + baseDir );
 		containerDir = new File( baseDir, "transforms.n5" );
 
 		try {
