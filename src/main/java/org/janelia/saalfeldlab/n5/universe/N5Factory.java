@@ -287,7 +287,7 @@ public class N5Factory implements Serializable {
 		return openN5ContainerWithStorageFormat(
 				StorageFormat.HDF5,
 				path,
-				(format, uri) -> openReader(format, null, uri.getPath())
+				(format, uri) -> openReader(format, null, uri)
 		);
 	}
 
@@ -376,19 +376,31 @@ public class N5Factory implements Serializable {
 		}).toArray(StorageFormat[]::new);
 	}
 
-	private N5Reader openReader(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, String containerPath) {
+
+
+	/**
+	 * Create an N5Reader at the {@code containerPath} requiring the specific {@link StorageFormat} and using {@link KeyValueAccess}.
+	 *
+	 * @param storage of the underlying data store this N5Reader is over
+	 * @param access to the key-value backend of the underlying data
+	 * @param location root URI of the resulting N5Reader
+	 * @return the N5Reader
+	 */
+	private N5Reader openReader(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, URI location) {
+
 
 		if (storage == null) {
 			for (final StorageFormat format : orderedStorageFormats()) {
 				try {
-					return openReader(format, access, containerPath);
+					return openReader(format, access, location);
 				} catch (final Throwable e) {
 				}
 			}
-			throw new N5Exception("Unable to open " + containerPath + " as N5Reader");
+			throw new N5Exception("Unable to open " + location + " as N5Reader");
 
 		} else {
 
+			final String containerPath = location.getPath();
 			switch (storage) {
 			case N5:
 				return new N5KeyValueReader(access, containerPath, gsonBuilder, cacheAttributes);
@@ -453,7 +465,7 @@ public class N5Factory implements Serializable {
 		return openN5ContainerWithStorageFormat(
 				StorageFormat.HDF5,
 				path,
-				(format, uri) -> openWriter(format, null, uri.getPath())
+				(format, uri) -> openWriter(format, null, uri)
 		);
 	}
 
@@ -522,26 +534,35 @@ public class N5Factory implements Serializable {
 		return openN5Container(format, uri, this::openWriter);
 	}
 
-	private N5Writer openWriter(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, final String containerPath) {
+	/**
+	 * Create an N5Writer at the {@code location} requiring the specific {@link StorageFormat} and using {@link KeyValueAccess}.
+	 *
+	 * @param storage of the underlying data store this N5Writer is over
+	 * @param access to the key-value backend of the underlying data
+	 * @param location root location of the resulting N5Writer
+	 * @return the N5Writer
+	 */
+	public N5Writer openWriter(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, final URI location) {
 
 		if (storage == null) {
 			for (final StorageFormat format : orderedStorageFormats()) {
 				try {
-					return openWriter(format, access, containerPath);
+					return openWriter(format, access, location);
 				} catch (final Throwable ignored) {
 				}
 			}
-			throw new N5Exception("Unable to open " + containerPath + " as N5Writer");
+			throw new N5Exception("Unable to open " + location + " as N5Writer");
 
 		} else {
 
+			final String containerLocation = location.toString();
 			switch (storage) {
 			case ZARR:
-				return new ZarrKeyValueWriter(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+				return new ZarrKeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
 			case N5:
-				return new N5KeyValueWriter(access, containerPath, gsonBuilder, cacheAttributes);
+				return new N5KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
 			case HDF5:
-				return new N5HDF5Writer(containerPath, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
+				return new N5HDF5Writer(containerLocation, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
 			}
 		}
 		return null;
@@ -560,7 +581,7 @@ public class N5Factory implements Serializable {
 	private <T extends N5Reader> T openN5ContainerWithBackend(
 			final KeyValueAccessBackend backend,
 			final String containerUri,
-			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithBackend
+			final TriFunction<StorageFormat, KeyValueAccess, URI, T> openWithBackend
 	) {
 
 		final Pair<StorageFormat, URI> formatAndUri = StorageFormat.parseUri(containerUri);
@@ -568,33 +589,19 @@ public class N5Factory implements Serializable {
 		final KeyValueAccess kva = backend.apply(uri, this);
 		StorageFormat format = formatAndUri.getA();
 		format = format != null? format : StorageFormat.guessStorageFromKeys(uri, kva);
-		return openWithBackend.apply(format, kva, uri.toString());
+		return openWithBackend.apply(format, kva, uri);
 	}
 
 	private <T extends N5Reader> T openN5Container(
 			final StorageFormat storageFormat,
 			final URI uri,
-			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
+			final TriFunction<StorageFormat, KeyValueAccess, URI, T> openWithKva) {
 
 		final KeyValueAccess kva = getKeyValueAccess(uri);
 		if (kva == null)
 			throw new N5Exception("Cannot get KeyValueAccess at " + uri);
 		final StorageFormat format = storageFormat != null ? storageFormat : StorageFormat.guessStorageFromKeys(uri, kva);
-		return openWithKva.apply(format, kva, uri.toString());
-	}
-
-	private <T extends N5Reader> T openN5Container(
-			final String containerUri,
-			final BiFunction<StorageFormat, URI, T> openWithFormat,
-			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
-
-		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(containerUri);
-		final StorageFormat format = storageAndUri.getA();
-		final URI uri = storageAndUri.getB();
-		if (format != null)
-			return openWithFormat.apply(format, uri);
-		else
-			return openN5Container(null, uri, openWithKva);
+		return openWithKva.apply(format, kva, uri);
 	}
 
 	/**
