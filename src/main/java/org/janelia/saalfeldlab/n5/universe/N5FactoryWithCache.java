@@ -19,18 +19,6 @@ public class N5FactoryWithCache extends N5Factory {
 	private final HashMap<URI, N5Reader> readerCache = new HashMap<>();
 	private final HashMap<URI, N5Writer> writerCache = new HashMap<>();
 
-	@Override public N5Reader openReader(String uri) {
-
-		final Pair<StorageFormat, URI> storageFormatURIPair = StorageFormat.parseUri(uri);
-		return openReader(storageFormatURIPair.getA(), storageFormatURIPair.getB());
-	}
-
-	@Override public N5Reader openReader(StorageFormat format, String uri) {
-
-		final URI asUri = parseUriFromString(uri);
-		return openReader(format, asUri);
-	}
-
 	@Override public N5Reader openReader(StorageFormat format, URI uri) {
 
 		final URI normalUri = normalizeUri(uri);
@@ -38,6 +26,15 @@ public class N5FactoryWithCache extends N5Factory {
 		if (reader != null)
 			return reader;
 		return openAndCacheReader(format, normalUri);
+	}
+
+	@Override public N5Writer openWriter(StorageFormat format, URI uri) {
+
+		final URI normalUri = normalizeUri(uri);
+		final N5Writer writer = getWriterFromCache(format, normalUri);
+		if (writer != null)
+			return writer;
+		return openAndCacheWriter(format, normalUri);
 	}
 
 	private N5Reader openAndCacheReader(StorageFormat storageFormat, URI uri) {
@@ -76,27 +73,6 @@ public class N5FactoryWithCache extends N5Factory {
 		} catch (Exception e) {
 			return false;
 		}
-	}
-
-	@Override public N5Writer openWriter(String uri) {
-
-		final Pair<StorageFormat, URI> storageFormatURIPair = StorageFormat.parseUri(uri);
-		return openWriter(storageFormatURIPair.getA(), storageFormatURIPair.getB());
-	}
-
-	@Override public N5Writer openWriter(StorageFormat format, String uri) {
-
-		final URI asUri = parseUriFromString(uri);
-		return openWriter(format, asUri);
-	}
-
-	@Override public N5Writer openWriter(StorageFormat format, URI uri) {
-
-		final URI normalUri = normalizeUri(uri);
-		final N5Writer writer = getWriterFromCache(format, normalUri);
-		if (writer != null)
-			return writer;
-		return openAndCacheWriter(format, normalUri);
 	}
 
 	private N5Writer openAndCacheWriter(StorageFormat storageFormat, URI uri) {

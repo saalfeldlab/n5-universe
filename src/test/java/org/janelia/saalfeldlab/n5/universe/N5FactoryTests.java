@@ -16,10 +16,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -177,6 +177,49 @@ public class N5FactoryTests {
 		}
 	}
 
+
+
+	@Test
+	public void testDefaultForAmbiguousWritersWithPreference() throws IOException {
+		final N5Factory factory = new N5Factory();
+		factory.preferredStorageFormat(StorageFormat.N5);
+
+		File tmp = null;
+		try {
+			tmp = Files.createTempDirectory("factory-test-").toFile();
+
+			final String[] paths = new String[]{
+					"a_zarr_directory",
+					"an_n5_directory",
+					"an_empty_directory",
+			};
+
+			final Path tmpPath = tmp.toPath();
+
+			factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[0]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[1]).toFile().getCanonicalPath()).close();
+
+			final File tmpEmptyDir = tmpPath.resolve(paths[2]).toFile();
+			tmpEmptyDir.mkdirs();
+			tmpEmptyDir.deleteOnExit();
+
+			final Class<?>[] writerTypes = new Class[]{
+					ZarrKeyValueWriter.class, // valid zarr, correct by key match
+					N5KeyValueWriter.class, // valid n5, correct by key match
+					N5KeyValueWriter.class, // empty directory, create new N5 by preference
+			};
+
+			for (int i = 0; i < paths.length; i++) {
+
+				final String prefixUri = tmpPath.resolve(paths[i]).normalize().toUri().toString();
+				checkWriterTypeFromFactory(factory, prefixUri, writerTypes[i], " with path " + paths[i]);
+			}
+
+		} finally {
+			FileUtils.deleteDirectory(tmp);
+		}
+	}
+
 	@Test
 	public void testDefaultForAmbiguousWriters() throws IOException {
 
@@ -233,7 +276,7 @@ public class N5FactoryTests {
 	public void testDefaultForAmbiguousReaders() throws IOException {
 
 		final N5Factory factory = new N5Factory();
-
+		final ArrayList<N5Writer> writers = new ArrayList<>();
 		File tmp = null;
 		try {
 			tmp = Files.createTempDirectory("factory-test-").toFile();
@@ -256,6 +299,9 @@ public class N5FactoryTests {
 			N5Writer h5 = factory.openWriter(StorageFormat.HDF5, tmpPath.resolve(paths[1]).toFile().getCanonicalPath());
 			N5Writer zarr = factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[2]).toFile().getCanonicalPath());
 			N5Writer n5 = factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[3]).toFile().getCanonicalPath());
+			writers.add(h5);
+			writers.add(zarr);
+			writers.add(n5);
 
 			final File tmpEmptyDir = tmpPath.resolve(paths[4]).toFile();
 			tmpEmptyDir.mkdirs();
@@ -275,19 +321,16 @@ public class N5FactoryTests {
 				checkReaderTypeFromFactory(factory, prefixUri, readerTypes[i], " with path " + paths[i]);
 			}
 
-			zarr.remove();
-			zarr.close();
-			n5.remove();
-			n5.close();
-			h5.remove();
-			h5.close();
-
-		} catch( Exception e) {
-		}
-
-		try {
+			for (N5Writer writer : writers) {
+				try {
+					writer.remove();
+					writer.close();
+				} catch (Exception e) {
+				}
+			}
+		} finally {
 			FileUtils.deleteDirectory(tmp);
-		} catch( Exception e ) {}
+		}
 	}
 
 	@Test
@@ -354,15 +397,12 @@ public class N5FactoryTests {
 
 
 			/* relative paths */
-			// TODO figure out how to make this reliable on GH actions windows
+			final String cwd = Paths.get("").toFile().getAbsolutePath();
+			final String suffix = Stream.generate(() -> "..").limit(cwd.split("/").length - 1).collect(Collectors.joining("/"));
+			final String relPath = cwd + "/" + suffix + tmpPath;
 
-//			final String cwd = Paths.get("").toFile().getAbsolutePath();
-//
-//			final String suffix = Stream.generate(() -> "..").limit(cwd.split("/").length - 1).collect(Collectors.joining("/"));
-//			final String relPath = cwd + "/" + suffix + tmpPath;
-//
-//			final N5Reader readerRelative = cachedFactory.openReader(relPath);
-//			assertSame(readerRelative, expected);
+			final N5Reader readerRelative = cachedFactory.openReader(relPath);
+			assertSame(readerRelative, expected);
 
 
 			/* clear and remove */

@@ -327,25 +327,45 @@ public class N5Factory implements Serializable {
 		return openN5ContainerWithBackend(KeyValueAccessBackend.FILE, uri, this::openReader);
 	}
 
-	public N5Reader openReader(final StorageFormat format, final String uri) {
-
-		return openN5Container(format, parseUriFromString(uri), this::openReader);
-	}
-
-	public N5Reader openReader(final StorageFormat format, final URI uri) {
-
-		return openN5Container(format, uri, this::openReader);
-	}
-
 	/**
-	 * Open an {@link N5Reader} based on some educated guessing from the url.
+	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend} and {@link StorageFormat}.
 	 *
-	 * @param uri the location of the root location of the store
+	 * @param uri the root location of the store
 	 * @return the N5Reader
 	 */
 	public N5Reader openReader(final String uri) {
 
-		return openN5Container(uri, this::openReader, this::openReader);
+		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
+		final StorageFormat format = storageAndUri.getA();
+		final URI asUri = storageAndUri.getB();
+		return openReader(format, asUri);
+	}
+
+	/**
+	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend}.
+	 *
+	 * @param format of the data store this N5Reader is accessing
+	 * @param uri the root location of the store
+	 * @return the N5Reader
+	 */
+	public N5Reader openReader(final StorageFormat format, final String uri) {
+
+		return openReader(format, parseUriFromString(uri));
+	}
+
+	/**
+	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend}.
+	 *
+	 * @param format of the data store this N5Reader is accessing
+	 * @param uri the root location of the store
+	 * @return the N5Reader
+	 */
+	public N5Reader openReader(final StorageFormat format, final URI uri) {
+
+		return openN5Container(format, uri, this::openReader);
 	}
 
 	StorageFormat[] orderedStorageFormats() {
@@ -461,27 +481,45 @@ public class N5Factory implements Serializable {
 		return openN5ContainerWithBackend(KeyValueAccessBackend.AWS, uri, this::openWriter);
 	}
 
-	public N5Writer openWriter(final StorageFormat format, final String uri) {
-
-
-		return openN5Container(format, parseUriFromString(uri), this::openWriter);
-
-	}
-
-	public N5Writer openWriter(final StorageFormat format, final URI uri) {
-
-		return openN5Container(format, uri, this::openWriter);
-	}
-
 	/**
-	 * Open an {@link N5Writer} based on some educated guessing from the uri.
+	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend} and {@link StorageFormat}.
 	 *
-	 * @param uri the location of the root location of the store
+	 * @param uri the root location of the store
 	 * @return the N5Writer
 	 */
 	public N5Writer openWriter(final String uri) {
+		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
+		final StorageFormat format = storageAndUri.getA();
+		final URI asUri = storageAndUri.getB();
+		return openWriter(format, asUri);
+	}
 
-		return openN5Container(uri, this::openWriter, this::openWriter);
+	/**
+	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend}.
+	 *
+	 * @param format of the data store for this N5Writer
+	 * @param uri the root location of the store
+	 * @return the N5Writer
+	 */
+	public N5Writer openWriter(final StorageFormat format, final String uri) {
+
+		return openWriter(format, parseUriFromString(uri));
+
+	}
+
+	/**
+	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
+	 * the appropriate {@link KeyValueAccessBackend}.
+	 *
+	 * @param format of the data store for this N5Writer
+	 * @param uri the root location of the store
+	 * @return the N5Writer
+	 */
+	public N5Writer openWriter(final StorageFormat format, final URI uri) {
+
+		return openN5Container(format, uri, this::openWriter);
 	}
 
 	private N5Writer openWriter(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, final String containerPath) {
