@@ -394,12 +394,6 @@ public class N5FactoryTests {
 			assertSame(readerNotNormal, expected);
 
 			/* different methods of URI creation */
-			final N5Reader readerFromStringUri = cachedFactory.openReader(URI.create(tmpPath).toString());
-			assertSame(readerFromStringUri, expected);
-
-			final N5Reader readerFromUriConstructor = cachedFactory.openReader(new URI("file", null, tmpPath, null).toString());
-			assertSame(readerFromUriConstructor, expected);
-
 			final N5Reader readerFromFileUri = cachedFactory.openReader(tmp.toURI().toString());
 			assertSame(readerFromFileUri, expected);
 

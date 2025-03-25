@@ -161,8 +161,22 @@ public class N5FactoryWithCache extends N5Factory {
 	}
 
 	private static URI normalizeUri(URI uri) {
-		if (uri.isAbsolute())
+		if (uri.isAbsolute() && !uri.getScheme().equals("file"))
 			return uri.normalize();
-		return Paths.get(uri.toString()).normalize().toUri().normalize();
+
+		final URI uriFromPath;
+		if (uri.isAbsolute())
+			uriFromPath = Paths.get(uri).normalize().toUri();
+		else
+			uriFromPath = Paths.get(uri.getPath()).normalize().toUri();
+
+		/* By Default, Path.toUri() will add a trailing `/` if it is a directory.
+		 * The problem is if it is a directory that doesn't exist yet (e.g. creating a new writer).
+		 * then the first time the URI will have no trailing `/` and the next time it will. This
+		 * causes the cache to consider them different keys.
+		 *
+		 * We remove the leading slash in all cases, to avoid this issue.  */
+		final String uriWithoutTrailingSlash = uriFromPath.toString().replaceAll("/$", "");
+		return URI.create(uriWithoutTrailingSlash).normalize();
 	}
 }
