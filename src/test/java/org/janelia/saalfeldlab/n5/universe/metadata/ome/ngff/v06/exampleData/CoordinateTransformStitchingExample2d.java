@@ -44,7 +44,7 @@ public class CoordinateTransformStitchingExample2d <T extends NativeType<T>>
 
 	final static String VERSION = "0.6";
 
-	String path = "/home/john/data/ngff/stitching_examples_2d/stitched_tiles.zarr";
+	String path = "/home/john/data/ngff/stitching_examples_2d/stitched_tiles_2d.zarr";
 
 	long[] expandAmount = new long[]{ 12, 12 };
 
@@ -130,12 +130,12 @@ public class CoordinateTransformStitchingExample2d <T extends NativeType<T>>
 
 			final String dset = "tile_" + i;
 			final String arrayDset = dset + "/0";
-			final String physical = "tile_" + i + "_mm";
+			final String physical = dset;
 
 			N5Utils.save( tiles.get( i ), n5, arrayDset, blkSize, new ZstandardCompression() );
 
 			OmeNgffV06MultiScaleMetadata ms = buildMultiscales( "0", physical,
-				new ScaleCoordinateTransform(dset + " to physical", dset, physical, new double[]{1,1}));
+				new ScaleCoordinateTransform(null, "0", physical, new double[]{1,1}));
 			
 			coordinateSystems.add( ms.coordinateSystems[0] );
 
