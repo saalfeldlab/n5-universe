@@ -204,7 +204,7 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
-	AmazonS3 createS3(final String uri) {
+	protected AmazonS3 createS3(final String uri) {
 
 		try {
 			return AmazonS3Utils.createS3(uri, s3Endpoint, AmazonS3Utils.getS3Credentials(s3Credentials, s3Anonymous), s3ClientConfiguration, s3Region);
@@ -213,7 +213,7 @@ public class N5Factory implements Serializable {
 		}
 	}
 
-	Storage createGoogleCloudStorage() {
+	protected Storage createGoogleCloudStorage() {
 
 		return GoogleCloudUtils.createGoogleCloudStorage(googleCloudProjectId);
 	}
@@ -400,7 +400,7 @@ public class N5Factory implements Serializable {
 
 		} else {
 
-			final String containerPath = location.getPath();
+			final String containerPath = location.toString();
 			switch (storage) {
 			case N5:
 				return new N5KeyValueReader(access, containerPath, gsonBuilder, cacheAttributes);
