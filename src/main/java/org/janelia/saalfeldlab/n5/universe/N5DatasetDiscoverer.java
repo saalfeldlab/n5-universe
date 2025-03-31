@@ -26,11 +26,9 @@
 package org.janelia.saalfeldlab.n5.universe;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -43,11 +41,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageClient;
-import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
-import org.janelia.saalfeldlab.n5.LockedChannel;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMultiScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5GenericSingleScaleMetadataParser;
@@ -57,27 +51,15 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5ViewerMultiscaleMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalMetadataParser;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadataParser;
-import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.ServiceAccountCredentials;
-import com.google.cloud.storage.Acl.User;
-import com.google.cloud.storage.Blob;
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 
 import se.sawano.java.text.AlphanumericComparator;
 
 /**
- * This class aids in detecting and parsing datsets in an N5 container.
+ * This class aids in detecting and parsing datasets in an N5 container.
  * <p>
  * An N5DatasetDiscoverer specifies the types of {@link N5MetadataParser}s to
  * attempt, and an {@link ExecutorService} that enables parsing in parallel. The
@@ -86,7 +68,7 @@ import se.sawano.java.text.AlphanumericComparator;
  * on its children.
  * <p>
  * The {@link discoverAndParseRecursive} method returns a {@link N5TreeNode}
- * containing all child nodes, each of which contains pased metadata. For each
+ * containing all child nodes, each of which contains parsed metadata. For each
  * group/dataset, the parsers will be called in order, and will return the first
  * non-empty result. As such parsers should be ordered from most- to
  * least-strict.
@@ -104,7 +86,7 @@ public class N5DatasetDiscoverer {
 			new N5GenericSingleScaleMetadataParser() };
 
 	public static final N5MetadataParser<?>[] DEFAULT_GROUP_PARSERS = new N5MetadataParser<?>[] {
-			new OmeNgffMetadataParser(), new N5CosemMultiScaleMetadata.CosemMultiScaleParser(),
+			new OmeNgffMetadataParser(),new N5CosemMultiScaleMetadata.CosemMultiScaleParser(),
 			new N5ViewerMultiscaleMetadataParser(), new CanonicalMetadataParser() };
 
 	public static final N5MetadataParser<?>[] DEFAULT_SHALLOW_GROUP_PARSERS = new N5MetadataParser<?>[] {
@@ -278,8 +260,7 @@ public class N5DatasetDiscoverer {
 				parsedMeta.ifPresent(node::setMetadata);
 				if (parsedMeta.isPresent())
 					break;
-			} catch (final Exception ignored) {
-			}
+			} catch (final Exception ignored) {}
 		}
 
 		// this may be a group (e.g. multiscale pyramid) try to parse groups
@@ -433,8 +414,8 @@ public class N5DatasetDiscoverer {
 	}
 
 	public N5TreeNode discoverAndParseRecursive(final N5TreeNode root) throws IOException {
-		return discoverAndParseRecursive(root, x -> {
-		});
+
+		return discoverAndParseRecursive(root, x -> {});
 	}
 
 	public N5TreeNode discoverAndParseRecursive(final N5TreeNode root, final Consumer<N5TreeNode> callback)
@@ -494,8 +475,8 @@ public class N5DatasetDiscoverer {
 	}
 
 	public void sortAndTrimRecursive(final N5TreeNode node) {
-		sortAndTrimRecursive(node, x -> {
-		});
+
+		sortAndTrimRecursive(node, x -> {});
 	}
 
 	public void sortAndTrimRecursive(final N5TreeNode node, final Consumer<N5TreeNode> callback) {
@@ -527,10 +508,10 @@ public class N5DatasetDiscoverer {
 	 * @param rootNode the root node
 	 */
 	public void parseMetadataRecursive(final N5TreeNode rootNode) {
-		parseMetadataRecursive(rootNode, x -> {
-		});
+
+		parseMetadataRecursive(rootNode, x -> {});
 	}
-	
+
 	/**
 	 * Parses metadata for the given node and all children in parallel using this
 	 * object's executor. The given function is called for every node after parsing
@@ -562,7 +543,7 @@ public class N5DatasetDiscoverer {
 		if (!children.isEmpty()) {
 			/* If possible, parallelize the metadata parsing. */
 			if (executor instanceof ThreadPoolExecutor) {
-				final ThreadPoolExecutor threadPoolExec = (ThreadPoolExecutor) this.executor;
+				final ThreadPoolExecutor threadPoolExec = (ThreadPoolExecutor)this.executor;
 				for (final N5TreeNode child : children) {
 					final boolean useExec;
 					synchronized (executor) {
@@ -612,7 +593,7 @@ public class N5DatasetDiscoverer {
 			// spatial metadata groups may update their children metadata, and to be safe,
 			// run the callback on its children
 			@SuppressWarnings("unchecked")
-			final N5MetadataGroup<? extends N5Metadata> grpMeta = (N5MetadataGroup<N5Metadata>) rootNode.getMetadata();
+			final N5MetadataGroup<? extends N5Metadata> grpMeta = (N5MetadataGroup<N5Metadata>)rootNode.getMetadata();
 			for (final N5Metadata child : grpMeta.getChildrenMetadata()) {
 				rootNode.getDescendant(child.getPath()).ifPresent(x -> {
 					callback.accept(x);
@@ -688,4 +669,3 @@ public class N5DatasetDiscoverer {
 	}
 
 }
-

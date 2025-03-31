@@ -112,11 +112,13 @@
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
 		<n5.version>4.0.0-SNAPSHOT</n5.version>
-		<n5-ij.version>4.3.0</n5-ij.version>
-		<n5-aws-s3.version>4.2.2</n5-aws-s3.version>
-		<n5-google-cloud.version>4.1.2</n5-google-cloud.version>
+		<n5-aws-s3.version>4.2.2-SNAPSHOT</n5-aws-s3.version>
+		<n5-blosc.version>1.1.2-SNAPSHOT</n5-blosc.version>
+		<n5-hdf5.version>2.2.0</n5-hdf5.version>
+		<n5-imglib2.version>7.0.3-SNAPSHOT</n5-imglib2.version>
+		<n5-ij.version>4.2.6-SNAPSHOT</n5-ij.version>
+		<n5-google-cloud.version>4.1.2-SNAPSHOT</n5-google-cloud.version>
 		<n5-zarr.version>2.0.0-SNAPSHOT</n5-zarr.version>
-		<n5-google-cloud.version>5.0.0</n5-google-cloud.version>
 
 		<jackson-jq.version>1.0.0-preview.20191208</jackson-jq.version>
 		<alphanumeric-comparator.version>1.4.1</alphanumeric-comparator.version>
@@ -159,6 +161,10 @@
 			<artifactId>imglib2-realtransform</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>net.thisptr</groupId>
 			<artifactId>jackson-jq</artifactId>
 			<version>${jackson-jq.version}</version>
@@ -171,6 +177,7 @@
 			<scope>compile</scope>
 		</dependency>
 
+		<!-- Test dependencies -->
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5</artifactId>
@@ -222,7 +229,6 @@
 			<version>${commons-io.version}</version>
 			<scope>test</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>io.findify</groupId>
 			<artifactId>s3mock_2.12</artifactId>
@@ -233,6 +239,16 @@
 			<groupId>javax.xml.bind</groupId>
 			<artifactId>jaxb-api</artifactId>
 			<version>${jaxb-api.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.openjdk.jmh</groupId>
+			<artifactId>jmh-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.openjdk.jmh</groupId>
+			<artifactId>jmh-generator-annprocess</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<!-- include imagej-legacy at test runtime -->
