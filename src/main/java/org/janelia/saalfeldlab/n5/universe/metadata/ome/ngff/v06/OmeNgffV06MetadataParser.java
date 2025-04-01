@@ -123,20 +123,22 @@ public class OmeNgffV06MetadataParser implements N5MetadataParser<OmeNgffV06Mult
 		return Optional.of(new OmeNgffV06MultiScaleMetadata(multiscales, msChildrenMeta));
 	}	
 	
-	private static OmeNgffV06MultiScaleMetadata parse(N5Reader n5, final String dset) {
+	private OmeNgffV06MultiScaleMetadata parse(N5Reader n5, final String dset) {
 
 		try {
-		final OmeNgffV06MultiScaleMetadata meta = n5.getAttribute(dset, "ome/multiscales", OmeNgffV06MultiScaleMetadata.class);
-		return new OmeNgffV06MultiScaleMetadata(
-				meta.getAxes().length,
-				dset,
-				meta.getName(),
-				meta.type,
-				meta.coordinateSystems, 
-				meta.datasets, 
-				meta.childrenAttributes,
-				meta.coordinateTransformations, 
-				meta.metadata, false);
+			final JsonElement elem = n5.getAttribute(dset, "ome/multiscales", JsonElement.class);
+			final OmeNgffV06MultiScaleMetadata meta = gson.fromJson(elem, OmeNgffV06MultiScaleMetadata.class);
+
+			return new OmeNgffV06MultiScaleMetadata(
+					meta.getAxes().length,
+					dset,
+					meta.getName(),
+					meta.type,
+					meta.coordinateSystems,
+					meta.datasets,
+					meta.childrenAttributes,
+					meta.coordinateTransformations,
+					meta.metadata, false);
 		} catch (final Exception e) {
 			return null;
 		}
