@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMultiScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5GenericSingleScaleMetadataParser;
@@ -16,6 +17,11 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5ViewerMultiscaleMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadataParser;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 
 public class N5MetadataUtils {
 
@@ -164,6 +170,22 @@ public class N5MetadataUtils {
 		} catch (final IOException e) {}
 
 		return null;
+	}
+
+	public static void writeDimensionNamesIfZarr3( final N5Writer n5, final String dataset, final String[] dimensionNames ) {
+
+		if( n5 instanceof ZarrV3KeyValueWriter)
+		{
+			JsonElement json = ((ZarrV3KeyValueWriter)n5).getRawAttributes(dataset);
+			if( json == null || !json.isJsonObject())
+				return;
+
+			json.getAsJsonObject().add(
+					ZarrV3DatasetAttributes.DIMENSION_NAMES_KEY,
+					new Gson().toJsonTree(dimensionNames));
+
+			((ZarrV3KeyValueWriter)n5).writeAttributes(dataset, json);
+		}
 	}
 
 }
