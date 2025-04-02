@@ -14,15 +14,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public enum StorageFormat {
+	ZARR3(Pattern.compile("zarr3", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 	ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
-	ZARR3(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 	N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 	HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
 		final boolean hasHdf5Extension = Pattern.compile("\\.h(df)?5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find();
 		return hasHdf5Extension || HDF5Utils.isHDF5(uri.getPath());
 	});
 
-	static final Pattern STORAGE_SCHEME_PATTERN = Pattern.compile("^(\\s*(?<storageScheme>(n5|h(df)?5|zarr)):(//)?)?(?<uri>.*)$", Pattern.CASE_INSENSITIVE);
+	static final Pattern STORAGE_SCHEME_PATTERN = Pattern.compile("^(\\s*(?<storageScheme>(n5|h(df)?5|zarr(3)?)):(//)?)?(?<uri>.*)$", Pattern.CASE_INSENSITIVE);
 	private final static String STORAGE_SCHEME_GROUP = "storageScheme";
 	private final static String URI_GROUP = "uri";
 
@@ -74,7 +74,7 @@ public enum StorageFormat {
 	private static final String ZGROUP = ".zgroup";
 	private static final String ZATTRS = ".zattrs";
 	private static final String[] ZARR2_KEYS = new String[]{ZARRAY, ZGROUP, ZATTRS};
-	private static final String Z3ATTRS = ".zattrs";
+	private static final String Z3ATTRS = "zarr.json";
 	private static final String N5_ATTRIBUTES = "attributes.json";
 
 	public static @Nullable StorageFormat guessStorageFromKeys(final URI root, final KeyValueAccess kva) {
