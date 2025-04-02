@@ -2,12 +2,15 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformation
 
 
 import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.N5MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.serialization.NameConfig;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
@@ -85,6 +88,32 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 
 	public static <T extends RealType<T> & NativeType<T>> DisplacementFieldCoordinateTransform<?> writeDisplacementField(
 			final N5Writer n5, final String dataset, final RandomAccessibleInterval<T> displacementField,
+			final DatasetAttributes datasetAttributes,
+			 final CoordinateSystem input, final CoordinateSystem output,
+			 final CoordinateTransform<?>[] transforms ) {
+
+		CoordinateSystem dfieldCoordinateSystem = createVectorFieldCoordinateSystem(input);
+		dfieldCoordinateSystem.reverseInPlace();
+
+		String[] axisNames = dfieldCoordinateSystem.getAxisNames();
+
+		final DisplacementFieldCoordinateTransform<T> df = new DisplacementFieldCoordinateTransform<>("",
+				dataset, "linear", input.getName(), output.getName());
+
+		final RandomAccessibleInterval<T> reversedField = AbstractParametrizedFieldTransform.reverseCoordinates(displacementField);
+		n5.createDataset(dataset, datasetAttributes);
+		N5Utils.saveBlock(reversedField, n5, dataset, datasetAttributes);
+
+		N5MetadataUtils.writeDimensionNamesIfZarr3(n5, dataset, axisNames);
+		n5.setAttribute(dataset, "ome/" + CoordinateSystem.KEY, new CoordinateSystem[]{dfieldCoordinateSystem});
+		n5.setAttribute(dataset, "ome/" + CoordinateTransform.KEY, transforms);
+
+		return df;
+
+	}
+
+	public static <T extends RealType<T> & NativeType<T>> DisplacementFieldCoordinateTransform<?> writeDisplacementField(
+			final N5Writer n5, final String dataset, final RandomAccessibleInterval<T> displacementField,
 			final int[] blockSize, final Compression compression,
 			 final CoordinateSystem input, final CoordinateSystem output,
 			 final CoordinateTransform<?>[] transforms ) {
@@ -92,11 +121,15 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		CoordinateSystem dfieldCoordinateSystem = createVectorFieldCoordinateSystem(input);
 		dfieldCoordinateSystem.reverseInPlace();
 
+		String[] axisNames = dfieldCoordinateSystem.getAxisNames();
+
 		final DisplacementFieldCoordinateTransform<T> df = new DisplacementFieldCoordinateTransform<>("", 
 				dataset, "linear", input.getName(), output.getName());
 
 		final RandomAccessibleInterval<T> reversedField = AbstractParametrizedFieldTransform.reverseCoordinates(displacementField);
 		N5Utils.save(reversedField, n5, dataset, blockSize, compression);
+
+		N5MetadataUtils.writeDimensionNamesIfZarr3(n5, dataset, axisNames);
 		n5.setAttribute(dataset, "ome/" + CoordinateSystem.KEY, new CoordinateSystem[]{dfieldCoordinateSystem});
 		n5.setAttribute(dataset, "ome/" + CoordinateTransform.KEY, transforms);
 

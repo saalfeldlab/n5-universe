@@ -1,9 +1,11 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
 import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.N5MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.serialization.NameConfig;
@@ -77,6 +79,31 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 			buildTransform(field);
 
 		return transform;
+	}
+
+	public static <T extends RealType<T> & NativeType<T>> CoordinateFieldCoordinateTransform<?> writeCoordinateField(
+			final N5Writer n5, final String dataset, final RandomAccessibleInterval<T> coordinateField,
+			final DatasetAttributes datasetAttributes,
+			final CoordinateSystem input, final CoordinateSystem output,
+			final CoordinateTransform<?>[] transforms) {
+
+		CoordinateSystem pfieldCoordinateSystem = createPositionFieldCoordinateSystem(input);
+		pfieldCoordinateSystem.reverseInPlace();
+
+		String[] axisNames = pfieldCoordinateSystem.getAxisNames();
+
+		final CoordinateFieldCoordinateTransform<T> cf = new CoordinateFieldCoordinateTransform<>("",
+				dataset, "linear", input.getName(), output.getName());
+
+		final RandomAccessibleInterval<T> reversedField = AbstractParametrizedFieldTransform.reverseCoordinates(coordinateField);
+		n5.createDataset(dataset, datasetAttributes);
+		N5Utils.saveBlock(reversedField, n5, dataset, datasetAttributes);
+
+		N5MetadataUtils.writeDimensionNamesIfZarr3(n5, dataset, axisNames);
+		n5.setAttribute(dataset, "ome/" + CoordinateSystem.KEY, new CoordinateSystem[]{pfieldCoordinateSystem});
+		n5.setAttribute(dataset, "ome/" + CoordinateTransform.KEY, transforms);
+
+		return cf;
 	}
 
 	public static <T extends RealType<T> & NativeType<T>> CoordinateFieldCoordinateTransform<?> writeCoordinateField(
