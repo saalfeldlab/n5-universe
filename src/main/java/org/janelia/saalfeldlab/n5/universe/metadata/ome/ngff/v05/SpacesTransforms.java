@@ -28,6 +28,7 @@ public class SpacesTransforms {
 	{
 		this.spaces = spaces;
 		this.transforms = transforms;
+		synchronize(transforms, spaces);
 	}
 
 	public static Gson buildGson()
@@ -151,6 +152,17 @@ public class SpacesTransforms {
 
 		CoordinateTransform<?>[] transforms = n5.getAttribute(dataset, attributePrefix+"/"+"coordinateTransformations", CoordinateTransform[].class);
 		return new SpacesTransforms(css, transforms);
+	}
+
+	public static SpacesTransforms deserializeSingle(N5Reader n5, final String dataset, final String attributePrefix, final String fullTransformPath ) {
+
+		final CoordinateSystem[] reversedCss = n5.getAttribute( dataset, attributePrefix+"/"+"coordinateSystems", CoordinateSystem[].class);
+		final CoordinateSystem[] css = Arrays.stream(reversedCss).map(x -> {
+			return x.reverseAxes();
+		}).toArray(N -> new CoordinateSystem[N]);
+
+		CoordinateTransform<?> transform = n5.getAttribute(dataset, fullTransformPath, CoordinateTransform.class);
+		return new SpacesTransforms(css, new CoordinateTransform[]{transform});
 	}
 
 }

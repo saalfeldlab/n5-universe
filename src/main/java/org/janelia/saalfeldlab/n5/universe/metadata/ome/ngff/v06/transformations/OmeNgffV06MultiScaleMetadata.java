@@ -237,6 +237,8 @@ public class OmeNgffV06MultiScaleMetadata extends SpatialMultiscaleMetadata<Ngff
 
 	@Override
 	public Axis[] getAxes() {
+
+		// TODO do better than using the first coordinate system
 		return coordinateSystems[0].getAxes();
 	}
 
