@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageURI;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
@@ -16,6 +17,7 @@ import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
 import javax.annotation.Nullable;
 import java.net.URI;
 import java.nio.file.FileSystems;
+import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
@@ -120,6 +122,16 @@ public enum KeyValueAccessBackend implements Predicate<URI>, BiFunction<URI, N5F
 		final String uriString = uri.toString();
 		final AmazonS3 s3 = factory.createS3(uriString);
 
+		/* TODO: Consider moving this to n5-aws-s3;
+		 * 	Check if we get an expected error response, which we should as long as the server is responding
+		 * 	with a valid S3 response. If it's an HTTP server, we should get a nonsense response.
+		 */
+		try {
+			s3.getObject(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+		} catch (AmazonS3Exception e) {
+			if (!e.getHttpHeaders().containsKey("x-amz-request-id"))
+				throw e;
+		}
 		return new AmazonS3KeyValueAccess(s3, uri, true);
 	}
 
