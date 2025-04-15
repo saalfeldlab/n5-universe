@@ -3,6 +3,7 @@ package org.janelia.saalfeldlab.n5.universe.storage.n5;
 import org.janelia.saalfeldlab.n5.GsonKeyValueN5Reader;
 import org.janelia.saalfeldlab.n5.GsonKeyValueN5Writer;
 import org.janelia.saalfeldlab.n5.HttpKeyValueAccess;
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -13,16 +14,20 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Ignore;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RunnerWithHttpServer.class)
@@ -102,6 +107,49 @@ public class N5HttpFactoryTest extends N5StorageTests.N5FactoryTest {
 		return HttpKeyValueAccess.class;
 	}
 
+	@Test
+	public void testReaderCreation() {
+
+		// non-existent location should fail
+		final String location = tempN5Location();
+		assertThrows("Non-existent location throws error", N5Exception.N5IOException.class,
+				() -> {
+					try (N5Reader test = createN5Reader(location)) {
+						test.list("/");
+					}
+				});
+
+		try (N5Writer writer = createTempN5Writer(location)) {
+			try (N5Reader n5r = createN5Reader(location)) {
+				assertNotNull(n5r);
+			}
+
+			// existing directory without attributes is okay;
+			// Remove and create to remove attributes store
+			writer.removeAttribute("/", "/");
+			try (N5Reader na = createN5Reader(location)) {
+				assertNotNull(na);
+			}
+
+			// existing location with attributes, but no version
+			writer.removeAttribute("/", "/");
+			writer.setAttribute("/", "mystring", "ms");
+			try (N5Reader wa = createN5Reader(location)) {
+				assertNotNull(wa);
+			}
+
+			// existing directory with incompatible version should fail
+			writer.removeAttribute("/", "/");
+			final String invalidVersion = new N5Reader.Version(N5Reader.VERSION.getMajor() + 1, N5Reader.VERSION.getMinor(), N5Reader.VERSION.getPatch()).toString();
+			writer.setAttribute("/", N5Reader.VERSION_KEY, invalidVersion);
+			assertThrows("Incompatible version throws error", N5Exception.class, () -> {
+				try (final N5Reader ignored = createN5Reader(location)) {
+					/*Only try with resource to ensure `close()` is called.*/
+				}
+			});
+		}
+	}
+
 	@Ignore("N5Writer not supported for HTTP")
 	@Override
 	public void testVersion() throws NumberFormatException {
@@ -137,4 +185,6 @@ public class N5HttpFactoryTest extends N5StorageTests.N5FactoryTest {
 	@Override public void testWriterSeparation() {
 
 	}
+
+
 }
