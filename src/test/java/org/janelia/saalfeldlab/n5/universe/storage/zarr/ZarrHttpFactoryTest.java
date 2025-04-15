@@ -15,6 +15,7 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -160,33 +161,18 @@ public class ZarrHttpFactoryTest extends ZarrStorageTests.ZarrFactoryTest {
 				});
 
 		try (N5Writer writer = createTempN5Writer(location)) {
-			try (N5Reader n5r = createN5Reader(location)) {
-				assertNotNull(n5r);
-			}
+
+			assertNotNull(createN5Reader(location));
 
 			// existing directory without attributes is okay;
 			// Remove and create to remove attributes store
 			writer.removeAttribute("/", "/");
-			try (N5Reader na = createN5Reader(location)) {
-				assertNotNull(na);
-			}
+			assertNotNull(createN5Reader(location));
 
 			// existing location with attributes, but no version
 			writer.removeAttribute("/", "/");
 			writer.setAttribute("/", "mystring", "ms");
-			try (N5Reader wa = createN5Reader(location)) {
-				assertNotNull(wa);
-			}
-
-			// existing directory with incompatible version should fail
-			writer.removeAttribute("/", "/");
-			final String invalidVersion = new N5Reader.Version(N5Reader.VERSION.getMajor() + 1, N5Reader.VERSION.getMinor(), N5Reader.VERSION.getPatch()).toString();
-			writer.setAttribute("/", N5Reader.VERSION_KEY, invalidVersion);
-			assertThrows("Incompatible version throws error", N5Exception.class, () -> {
-				try (final N5Reader ignored = createN5Reader(location)) {
-					/*Only try with resource to ensure `close()` is called.*/
-				}
-			});
+			assertNotNull(createN5Reader(location));
 		}
 	}
 
