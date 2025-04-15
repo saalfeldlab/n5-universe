@@ -1,7 +1,12 @@
 package org.janelia.saalfeldlab.n5.universe.storage.zarr;
 
 import com.google.cloud.storage.Storage;
+import org.janelia.saalfeldlab.n5.DataType;
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.N5Exception;
+import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
 import org.janelia.saalfeldlab.n5.googlecloud.N5GoogleCloudStorageTests;
 import org.janelia.saalfeldlab.n5.googlecloud.backend.BackendGoogleCloudStorageFactory;
@@ -10,10 +15,14 @@ import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
 import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempContainerPath;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public abstract class ZarrGoogleCloudFactoryTest extends ZarrStorageTests.ZarrFactoryTest {
@@ -61,6 +70,41 @@ public abstract class ZarrGoogleCloudFactoryTest extends ZarrStorageTests.ZarrFa
 		public ZarrGoogleCloudMockTest() {
 
 			ZarrGoogleCloudFactoryTest.storage = MockGoogleCloudStorageFactory.getOrCreateStorage();
+		}
+
+		@Override public void testPathsWithIllegalUriCharacters() {
+
+			// NOTE: This is currently identical to the AbstractN5Test version, except we remove "%" from the array of illegalChars to test.
+			// 	Specifically we ONLY remove it in this Mock version of the test. The actual backend has no problem, and the test passes
+			//	just fine, but the mock version seems to have some incorrect handling of % in keys. Likely because % is a valid UTF-8 character
+			//	but requires special encoding for URL over HTTP, and it seems the mock channels don't handle that case correctly
+			try (N5Writer writer = createTempN5Writer()) {
+				try (N5Reader reader = createN5Reader(writer.getURI().toString())) {
+
+					final String[] illegalChars = {" ", "#"};
+					for (final String illegalChar : illegalChars) {
+						final String groupWithIllegalChar = "test" + illegalChar + "group";
+						assertThrows("list over group should throw prior to create", N5Exception.N5IOException.class, () -> writer.list(groupWithIllegalChar));
+						writer.createGroup(groupWithIllegalChar);
+						assertTrue("Newly created group should exist", writer.exists(groupWithIllegalChar));
+						assertArrayEquals("list over empty group should be empty list", new String[0], writer.list(groupWithIllegalChar));
+						writer.setAttribute(groupWithIllegalChar, "/a/b/key1", "value1");
+						final String attrFromWriter = writer.getAttribute(groupWithIllegalChar, "/a/b/key1", String.class);
+						final String attrFromReader = reader.getAttribute(groupWithIllegalChar, "/a/b/key1", String.class);
+						assertEquals("value1", attrFromWriter);
+						assertEquals("value1", attrFromReader);
+
+
+						final String datasetWithIllegalChar = "test" + illegalChar + "dataset";
+						final DatasetAttributes datasetAttributes = new DatasetAttributes(dimensions, blockSize, DataType.UINT64, new RawCompression());
+						writer.createDataset(datasetWithIllegalChar, datasetAttributes);
+						final DatasetAttributes datasetFromWriter = writer.getDatasetAttributes(datasetWithIllegalChar);
+						final DatasetAttributes datasetFromReader = reader.getDatasetAttributes(datasetWithIllegalChar);
+						assertDatasetAttributesEquals(datasetAttributes, datasetFromWriter);
+						assertDatasetAttributesEquals(datasetAttributes, datasetFromReader);
+					}
+				}
+			}
 		}
 	}
 
