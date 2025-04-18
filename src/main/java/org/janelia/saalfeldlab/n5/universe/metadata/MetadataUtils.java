@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -239,10 +240,10 @@ public class MetadataUtils {
 	public static String relativePath(final String parent, final String child) {
 
 		try {
-			final String purl = new N5URI("?" + parent).normalizeGroupPath();
-			final String curl = new N5URI("?" + child).normalizeGroupPath();
-			return new N5URI("?" + curl.replaceFirst("^"+purl, "")).normalizeGroupPath();
-		} catch (final URISyntaxException e) {}
+			return new URI(N5URI.normalizeGroupPath(parent)).relativize(
+					new URI(N5URI.normalizeGroupPath(child)))
+					.toASCIIString();
+		} catch (URISyntaxException e) {}
 		return child;
 	}
 
