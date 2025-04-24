@@ -96,6 +96,9 @@ public class SpacesTransforms {
 
 	public static boolean synchronize( CoordinateTransform[] coordinateTransformations, CoordinateSystems coordinateSystems ) {
 
+		if (coordinateTransformations == null)
+			return false;
+
 		return Arrays.stream( coordinateTransformations ).allMatch( t -> {
 			return synchronize( t, coordinateSystems );
 		});
