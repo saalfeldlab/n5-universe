@@ -13,7 +13,9 @@ public class InvertibleTreeTranslation extends TreeTranslation {
 			final Gson gson,
 			final String fwd, final String inv) {
 		super( root, gson, fwd );
-		invFun = new JqContainerTranslation( inv, gson );
+		
+		if (inv != null)
+			invFun = new JqContainerTranslation(inv, gson);
 	}
 
 	public JqContainerTranslation getInverseTranslationFunction() {

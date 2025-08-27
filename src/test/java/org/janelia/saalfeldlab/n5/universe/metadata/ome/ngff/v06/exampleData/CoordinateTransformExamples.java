@@ -79,7 +79,6 @@ public class CoordinateTransformExamples {
 //		ex.writeImageAndTransform( "bijection_", ex::bijectionDisplacements );
 
 //		nameConfigTest();
-		System.out.println( "ack" );
 	}
 	
 	

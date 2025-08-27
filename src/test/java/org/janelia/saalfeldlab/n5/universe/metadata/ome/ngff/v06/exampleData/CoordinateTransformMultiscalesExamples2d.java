@@ -15,6 +15,7 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Unit;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.Common;
@@ -49,7 +50,6 @@ import ij.ImagePlus;
 import net.imglib2.Cursor;
 import net.imglib2.FinalInterval;
 import net.imglib2.IterableInterval;
-import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealPoint;
 import net.imglib2.cache.img.CachedCellImg;
@@ -57,19 +57,14 @@ import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.basictypeaccess.array.DoubleArray;
-import net.imglib2.img.cell.CellRandomAccess;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.iterator.IntervalIterator;
 import net.imglib2.position.FunctionRandomAccessible;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.DisplacementFieldTransform;
-import net.imglib2.realtransform.InvertibleRealTransform;
 import net.imglib2.realtransform.RealTransform;
-import net.imglib2.realtransform.RealTransformRealRandomAccessible;
 import net.imglib2.realtransform.RealTransformSequence;
-import net.imglib2.realtransform.Scale2D;
-import net.imglib2.realtransform.inverse.RealTransformFiniteDerivatives;
 import net.imglib2.realtransform.inverse.WrappedIterativeInvertibleRealTransform;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -101,7 +96,7 @@ public class CoordinateTransformMultiscalesExamples2d {
 //		ex.writeImageAndTransform( "affineParams", ex::affineParams ); 
 
 
-		ex.writeImageAndTransform( "invDisplacements", ex::invDisplacements );
+//		ex.writeImageAndTransform( "invDisplacements", ex::invDisplacements );
 //		ex.writeImageAndTransform( "invCoordinates", ex::invCoordinates );
 
 
@@ -111,7 +106,7 @@ public class CoordinateTransformMultiscalesExamples2d {
 //		ex.writeImageAndTransform( "bijection", ex::bijectionDisplacements );
 
 		// mapAxis and byDimension applies to array coordinates
-//		ex.writeImageAndTransform( "mapAxis", ex::mapAxis, true );
+		ex.writeImageAndTransform( "mapAxis", ex::mapAxis, true );
 //		ex.writeImageAndTransform( "byDimension", ex::byDimension2d, true );
 
 		/*
@@ -284,6 +279,7 @@ public class CoordinateTransformMultiscalesExamples2d {
 	}
 
 	String parent = "/home/john/data/ngff/transform_examples_2d";
+	String sourcePath = "/home/john/tmp/boats.tif";
 
 	String path;
 	String inputName;
@@ -300,9 +296,9 @@ public class CoordinateTransformMultiscalesExamples2d {
 
 	public CoordinateTransformMultiscalesExamples2d() {
 
-		dataset = "array";
+		dataset = "0";
 		// has to be reversed 
-		arrayCoordinateSystem = Common.makeSpace(dataset, "space", Unit.micrometer, "dim_1", "dim_0");
+		arrayCoordinateSystem = Common.makeSpace(dataset, "space", Unit.micrometer, "x", "y");
 
 		outputName = "physical";
 		cs = Common.makeSpace(outputName, "space", Unit.micrometer, "x", "y");
@@ -566,15 +562,6 @@ public class CoordinateTransformMultiscalesExamples2d {
 		return zarr;
 	}
 
-	@SuppressWarnings("unchecked")
-	public void writeImage2d( final N5Writer n5, final String dataset ) {
-		ImagePlus imp = IJ.openImage("/home/john/tmp/boats.tif");
-		img = ImageJFunctions.wrap(imp);
-
-		final int[] blkSize = new int[] { (int)img.dimension(0), (int)img.dimension(1) };
-		N5Utils.save(img, n5, dataset, blkSize, new ZstandardCompression());
-	}
-
 	public void writeImage2dMultiscaleSampled( final N5Writer n5, final String dataset, final Function<Integer,CoordinateTransform< ?>> transformForScale ) {
 
 		final int N = 3;
@@ -583,7 +570,7 @@ public class CoordinateTransformMultiscalesExamples2d {
 		});
 
 		final OmeNgffV06MultiScaleMetadata ms = buildMultiscales(N, transformForScale);
-		n5.setAttribute("", "ome/version", "0.6");
+		n5.setAttribute("", "ome/version", "0.6-dev");
 		n5.setAttribute("", "ome/multiscales", ms);
 	}
 
@@ -595,7 +582,7 @@ public class CoordinateTransformMultiscalesExamples2d {
 		});
 	
 		final OmeNgffV06MultiScaleMetadata ms = buildMultiscales(N, transformForScale);
-		n5.setAttribute("", "ome/version", "0.6");
+		n5.setAttribute("", "ome/version", "0.6-dev");
 		n5.setAttribute("", "ome/multiscales", ms);
 	}
 
@@ -637,10 +624,13 @@ public class CoordinateTransformMultiscalesExamples2d {
 		System.out.println(path);
 		N5Writer n5 = makeWriter(path);
 
-		writeImage2d(n5, dataset);
+		CoordinateTransformExamplesCommon.writeImage(sourcePath, n5, "0", new String[] {"x", "y"});
 
-		if( writeArrayCs )
-			arrayCs = CoordinateSystem.defaultArray( dataset, 2 ).reverseAxes();
+		if( writeArrayCs ) 
+			arrayCs = new CoordinateSystem( dataset,
+				Stream.of("x", "y")
+				.map( x -> new Axis(Axis.ARRAY, x))
+				.toArray( Axis[]::new ));
 
 		final OmeNgffV06MultiScaleMetadata ms = buildMultiscales(dataset, transform.get());
 		n5.setAttribute("", "ome/multiscales", ms);
@@ -763,10 +753,9 @@ public class CoordinateTransformMultiscalesExamples2d {
 
 	public MapAxisCoordinateTransform mapAxis() {
 
-		// identity is [x = dim_1, y = dim_0]
 		Map<String,String> axisMapping = new HashMap<>();
-		axisMapping.put("y", "dim_1");
-		axisMapping.put("x", "dim_0");
+		axisMapping.put("y", "x");
+		axisMapping.put("x", "y");
 		return new MapAxisCoordinateTransform("transform-name", arrayCoordinateSystem, cs, axisMapping);
 	}
 
@@ -822,18 +811,8 @@ public class CoordinateTransformMultiscalesExamples2d {
 	public ByDimensionCoordinateTransform byDimension2d() {
 
 		final CoordinateTransform[] transforms = new CoordinateTransform[] {
-				new ScaleCoordinateTransform(null, new String[] {"dim_1"}, new String[] {"x"}, new double[] {2}),
-				new TranslationCoordinateTransform(null, new String[] {"dim_0"}, new String[] {"y"}, new double[] {-10}),
-		};
-
-		return new ByDimensionCoordinateTransform("transform-name", arrayCoordinateSystem, cs, transforms);
-	}
-
-	public ByDimensionCoordinateTransform byDimension3d() {
-
-		final CoordinateTransform[] transforms = new CoordinateTransform[] {
-				new ScaleCoordinateTransform(null, new String[] {"x", "y"}, new String[] {"x", "y"}, new double[] {2,3}),
-				new TranslationCoordinateTransform(null, new String[] {"z"}, new String[] {"z"}, new double[] {-10}),
+				new ScaleCoordinateTransform(null, new String[] {"x"}, new String[] {"x"}, new double[] {2}),
+				new TranslationCoordinateTransform(null, new String[] {"y"}, new String[] {"y"}, new double[] {-10}),
 		};
 
 		return new ByDimensionCoordinateTransform("transform-name", arrayCoordinateSystem, cs, transforms);

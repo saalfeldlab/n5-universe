@@ -8,9 +8,6 @@ import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Writer;
 
-import org.janelia.saalfeldlab.n5.ShardedDatasetAttributes;
-import org.janelia.saalfeldlab.n5.shard.Shard;
-import org.janelia.saalfeldlab.n5.shard.ShardParameters;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataWriter;
 
@@ -116,12 +113,6 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	@Override
 	public boolean deleteBlock(String pathName, long... gridPosition) {
 		return writer.deleteBlock(originalPath(pathName), gridPosition);
-	}
-
-	@Override
-	public < T > void writeShard( String datasetPath, DatasetAttributes datasetAttributes, Shard< T > shard ) throws N5Exception {
-
-		// TODO Auto-generated method stub
 	}
 
 }
