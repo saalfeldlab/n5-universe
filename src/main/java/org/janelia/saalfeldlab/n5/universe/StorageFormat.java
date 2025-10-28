@@ -78,15 +78,25 @@ public enum StorageFormat {
 	private static final String N5_ATTRIBUTES = "attributes.json";
 
 	public static @Nullable StorageFormat guessStorageFromKeys(final URI root, final KeyValueAccess kva) {
+
 		final URI uri;
 		if (root.isAbsolute())
 			uri = root;
 		else
-			uri = URI.create("file://" + root);
-		if (Arrays.stream(ZARR2_KEYS).anyMatch(it -> kva.exists(kva.compose(uri, it))))
+			uri = getAbsoluteUri(root, kva);
+		if (kva.exists(kva.compose(uri, ZARR3_ATTRIBUTES)) || Arrays.stream(ZARR2_KEYS).anyMatch(it -> kva.exists(kva.compose(uri, it))))
 			return StorageFormat.ZARR;
 		else if (kva.exists(kva.compose(uri, N5_ATTRIBUTES)))
 			return StorageFormat.N5;
 		else return null;
+	}
+
+	private static URI getAbsoluteUri(final URI root, final KeyValueAccess kva) {
+
+		try {
+			return kva.uri(root.toString());
+		} catch (URISyntaxException e) {
+			throw new N5Exception(e);
+		}
 	}
 }
