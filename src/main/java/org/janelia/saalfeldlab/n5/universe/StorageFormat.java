@@ -2,12 +2,15 @@ package org.janelia.saalfeldlab.n5.universe;
 
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
+import org.checkerframework.checker.units.qual.N;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.hdf5.HDF5Utils;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -74,7 +77,7 @@ public enum StorageFormat {
 	private static final String ZGROUP = ".zgroup";
 	private static final String ZATTRS = ".zattrs";
 	private static final String[] ZARR2_KEYS = new String[]{ZARRAY, ZGROUP, ZATTRS};
-	private static final String Z3ATTRS = ".zattrs";
+	private static final String ZARR3_ATTRIBUTES = "zarr.json";
 	private static final String N5_ATTRIBUTES = "attributes.json";
 
 	public static @Nullable StorageFormat guessStorageFromKeys(final URI root, final KeyValueAccess kva) {

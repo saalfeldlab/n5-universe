@@ -26,23 +26,13 @@
  */
 package org.janelia.saalfeldlab.n5.universe;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.FileSystems;
-import java.nio.file.Paths;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
-
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.services.s3.AmazonS3;
+import com.google.cloud.storage.Storage;
 import com.google.gson.GsonBuilder;
 import net.imglib2.util.Pair;
-import net.imglib2.util.ValuePair;
 import org.apache.commons.lang3.function.TriFunction;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
@@ -53,7 +43,6 @@ import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.hdf5.HDF5Utils;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
@@ -61,21 +50,17 @@ import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
-
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.s3.AmazonS3;
-import com.google.cloud.storage.Storage;
-import com.google.gson.GsonBuilder;
-
-import net.imglib2.util.Pair;
-import net.imglib2.util.ValuePair;
-
-import net.imglib2.util.Pair;
-import net.imglib2.util.ValuePair;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
+
+import javax.annotation.Nullable;
+import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.function.BiFunction;
+import java.util.regex.Pattern;
 
 /**
  * Factory for various N5 readers and writers. Implementation specific
@@ -553,6 +538,7 @@ public class N5Factory implements Serializable {
 		return openN5Container(format, uri, this::openWriter);
 	}
 
+
 	/**
 	 * Create an N5Writer at the {@code location} requiring the specific {@link StorageFormat} and using {@link KeyValueAccess}.
 	 *
@@ -577,9 +563,9 @@ public class N5Factory implements Serializable {
 			final String containerLocation = location.toString();
 			switch (storage) {
 			case ZARR:
-				return new ZarrKeyValueWriter(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+				return new ZarrKeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
 			case ZARR3:
-				return new ZarrV3KeyValueWriter(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+				return new ZarrV3KeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
 			case N5:
 				return new N5KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
 			case HDF5:
@@ -625,25 +611,6 @@ public class N5Factory implements Serializable {
 		return openWithKva.apply(format, kva, uri);
 	}
 
-	private <T extends N5Reader> T openN5Container(
-			final String containerUri,
-			final BiFunction<StorageFormat, URI, T> openWithFormat,
-			final TriFunction<StorageFormat, KeyValueAccess, String, T> openWithKva) {
-
-		final Pair<StorageFormat, URI> storageAndUri;
-		try {
-			storageAndUri = StorageFormat.parseUri(containerUri);
-		} catch (final URISyntaxException e) {
-			throw new N5Exception("Unable to open " + containerUri + " as N5 Container", e);
-		}
-		final StorageFormat format = storageAndUri.getA();
-		final URI uri = storageAndUri.getB();
-		if (format != null)
-			return openWithFormat.apply(format, uri);
-		else
-			return openN5Container(null, uri, openWithKva);
-	}
-
 	/**
 	 * Creates an N5 writer for the specified container URI with default N5Factory configuration.
 	 *
@@ -681,4 +648,5 @@ public class N5Factory implements Serializable {
 			throw new N5Exception(e);
 		}
 	}
+
 }
