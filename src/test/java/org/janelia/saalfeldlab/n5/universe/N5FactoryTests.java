@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe;
 
 import org.apache.commons.io.FileUtils;
+import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
@@ -29,6 +30,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class N5FactoryTests {
 
@@ -407,7 +409,7 @@ public class N5FactoryTests {
 
 			final N5Writer writerAbs = cachedFactory.openWriter(absPath);
 			final N5Writer writerRel = cachedFactory.openWriter("./" + rootName);
-			assertSame(String.format("writers not same instance: %s \n%s\n", writerRel.getURI(), writerAbs.getURI()), 
+			assertSame(String.format("writers not same instance: %s \n%s\n", writerRel.getURI(), writerAbs.getURI()),
 					writerRel, writerAbs);
 
 			final N5Writer writerRel2 = cachedFactory.openWriter(rootName);
@@ -453,6 +455,17 @@ public class N5FactoryTests {
 		} finally {
 			FileUtils.deleteDirectory(tmp);
 		}
+	}
+
+	@Test
+	public void testZarr2VsZarr3Disambiguation() throws IOException, URISyntaxException {
+
+		// TODO: Diyi!
+		final URI uri = new URI("src/test/resources/metadata.zarr?");
+		final FileSystemKeyValueAccess kva = new FileSystemKeyValueAccess(FileSystems.getDefault());
+
+		final StorageFormat format = N5Factory.StorageFormat.guessStorageFromUri(uri, kva);
+		assertEquals("zarr 2", StorageFormat.ZARR, format);
 	}
 
 	private void checkWriterTypeFromFactory(N5Factory factory, String uri, Class<?> expected, String messageSuffix) {
