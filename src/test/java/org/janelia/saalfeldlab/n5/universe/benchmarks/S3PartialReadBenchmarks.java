@@ -59,10 +59,8 @@ public class S3PartialReadBenchmarks {
 	public void teardown() {
 
 		for (final int sz : sizes()) {
-			try {
-				kva.delete(baseDir + "/" + sz);
-				kva.delete(baseDir);
-			} catch (final IOException e) {}
+			kva.delete(baseDir + "/" + sz);
+			kva.delete(baseDir);
 		}
 	}
 
@@ -91,16 +89,9 @@ public class S3PartialReadBenchmarks {
 		}
 	}
 
-	private void read(String path, int startByte, int numBytes) {
+	private byte[] read(String path, int startByte, int numBytes) {
 
-		try (final LockedChannel ch = kva.lockForReading(path, startByte, numBytes)) {
-			final InputStream is = ch.newInputStream();
-			final byte[] data = new byte[numBytes];
-			is.read(data);
-			is.close(); // not strictly needed
-		} catch (final IOException e) {
-			e.printStackTrace();
-		}
+		return kva.createReadData(path).slice(startByte, numBytes).allBytes();
 	}
 
 	@Benchmark
@@ -112,7 +103,7 @@ public class S3PartialReadBenchmarks {
 		final int numBytesToRead = objectSizeBytes / numSubReads;
 		int start = 0;
 		for (int i = 0; i < numSubReads; i++) {
-			read(path, start, numBytesToRead);
+			final byte[] bytes = read(path, start, numBytesToRead);
 			start += numBytesToRead;
 		}
 	}

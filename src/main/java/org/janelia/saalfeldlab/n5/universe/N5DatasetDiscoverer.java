@@ -104,7 +104,7 @@ public class N5DatasetDiscoverer {
 			new N5CosemMetadataParser(),
 			new N5SingleScaleMetadataParser(),
 			new CanonicalMetadataParser(),
-			new N5GenericSingleScaleMetadataParser()
+			new N5GenericSingleScaleMetadataParser(),
 	};
 
 	public static final N5MetadataParser<?>[] DEFAULT_GROUP_PARSERS = new N5MetadataParser<?>[] {
@@ -113,6 +113,10 @@ public class N5DatasetDiscoverer {
 			new N5CosemMultiScaleMetadata.CosemMultiScaleParser(),
 			new N5ViewerMultiscaleMetadataParser(),
 			new CanonicalMetadataParser(),
+	};
+
+	public static final N5MetadataParser<?>[] DEFAULT_SHALLOW_GROUP_PARSERS = new N5MetadataParser<?>[] {
+			new OmeNgffMetadataParser(true)
 	};
 
 	private final List<N5MetadataParser<?>> metadataParsers;
@@ -667,6 +671,7 @@ public class N5DatasetDiscoverer {
 		LOG.debug("parsed metadata for: {}:\t found: {}", rootNode.getPath(),
 				rootNode.getMetadata() == null ? "NONE" : rootNode.getMetadata().getClass().getSimpleName());
 
+		}
 		callback.accept(rootNode);
 
 		if (rootNode.getMetadata() instanceof N5MetadataGroup) {

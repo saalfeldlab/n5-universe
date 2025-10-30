@@ -119,13 +119,7 @@ public class PartialReadBenchmarks {
 
 	private byte[] read(String path, int startByte, int numBytes) throws IOException {
 
-		try (final LockedChannel ch = kva.lockForReading(path, startByte, numBytes)) {
-			final InputStream is = ch.newInputStream();
-			final byte[] data = new byte[numBytes];
-			is.read(data);
-			is.close(); // not strictly needed
-			return data;
-		}
+		return kva.createReadData(path).slice(startByte, numBytes).allBytes();
 	}
 
 	private byte[] readComplete(String path) throws IOException {

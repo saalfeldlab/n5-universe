@@ -11,16 +11,20 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -34,20 +38,26 @@ import static org.junit.Assert.assertTrue;
 
 public class N5FactoryTests {
 
+	private StorageFormat[] reorderPreferedStorageFormat(StorageFormat preferredStorageFormat) {
+
+		final StorageFormat[] defaultOrder = StorageFormat.values();
+		final List<StorageFormat> reorder = new ArrayList<>(Arrays.asList(defaultOrder));
+		reorder.remove(preferredStorageFormat);
+		reorder.add(0, preferredStorageFormat);
+		return reorder.toArray(new StorageFormat[0]);
+	}
+
 	@Test
 	public void testStorageFormatOrderWithPreference() {
 
 		N5Factory factory = new N5Factory();
-		assertArrayEquals(StorageFormat.values(), factory.orderedStorageFormats());
+		final StorageFormat[] defaultPriority = StorageFormat.values();
+		assertArrayEquals(defaultPriority, factory.orderedStorageFormats());
 
-		factory.preferredStorageFormat(StorageFormat.N5);
-		assertArrayEquals(new StorageFormat[]{StorageFormat.N5, StorageFormat.ZARR, StorageFormat.HDF5}, factory.orderedStorageFormats());
-
-		factory.preferredStorageFormat(StorageFormat.ZARR);
-		assertArrayEquals(StorageFormat.values(), factory.orderedStorageFormats());
-
-		factory.preferredStorageFormat(StorageFormat.HDF5);
-		assertArrayEquals(new StorageFormat[]{StorageFormat.HDF5, StorageFormat.ZARR, StorageFormat.N5}, factory.orderedStorageFormats());
+		for (StorageFormat format : StorageFormat.values()) {
+			factory.preferredStorageFormat(format);
+			assertArrayEquals(reorderPreferedStorageFormat(format), factory.orderedStorageFormats());
+		}
 	}
 
 	@Test
@@ -243,6 +253,7 @@ public class N5FactoryTests {
 					"a_non_hdf5_file",
 					"an_hdf5_file",
 					"a_zarr_directory",
+					"a_zarr2_directory",
 					"an_n5_directory",
 					"an_empty_directory",
 					"a_non_existent_path"
@@ -255,8 +266,9 @@ public class N5FactoryTests {
 			tmpNonHdf5File.deleteOnExit();
 
 			factory.openWriter(StorageFormat.HDF5, tmpPath.resolve(paths[1]).toFile().getCanonicalPath()).close();
-			factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[2]).toFile().getCanonicalPath()).close();
-			factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[3]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.ZARR3, tmpPath.resolve(paths[2]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[3]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[4]).toFile().getCanonicalPath()).close();
 
 			final File tmpEmptyDir = tmpPath.resolve(paths[4]).toFile();
 			tmpEmptyDir.mkdirs();
@@ -265,10 +277,11 @@ public class N5FactoryTests {
 			final Class<?>[] writerTypes = new Class[]{
 					null,
 					N5HDF5Writer.class,
+					ZarrV3KeyValueWriter.class, // valid zarr, correct by key match
 					ZarrKeyValueWriter.class, // valid zarr, correct by key match
 					N5KeyValueWriter.class, // valid n5, correct by key match
-					ZarrKeyValueWriter.class, // empty directory, create new zarr
-					ZarrKeyValueWriter.class // directory doesn't exist, create new zarr
+					ZarrV3KeyValueWriter.class, // empty directory, create new zarr
+					ZarrV3KeyValueWriter.class // directory doesn't exist, create new zarr
 			};
 
 			for (int i = 0; i < paths.length; i++) {
@@ -511,11 +524,10 @@ public class N5FactoryTests {
 	@Test
 	public void testZarr2VsZarr3Disambiguation() throws IOException, URISyntaxException {
 
-		// TODO: Diyi!
-		final URI uri = new URI("src/test/resources/metadata.zarr?");
+		final URI uri = new URI("src/test/resources/metadata.zarr");
 		final FileSystemKeyValueAccess kva = new FileSystemKeyValueAccess(FileSystems.getDefault());
 
-		final StorageFormat format = N5Factory.StorageFormat.guessStorageFromUri(uri, kva);
+		final StorageFormat format = StorageFormat.guessStorageFromKeys(uri, kva);
 		assertEquals("zarr 2", StorageFormat.ZARR, format);
 	}
 
