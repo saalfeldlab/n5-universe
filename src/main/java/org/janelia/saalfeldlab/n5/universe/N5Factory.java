@@ -62,8 +62,11 @@ import java.util.Arrays;
 import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
+import static org.janelia.saalfeldlab.n5.universe.StorageFormat.getStorageFromNestedScheme;
+import static org.janelia.saalfeldlab.n5.universe.StorageFormat.guessStorageFromKeys;
+
 /**
- * Factory for various N5 readers and writers. Implementation specific
+ * Factory for various N5 readers and writers. Implementation-specific
  * parameters can be provided to the factory instance and will be used when such
  * implementations are generated and ignored otherwise. Reasonable defaults are
  * provided.
@@ -269,7 +272,7 @@ public class N5Factory implements Serializable {
 	@Deprecated
 	public N5Reader openZarrReader(final String path) {
 
-		return openN5ContainerWithStorageFormat(StorageFormat.ZARR, path, this::openReader);
+		return openN5ContainerWithStorageFormat(StorageFormat.ZARR2, path, this::openReader);
 	}
 
 	/**
@@ -341,7 +344,15 @@ public class N5Factory implements Serializable {
 		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
 		final StorageFormat format = storageAndUri.getA();
 		final URI asUri = storageAndUri.getB();
+		final boolean inferredStorageFormat = format != null && getStorageFromNestedScheme(uri).getA() == null;
+		if (inferredStorageFormat) {
+			final KeyValueAccess kva = getKeyValueAccess(asUri);
+			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
+			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
+			return openReader(inferredFormat, asUri);
+		}
 		return openReader(format, asUri);
+
 	}
 
 	/**
@@ -407,9 +418,9 @@ public class N5Factory implements Serializable {
 			case N5:
 				return new N5KeyValueReader(access, containerPath, gsonBuilder, cacheAttributes);
 			case ZARR:
-				return new ZarrKeyValueReader(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
-			case ZARR3:
 				return new ZarrV3KeyValueReader(access,containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
+			case ZARR2:
+				return new ZarrKeyValueReader(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
 			case HDF5:
 				return new N5HDF5Reader(containerPath, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
 			}
@@ -449,7 +460,7 @@ public class N5Factory implements Serializable {
 	@Deprecated
 	public N5Writer openZarrWriter(final String path) {
 
-		return openN5ContainerWithStorageFormat(StorageFormat.ZARR, path, this::openWriter);
+		return openN5ContainerWithStorageFormat(StorageFormat.ZARR2, path, this::openWriter);
 	}
 
 	/**
@@ -508,6 +519,14 @@ public class N5Factory implements Serializable {
 		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
 		final StorageFormat format = storageAndUri.getA();
 		final URI asUri = storageAndUri.getB();
+		final boolean inferredStorageFormat = format != null && getStorageFromNestedScheme(uri).getA() == null;
+		if (inferredStorageFormat) {
+			final KeyValueAccess kva = getKeyValueAccess(asUri);
+			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
+			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
+			return openWriter(inferredFormat, asUri);
+		}
+
 		return openWriter(format, asUri);
 	}
 
@@ -563,9 +582,9 @@ public class N5Factory implements Serializable {
 			final String containerLocation = location.toString();
 			switch (storage) {
 			case ZARR:
-				return new ZarrKeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
-			case ZARR3:
 				return new ZarrV3KeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+			case ZARR2:
+				return new ZarrKeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
 			case N5:
 				return new N5KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
 			case HDF5:

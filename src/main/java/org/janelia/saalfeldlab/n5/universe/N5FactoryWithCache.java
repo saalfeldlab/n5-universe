@@ -8,6 +8,7 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
 
 import java.net.URI;
 import java.nio.file.Paths;
@@ -132,9 +133,11 @@ public class N5FactoryWithCache extends N5Factory {
 
 		switch (format) {
 		case N5:
-			return reader instanceof N5KeyValueReader;
-		case ZARR:
+			return reader instanceof N5KeyValueReader && !(reader instanceof ZarrV3KeyValueReader);
+		case ZARR2:
 			return reader instanceof ZarrKeyValueReader;
+		case ZARR:
+			return reader instanceof ZarrV3KeyValueReader;
 		case HDF5:
 			return reader instanceof N5HDF5Reader;
 		default:

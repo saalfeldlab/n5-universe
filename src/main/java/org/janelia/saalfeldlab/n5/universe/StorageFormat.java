@@ -2,7 +2,6 @@ package org.janelia.saalfeldlab.n5.universe;
 
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
-import org.checkerframework.checker.units.qual.N;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.hdf5.HDF5Utils;
@@ -11,14 +10,16 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public enum StorageFormat {
-	ZARR3(Pattern.compile("zarr3", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr3$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
-	ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr(2)?$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
+	ZARR(Pattern.compile("zarr(3)?", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr(3)?$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
+	ZARR2(Pattern.compile("zarr2", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr2", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 	N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 	HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
 		final boolean hasHdf5Extension = Pattern.compile("\\.h(df)?5$", Pattern.CASE_INSENSITIVE).matcher(uri.getPath()).find();
@@ -66,7 +67,7 @@ public enum StorageFormat {
 		final String uriGroup = storageSchemeMatcher.group(URI_GROUP);
 		if (storageFormatScheme != null) {
 			for (final StorageFormat format : StorageFormat.values()) {
-				if (format.schemePattern.asPredicate().test(storageFormatScheme))
+				if (format.schemePattern.matcher(storageFormatScheme).matches())
 					return new ValuePair<>(format, uriGroup);
 			}
 		}
@@ -87,13 +88,17 @@ public enum StorageFormat {
 			uri = root;
 		else
 			uri = getAbsoluteUri(root, kva);
+		try {
+			if (Files.isRegularFile(Paths.get(uri)))
+				return StorageFormat.HDF5;
+		} catch (final Exception ignore) {}
 		if (kva.exists(kva.compose(uri, ZARR3_ATTRIBUTES)))
-			return StorageFormat.ZARR3;
-		if (Arrays.stream(ZARR2_KEYS).anyMatch(it -> kva.exists(kva.compose(uri, it))))
 			return StorageFormat.ZARR;
-		else if (kva.exists(kva.compose(uri, N5_ATTRIBUTES)))
+		if (Arrays.stream(ZARR2_KEYS).anyMatch(it -> kva.exists(kva.compose(uri, it))))
+			return StorageFormat.ZARR2;
+		if (kva.exists(kva.compose(uri, N5_ATTRIBUTES)))
 			return StorageFormat.N5;
-		else return null;
+		return null;
 	}
 
 	private static URI getAbsoluteUri(final URI root, final KeyValueAccess kva) {
