@@ -34,7 +34,6 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 public class N5FactoryTests {
 
@@ -69,44 +68,48 @@ public class N5FactoryTests {
 		final URI n5Ext = new URI("file:///tmp/a.n5");
 		final URI n5ExtSlash = new URI("file:///tmp/a.n5/");
 		final URI zarrExt = new URI("file:///tmp/a.zarr");
+		final URI zarr2Ext = new URI("file:///tmp/a.zarr2");
+		final URI zarr3Ext = new URI("file:///tmp/a.zarr3");
 		final URI zarrExtSlash = new URI("file:///tmp/a.zarr/");
 		final URI unknownExt = new URI("file:///tmp/a.abc");
 
 		assertNull("no extension null", StorageFormat.guessStorageFromUri(noExt));
 
-		/**
+		/*
 		 * h5 tests fail now because these test whether the file exists. It
 		 * should not do that, if, for example, we're making a writer.
 		 */
 		assertEquals("h5 extension == h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(h5Ext));
 		assertNotEquals("h5 extension != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(h5Ext));
-		assertNotEquals("h5 extension != zarr2", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(h5Ext));
-		assertNotEquals("h5 extension != zarr3", StorageFormat.ZARR3, StorageFormat.guessStorageFromUri(h5Ext));
+		assertNotEquals("h5 extension != zarr2", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(h5Ext));
+		assertNotEquals("h5 extension != zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(h5Ext));
 
 		assertEquals("hdf5 extension == h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(hdf5Ext));
 		assertNotEquals("hdf5 extension != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(hdf5Ext));
-		assertNotEquals("hdf5 extension != zarr2", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(hdf5Ext));
-		assertNotEquals("hdf5 extension != zarr3", StorageFormat.ZARR3, StorageFormat.guessStorageFromUri(hdf5Ext));
+		assertNotEquals("hdf5 extension != zarr2", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(hdf5Ext));
+		assertNotEquals("hdf5 extension != zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(hdf5Ext));
 
 		assertNotEquals("n5 extension != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(n5Ext));
 		assertEquals("n5 extension == n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(n5Ext));
-		assertNotEquals("n5 extension != zarr2", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(n5Ext));
-		assertNotEquals("n5 extension != zarr3", StorageFormat.ZARR3, StorageFormat.guessStorageFromUri(n5Ext));
+		assertNotEquals("n5 extension != zarr2", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(n5Ext));
+		assertNotEquals("n5 extension != zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(n5Ext));
 
 		assertNotEquals("n5 extension slash != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(n5ExtSlash));
 		assertEquals("n5 extension slash == n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(n5ExtSlash));
-		assertNotEquals("n5 extension slash != zarr2", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(n5ExtSlash));
-		assertNotEquals("n5 extension slash != zarr3", StorageFormat.ZARR3, StorageFormat.guessStorageFromUri(n5ExtSlash));
+		assertNotEquals("n5 extension slash != zarr2", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(n5ExtSlash));
+		assertNotEquals("n5 extension slash != zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(n5ExtSlash));
 
 		assertNotEquals("zarr extension != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(zarrExt));
 		assertNotEquals("zarr extension != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(zarrExt));
-		assertNotEquals("zarr extension != zarr", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(zarrExt));
-		assertEquals("zarr extension == zarr3", StorageFormat.ZARR3, StorageFormat.guessStorageFromUri(zarrExt));
+		assertNotEquals("zarr extension != zarr3", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(zarrExt));
+		assertEquals("zarr extension == zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(zarrExt));
 
 		assertNotEquals("zarr extension slash != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(zarrExtSlash));
 		assertNotEquals("zarr extension slash != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(zarrExtSlash));
-		assertNotEquals("zarr extension slash != zarr", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(zarrExtSlash));
-		assertEquals("zarr extension slash == zarr3", StorageFormat.ZARR3, StorageFormat.guessStorageFromUri(zarrExtSlash));
+		assertNotEquals("zarr extension slash != zarr", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(zarrExtSlash));
+		assertEquals("zarr extension slash == zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(zarrExtSlash));
+		assertEquals("zarr2 extension slash == zarr2", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(zarr2Ext));
+		assertEquals("zarr3 extension slash == zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(zarr3Ext));
 
 		assertNull("unknown extension != h5", StorageFormat.guessStorageFromUri(unknownExt));
 		assertNull("unknown extension != n5", StorageFormat.guessStorageFromUri(unknownExt));
@@ -115,7 +118,7 @@ public class N5FactoryTests {
 	}
 
 	@Test
-	public void testWriterTypeByExtension() throws IOException, URISyntaxException {
+	public void testWriterTypeByExtension() throws IOException {
 
 		final N5Factory factory = new N5Factory();
 
@@ -123,28 +126,31 @@ public class N5FactoryTests {
 		try {
 			tmp = Files.createTempDirectory("factory-test-").toFile();
 
-			final String[] ext = new String[]{".h5", ".hdf5", ".n5", ".n5", ".zarr", ".zarr"};
+			final Object[][] extensionToWriterParams = new Object[][]{
+					{".h5", "", N5HDF5Writer.class},
+					{".hdf5", "", N5HDF5Writer.class},
+					{".n5", "", N5KeyValueWriter.class},
+					{".n5", "/", N5KeyValueWriter.class},
+					{".zarr", "", ZarrV3KeyValueWriter.class},
+					{".zarr", "/", ZarrV3KeyValueWriter.class},
+					{".zarr2", "", ZarrKeyValueWriter.class},
+					{".zarr2", "/", ZarrKeyValueWriter.class},
+					{".zarr3", "", ZarrV3KeyValueWriter.class},
+					{".zarr3", "/", ZarrV3KeyValueWriter.class},
+					{".zarr4", "", ZarrV3KeyValueWriter.class},
+					{".zarr4", "/", ZarrV3KeyValueWriter.class},
 
-			// necessary because new File() removes trailing separator
-			final String separator = "/"; // the uri path separator
-			final String[] trailing = new String[]{"", "", "", separator, "", separator};
-
-			final Class<?>[] readerTypes = new Class[]{
-					N5HDF5Writer.class,
-					N5HDF5Writer.class,
-					N5KeyValueWriter.class,
-					N5KeyValueWriter.class,
-					ZarrKeyValueWriter.class,
-					ZarrKeyValueWriter.class,
-					ZarrV3KeyValueWriter.class,
-					ZarrV3KeyValueWriter.class
 			};
 
-			for (int i = 0; i < ext.length; i++) {
-				final String extUri = tmp.toPath().resolve("foo" + i + ext[i]).normalize().toUri() + trailing[i];
-				checkWriterTypeFromFactory(factory, extUri, readerTypes[i], " with extension");
-			}
+			for (int i = 0; i < extensionToWriterParams.length; i++) {
+				final Object[] testData = extensionToWriterParams[i];
+				final String extension = (String)testData[0];
+				final String trailing = (String)testData[1];
+				final Class<?> writerType = (Class<?>)testData[2];
+				final String uri = tmp.toPath().resolve("foo" + i + extension).normalize().toUri() + trailing;
+				checkWriterTypeFromFactory(factory, uri, writerType, " with extension");
 
+			}
 		} finally {
 			FileUtils.deleteDirectory(tmp);
 		}
@@ -152,46 +158,36 @@ public class N5FactoryTests {
 	}
 
 	@Test
-	public void testWriterTypeByPrefix() throws URISyntaxException, IOException {
+	public void testWriterTypeByPrefix() throws IOException {
 
 		final N5Factory factory = new N5Factory();
 
 		File tmp = null;
 		try {
 			tmp = Files.createTempDirectory("factory-test-").toFile();
-
-			final String[] prefix = new String[]{"h5", "hdf5", "n5", "zarr", "zarr3"};
-			final Class<?>[] readerTypes = new Class[]{
-					N5HDF5Writer.class,
-					N5HDF5Writer.class,
-					N5KeyValueWriter.class,
-					ZarrKeyValueWriter.class,
-					ZarrV3KeyValueWriter.class
+			final Object[][] testData = new Object[][] {
+					{"h5:", N5HDF5Writer.class},
+					{"hdf5:", N5HDF5Writer.class},
+					{"n5:", N5KeyValueWriter.class},
+					{"zarr:", ZarrV3KeyValueWriter.class},
+					{"zarr2:", ZarrKeyValueWriter.class},
+					{"zarr3:", ZarrV3KeyValueWriter.class}
 			};
-
-			for (int i = 0; i < prefix.length; i++) {
-
-				final String prefixUri = prefix[i] + ":" + tmp.toPath().resolve("foo" + i).normalize().toUri();
-				checkWriterTypeFromFactory(factory, prefixUri, readerTypes[i], " with prefix");
-
-				final String prefixUriSlashes = prefix[i] + "://" + tmp.toPath().resolve("foo" + i).normalize().toUri();
-				checkWriterTypeFromFactory(factory, prefixUriSlashes, readerTypes[i], " with prefix slashes");
-			}
 
 			// ensure that prefix is preferred to extensions
 			final String[] extensions = new String[]{".h5", ".hdf5", ".n5", ".zarr", ".zarr3"};
 
-			for (int i = 0; i < prefix.length; i++) {
-				for (int j = 0; j < extensions.length; j++) {
+			for (Object[] entry : testData) {
+				final String prefix = (String)entry[0];
+				final Class<?> writerType = (Class<?>)entry[1];
+				final String uri = prefix + tmp.toPath().resolve("foo").normalize().toUri();
+				checkWriterTypeFromFactory(factory, uri, writerType, " with prefix");
 
-					final String prefixUri = prefix[i] + ":" + tmp.toPath().resolve("foo" + i + extensions[i]).normalize().toUri();
-					checkWriterTypeFromFactory(factory, prefixUri, readerTypes[i], " with prefix");
-
-					final String prefixUriSlashes = prefix[i] + "://" + tmp.toPath().resolve("foo" + i + extensions[i]).normalize().toUri();
-					checkWriterTypeFromFactory(factory, prefixUriSlashes, readerTypes[i], " with prefix slashes");
+				for (String extension : extensions) {
+					final String prefixUri = prefix + tmp.toPath().resolve("foo" + extension).normalize().toUri();
+					checkWriterTypeFromFactory(factory, prefixUri, writerType, " with prefix");
 				}
 			}
-
 		} finally {
 			FileUtils.deleteDirectory(tmp);
 		}
@@ -216,7 +212,7 @@ public class N5FactoryTests {
 
 			final Path tmpPath = tmp.toPath();
 
-			factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[0]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.ZARR2, tmpPath.resolve(paths[0]).toFile().getCanonicalPath()).close();
 			factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[1]).toFile().getCanonicalPath()).close();
 
 			final File tmpEmptyDir = tmpPath.resolve(paths[2]).toFile();
@@ -266,8 +262,8 @@ public class N5FactoryTests {
 			tmpNonHdf5File.deleteOnExit();
 
 			factory.openWriter(StorageFormat.HDF5, tmpPath.resolve(paths[1]).toFile().getCanonicalPath()).close();
-			factory.openWriter(StorageFormat.ZARR3, tmpPath.resolve(paths[2]).toFile().getCanonicalPath()).close();
-			factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[3]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[2]).toFile().getCanonicalPath()).close();
+			factory.openWriter(StorageFormat.ZARR2, tmpPath.resolve(paths[3]).toFile().getCanonicalPath()).close();
 			factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[4]).toFile().getCanonicalPath()).close();
 
 			final File tmpEmptyDir = tmpPath.resolve(paths[4]).toFile();
@@ -304,30 +300,22 @@ public class N5FactoryTests {
 		try {
 			tmp = Files.createTempDirectory("factory-test-").toFile();
 
-			final String[] paths = new String[]{
-					"h5WithWeirdExtension.zarr",
-					"zarr2WithWeirdExtension.n5",
-					"zarr3WithWeirdExtension.jpg",
-					"n5WithWeirdExtension.h5"
+			final Object[][] testData = new Object[][] {
+					{"h5WithWeirdExtension.zarr", StorageFormat.HDF5, N5HDF5Writer.class},
+					{"zarr2WithWeirdExtension.n5", StorageFormat.ZARR2, ZarrKeyValueWriter.class},
+					{"zarr3WithWeirdExtension.jpg", StorageFormat.ZARR, ZarrV3KeyValueWriter.class},
+					{"n5WithWeirdExtension.h5", StorageFormat.N5, N5KeyValueWriter.class},
 			};
 
-			final Path tmpPath = tmp.toPath();
-			factory.openWriter(StorageFormat.HDF5, tmpPath.resolve(paths[0]).toFile().getCanonicalPath()).close();
-			factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[1]).toFile().getCanonicalPath()).close();
-			factory.openWriter(StorageFormat.ZARR3, tmpPath.resolve(paths[2]).toFile().getCanonicalPath()).close();
-			factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[3]).toFile().getCanonicalPath()).close();
-
-			final Class<?>[] writerTypes = new Class[]{
-					N5HDF5Writer.class,
-					ZarrKeyValueWriter.class,
-					ZarrV3KeyValueWriter.class,
-					N5KeyValueWriter.class
-			};
-
-			for (int i = 0; i < paths.length; i++) {
-
-				final String prefixUri = tmpPath.resolve(paths[i]).normalize().toUri().toString();
-				checkWriterTypeFromFactory( factory, prefixUri, writerTypes[i], " with path " + paths[i]);
+			for (Object[] entry : testData) {
+				final String path = (String)entry[0];
+				final StorageFormat format = (StorageFormat)entry[1];
+				final Class<?> writerType = (Class<?>)entry[2];
+				/* create the container with the given format */
+				factory.openWriter(format, tmp.toPath().resolve(path).toFile().getCanonicalPath()).close();
+				/* verify we open as the same format we created as, via the factory */
+				final String uri = tmp.toPath().resolve(path).normalize().toUri().toString();
+				checkWriterTypeFromFactory(factory, uri, writerType, " with path " + path);
 			}
 
 		} finally {
@@ -361,7 +349,7 @@ public class N5FactoryTests {
 			tmpNonHdf5File.deleteOnExit();
 
 			N5Writer h5 = factory.openWriter(StorageFormat.HDF5, tmpPath.resolve(paths[1]).toFile().getCanonicalPath());
-			N5Writer zarr = factory.openWriter(StorageFormat.ZARR, tmpPath.resolve(paths[2]).toFile().getCanonicalPath());
+			N5Writer zarr = factory.openWriter(StorageFormat.ZARR2, tmpPath.resolve(paths[2]).toFile().getCanonicalPath());
 			N5Writer n5 = factory.openWriter(StorageFormat.N5, tmpPath.resolve(paths[3]).toFile().getCanonicalPath());
 			writers.add(h5);
 			writers.add(zarr);
@@ -381,7 +369,7 @@ public class N5FactoryTests {
 			};
 
 			for (int i = 0; i < paths.length; i++) {
-				final String prefixUri = tmpPath.resolve(paths[i]).normalize().toUri().toString();;
+				final String prefixUri = tmpPath.resolve(paths[i]).normalize().toUri().toString();
 				checkReaderTypeFromFactory(factory, prefixUri, readerTypes[i], " with path " + paths[i]);
 			}
 
@@ -398,7 +386,7 @@ public class N5FactoryTests {
 	}
 
 	@Test
-	public void testCachedFactoryKeys() throws IOException, URISyntaxException {
+	public void testCachedFactoryKeys() throws IOException {
 
 		final N5FactoryWithCache cachedFactory = new N5FactoryWithCache();
 
@@ -418,11 +406,11 @@ public class N5FactoryTests {
 			final N5Writer writerFromStoragePrefix2 = cachedFactory.openWriter("zarr://" + tmpPath);
 			assertSame(writerFromStoragePrefix2, writer1);
 
-			final N5Writer writerdifferentStorageFormat = cachedFactory.openWriter(StorageFormat.N5, tmpPath);
-			assertNotSame(writerdifferentStorageFormat, writer1);
+			final N5Writer writerDifferentStorageFormat = cachedFactory.openWriter(StorageFormat.N5, tmpPath);
+			assertNotSame(writerDifferentStorageFormat, writer1);
 
-			final N5Writer writerFromStorageType = cachedFactory.openWriter(StorageFormat.ZARR, tmpPath);
-			assertNotSame(writerFromStorageType, writerdifferentStorageFormat);
+			final N5Writer writerFromStorageType = cachedFactory.openWriter(StorageFormat.ZARR2, tmpPath);
+			assertNotSame(writerFromStorageType, writerDifferentStorageFormat);
 			assertNotSame(writerFromStorageType, writer1);
 
 
@@ -442,7 +430,7 @@ public class N5FactoryTests {
 			final N5Reader readerDifferentStorageFormat = cachedFactory.openReader(StorageFormat.N5, tmpPath);
 			assertNotSame(readerDifferentStorageFormat, reader1);
 
-			final N5Reader readerFromStorageType = cachedFactory.openReader(StorageFormat.ZARR, tmpPath);
+			final N5Reader readerFromStorageType = cachedFactory.openReader(StorageFormat.ZARR2, tmpPath);
 			assertNotSame(readerFromStorageType, readerDifferentStorageFormat);
 			assertNotSame(readerFromStorageType, reader1);
 
@@ -522,13 +510,13 @@ public class N5FactoryTests {
 	}
 
 	@Test
-	public void testZarr2VsZarr3Disambiguation() throws IOException, URISyntaxException {
+	public void testZarr2VsZarr3Disambiguation() throws URISyntaxException {
 
 		final URI uri = new URI("src/test/resources/metadata.zarr");
 		final FileSystemKeyValueAccess kva = new FileSystemKeyValueAccess(FileSystems.getDefault());
 
 		final StorageFormat format = StorageFormat.guessStorageFromKeys(uri, kva);
-		assertEquals("zarr 2", StorageFormat.ZARR, format);
+		assertEquals("zarr 2", StorageFormat.ZARR2, format);
 	}
 
 	private void checkWriterTypeFromFactory(N5Factory factory, String uri, Class<?> expected, String messageSuffix) {

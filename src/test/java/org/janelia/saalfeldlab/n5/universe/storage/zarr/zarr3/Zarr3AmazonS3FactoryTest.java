@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.storage.zarr;
+package org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr3;
 
 import com.amazonaws.services.s3.AmazonS3;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -6,8 +6,10 @@ import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests;
 import org.janelia.saalfeldlab.n5.s3.mock.MockS3Factory;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.rules.TestWatcher;
 
@@ -18,7 +20,7 @@ import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempBucketName;
 import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempContainerPath;
 import static org.junit.Assert.assertTrue;
 
-public abstract class ZarrAmazonS3FactoryTest extends ZarrStorageTests.ZarrFactoryTest {
+public abstract class Zarr3AmazonS3FactoryTest extends ZarrStorageTests.Zarr3FactoryTest {
 
 	public static AmazonS3 s3 = null;
 
@@ -60,10 +62,10 @@ public abstract class ZarrAmazonS3FactoryTest extends ZarrStorageTests.ZarrFacto
 		}
 	}
 
-	public static class ZarrAmazonS3MockTest extends ZarrAmazonS3FactoryTest {
+	public static class ZarrAmazonS3MockTest extends Zarr3AmazonS3FactoryTest {
 		public ZarrAmazonS3MockTest() {
 
-			ZarrAmazonS3FactoryTest.s3 = MockS3Factory.getOrCreateS3();
+			Zarr3AmazonS3FactoryTest.s3 = MockS3Factory.getOrCreateS3();
 		}
 
 		@Override protected String tempN5Location() {
@@ -76,12 +78,13 @@ public abstract class ZarrAmazonS3FactoryTest extends ZarrStorageTests.ZarrFacto
 		}
 	}
 
-	public static class ZarrAmazonS3BackendTest extends ZarrAmazonS3FactoryTest {
+	@Ignore
+	public static class ZarrAmazonS3BackendTest extends Zarr3AmazonS3FactoryTest {
 
 		@BeforeClass
 		public static void ensureBucketExists() {
 
-			final N5Writer writer = FACTORY.createWriter("s3://" + testBucket + "/" + tempContainerPath());
+			final N5Writer writer = FACTORY.openWriter("s3://" + testBucket + "/" + tempContainerPath());
 			assertTrue(writer.exists(""));
 			writer.remove();
 		}
@@ -90,7 +93,7 @@ public abstract class ZarrAmazonS3FactoryTest extends ZarrStorageTests.ZarrFacto
 
 		public ZarrAmazonS3BackendTest() {
 
-			ZarrAmazonS3FactoryTest.s3 = null;
+			Zarr3AmazonS3FactoryTest.s3 = null;
 		}
 	}
 }

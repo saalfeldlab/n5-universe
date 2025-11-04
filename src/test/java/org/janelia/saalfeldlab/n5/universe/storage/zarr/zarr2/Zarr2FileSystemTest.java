@@ -1,11 +1,12 @@
-package org.janelia.saalfeldlab.n5.universe.storage.zarr;
+package org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr2;
 
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
+import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
 
 import java.io.IOException;
 import java.nio.file.Files;
 
-public class ZarrFileSystemTest extends ZarrStorageTests.ZarrFactoryTest {
+public class Zarr2FileSystemTest extends ZarrStorageTests.Zarr2FactoryTest {
 
 	@Override public Class<?> getBackendTargetClass() {
 
