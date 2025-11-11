@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.storage.zarr;
+package org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr2;
 
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.GsonKeyValueN5Reader;
@@ -11,11 +11,12 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.http.HttpReaderFsWriter;
 import org.janelia.saalfeldlab.n5.http.RunnerWithHttpServer;
+import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,7 +35,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RunnerWithHttpServer.class)
-public class ZarrHttpFactoryTest extends ZarrStorageTests.ZarrFactoryTest {
+public class Zarr2HttpFactoryTest extends ZarrStorageTests.Zarr2FactoryTest {
 
 	private static class ZarrHttpReaderFsWriter extends HttpReaderFsWriter {
 
@@ -97,6 +98,9 @@ public class ZarrHttpFactoryTest extends ZarrStorageTests.ZarrFactoryTest {
 		final GsonKeyValueN5Reader reader = (GsonKeyValueN5Reader)getReader(uri);
 		switch (getStorageFormat()) {
 		case ZARR:
+			assertTrue(writer instanceof ZarrV3KeyValueWriter);
+			break;
+		case ZARR2:
 			assertTrue(writer instanceof ZarrKeyValueWriter);
 			return new ZarrHttpReaderFsWriter((ZarrKeyValueWriter)writer, (ZarrKeyValueReader)reader);
 		case N5:

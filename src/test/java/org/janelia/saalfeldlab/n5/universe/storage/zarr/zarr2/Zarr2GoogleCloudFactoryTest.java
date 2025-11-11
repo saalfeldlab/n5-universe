@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.storage.n5;
+package org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr2;
 
 import com.google.cloud.storage.Storage;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -7,17 +7,17 @@ import org.janelia.saalfeldlab.n5.googlecloud.N5GoogleCloudStorageTests;
 import org.janelia.saalfeldlab.n5.googlecloud.backend.BackendGoogleCloudStorageFactory;
 import org.janelia.saalfeldlab.n5.googlecloud.mock.MockGoogleCloudStorageFactory;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
 import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempContainerPath;
 import static org.junit.Assert.assertTrue;
 
-public abstract class N5GoogleCloudFactoryTest extends N5StorageTests.N5FactoryTest {
+public abstract class Zarr2GoogleCloudFactoryTest extends ZarrStorageTests.Zarr2FactoryTest {
 
 	protected static String testBucket = N5GoogleCloudStorageTests.tempBucketName();
 	protected static Storage storage = null;
@@ -58,10 +58,10 @@ public abstract class N5GoogleCloudFactoryTest extends N5StorageTests.N5FactoryT
 		}
 	}
 
-	public static class N5GoogleCloudMockTest extends N5GoogleCloudFactoryTest {
-		public N5GoogleCloudMockTest() {
+	public static class ZarrGoogleCloudMockTest extends Zarr2GoogleCloudFactoryTest {
+		public ZarrGoogleCloudMockTest() {
 
-			N5GoogleCloudFactoryTest.storage = MockGoogleCloudStorageFactory.getOrCreateStorage();
+			Zarr2GoogleCloudFactoryTest.storage = MockGoogleCloudStorageFactory.getOrCreateStorage();
 		}
 
 		@Override protected String[] illegalChars() {
@@ -74,7 +74,7 @@ public abstract class N5GoogleCloudFactoryTest extends N5StorageTests.N5FactoryT
 		}
 	}
 
-	public static class N5GoogleCloudBackendTest extends N5GoogleCloudFactoryTest {
+	public static class ZarrGoogleCloudBackendTest extends Zarr2GoogleCloudFactoryTest {
 
 		@BeforeClass
 		public static void ensureBucketExists() {
@@ -84,14 +84,9 @@ public abstract class N5GoogleCloudFactoryTest extends N5StorageTests.N5FactoryT
 			writer.remove();
 		}
 
-		public N5GoogleCloudBackendTest() {
+		public ZarrGoogleCloudBackendTest() {
 
-			N5GoogleCloudFactoryTest.storage = BackendGoogleCloudStorageFactory.getOrCreateStorage();
-		}
-
-		@Override public void testVersion() throws NumberFormatException, IOException, URISyntaxException {
-
-			super.testVersion();
+			Zarr2GoogleCloudFactoryTest.storage = BackendGoogleCloudStorageFactory.getOrCreateStorage();
 		}
 	}
 }

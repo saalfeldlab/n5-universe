@@ -10,6 +10,8 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 
 import static org.junit.Assert.assertTrue;
 
@@ -27,6 +29,9 @@ public interface StorageSchemeWrappedN5Test {
 		final GsonKeyValueN5Writer writer = (GsonKeyValueN5Writer)getFactory().openWriter(uriWithStorageScheme);
 		switch (getStorageFormat()){
 		case ZARR:
+			assertTrue(writer instanceof ZarrV3KeyValueWriter);
+			break;
+		case ZARR2:
 			assertTrue(writer instanceof ZarrKeyValueWriter);
 			break;
 		case N5:
@@ -46,6 +51,9 @@ public interface StorageSchemeWrappedN5Test {
 		final GsonKeyValueN5Reader reader = (GsonKeyValueN5Reader)getFactory().openReader(uriWithStorageScheme);
 		switch (getStorageFormat()){
 		case ZARR:
+			assertTrue(reader instanceof ZarrV3KeyValueReader);
+			break;
+		case ZARR2:
 			assertTrue(reader instanceof ZarrKeyValueReader);
 			break;
 		case N5:

@@ -1,5 +1,8 @@
-package org.janelia.saalfeldlab.n5.universe.storage.n5;
+package org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr3;
 
+import com.google.gson.JsonElement;
+import org.janelia.saalfeldlab.n5.DataType;
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GsonKeyValueN5Reader;
 import org.janelia.saalfeldlab.n5.GsonKeyValueN5Writer;
 import org.janelia.saalfeldlab.n5.HttpKeyValueAccess;
@@ -10,7 +13,11 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.http.HttpReaderFsWriter;
 import org.janelia.saalfeldlab.n5.http.RunnerWithHttpServer;
+import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
+import org.janelia.saalfeldlab.n5.zarr.chunks.DefaultChunkKeyEncoding;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -26,12 +33,37 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RunnerWithHttpServer.class)
-public class N5HttpFactoryTest extends N5StorageTests.N5FactoryTest {
+public class Zarr3HttpFactoryTest extends ZarrStorageTests.Zarr3FactoryTest {
+
+	private static class ZarrV3HttpReaderFsWriter extends HttpReaderFsWriter {
+
+		private final ZarrV3KeyValueWriter writer;
+		private final ZarrV3KeyValueReader reader;
+
+		public <W extends ZarrV3KeyValueWriter, R extends ZarrV3KeyValueReader> ZarrV3HttpReaderFsWriter(W writer, R reader) {
+
+			super(writer, reader);
+			this.writer = writer;
+			this.reader = reader;
+		}
+
+		public ZarrV3KeyValueReader getReader() {
+
+			return reader;
+		}
+
+		public ZarrV3KeyValueWriter getWriter() {
+
+			return writer;
+		}
+	}
 
 	private static final ArrayList<N5Writer> tempClassWriters = new ArrayList<>();
 
@@ -72,7 +104,7 @@ public class N5HttpFactoryTest extends N5StorageTests.N5FactoryTest {
 		switch (getStorageFormat()) {
 		case ZARR:
 			assertTrue(writer instanceof ZarrV3KeyValueWriter);
-			break;
+			return new ZarrV3HttpReaderFsWriter((ZarrV3KeyValueWriter)writer, (ZarrV3KeyValueReader)reader);
 		case ZARR2:
 			assertTrue(writer instanceof ZarrKeyValueWriter);
 			break;
@@ -83,7 +115,6 @@ public class N5HttpFactoryTest extends N5StorageTests.N5FactoryTest {
 			assertTrue(writer instanceof N5HDF5Writer);
 			break;
 		}
-
 		return new HttpReaderFsWriter(writer, reader);
 	}
 
@@ -96,7 +127,7 @@ public class N5HttpFactoryTest extends N5StorageTests.N5FactoryTest {
 	@Override protected String tempN5Location() {
 
 		try {
-			final File tmpFile = Files.createTempFile(httpServerDirectory, "n5-factory-test-", null).toFile();
+			final File tmpFile = Files.createTempFile(httpServerDirectory, "n5-zarr-factory-test-", null).toFile();
 			assertTrue(tmpFile.delete());
 			return tmpFile.getName();
 		} catch (final IOException e) {
@@ -108,6 +139,48 @@ public class N5HttpFactoryTest extends N5StorageTests.N5FactoryTest {
 
 		return HttpKeyValueAccess.class;
 	}
+
+	@Override
+	@Test
+	public void testCreateNestedDataset() throws IOException {
+
+		final String datasetName = "/test/nested/data";
+
+		final String testDirPath = tempN5Location();
+		final ZarrV3HttpReaderFsWriter n5Nested = (ZarrV3HttpReaderFsWriter) createTempN5Writer(testDirPath, "/");
+
+		n5Nested.createDataset(datasetName, dimensions, blockSize, DataType.UINT64, getCompressions()[0]);
+		final ZarrV3DatasetAttributes zarrAttrs = (ZarrV3DatasetAttributes)n5Nested.getReader().getDatasetAttributes(datasetName);
+		final DefaultChunkKeyEncoding chunkKeyEncoding = (DefaultChunkKeyEncoding)zarrAttrs.getChunkAttributes().getKeyEncoding();
+		assertEquals("/", chunkKeyEncoding.getSeparator());
+	}
+
+
+
+	@Override
+	@Test
+	public void testCreateDataset()  {
+
+		final DatasetAttributes info;
+		try (ZarrV3HttpReaderFsWriter n5 = (ZarrV3HttpReaderFsWriter)createTempN5Writer()) {
+
+			n5.createDataset(datasetName, dimensions, blockSize, DataType.UINT64, getCompressions()[0]);
+			assertTrue("Dataset does not exist", n5.exists(datasetName));
+
+			info = n5.getDatasetAttributes(datasetName);
+			assertArrayEquals(dimensions, info.getDimensions());
+			assertArrayEquals(blockSize, info.getBlockSize());
+			assertEquals(DataType.UINT64, info.getDataType());
+			assertEquals(
+					getCompressions()[0].getClass(),
+					info.getCompression().getClass());
+
+			final JsonElement elem = n5.getReader().getRawAttribute(datasetName, "/", JsonElement.class);
+
+			assertTrue(elem.getAsJsonObject().get("fill_value").getAsJsonPrimitive().isNumber());
+		}
+	}
+
 
 	@Test
 	public void testReaderCreation() {
@@ -122,33 +195,18 @@ public class N5HttpFactoryTest extends N5StorageTests.N5FactoryTest {
 				});
 
 		try (N5Writer writer = createTempN5Writer(location)) {
-			try (N5Reader n5r = createN5Reader(location)) {
-				assertNotNull(n5r);
-			}
+
+			assertNotNull(createN5Reader(location));
 
 			// existing directory without attributes is okay;
 			// Remove and create to remove attributes store
 			writer.removeAttribute("/", "/");
-			try (N5Reader na = createN5Reader(location)) {
-				assertNotNull(na);
-			}
+			assertNotNull(createN5Reader(location));
 
 			// existing location with attributes, but no version
 			writer.removeAttribute("/", "/");
 			writer.setAttribute("/", "mystring", "ms");
-			try (N5Reader wa = createN5Reader(location)) {
-				assertNotNull(wa);
-			}
-
-			// existing directory with incompatible version should fail
-			writer.removeAttribute("/", "/");
-			final String invalidVersion = new N5Reader.Version(N5Reader.VERSION.getMajor() + 1, N5Reader.VERSION.getMinor(), N5Reader.VERSION.getPatch()).toString();
-			writer.setAttribute("/", N5Reader.VERSION_KEY, invalidVersion);
-			assertThrows("Incompatible version throws error", N5Exception.class, () -> {
-				try (final N5Reader ignored = createN5Reader(location)) {
-					/*Only try with resource to ensure `close()` is called.*/
-				}
-			});
+			assertNotNull(createN5Reader(location));
 		}
 	}
 
@@ -187,6 +245,4 @@ public class N5HttpFactoryTest extends N5StorageTests.N5FactoryTest {
 	@Override public void testWriterSeparation() {
 
 	}
-
-
 }
