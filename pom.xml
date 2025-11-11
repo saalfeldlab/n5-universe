@@ -111,15 +111,14 @@
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
-		<n5.version>4.0.0-alpha-4-SNAPSHOT</n5.version>
-		<n5-aws-s3.version>4.4.0-alpha-1-SNAPSHOT</n5-aws-s3.version>
-		<n5-google-cloud.version>5.2.0-alpha-1-SNAPSHOT</n5-google-cloud.version>
-		<n5-zarr.version>2.0.0-SNAPSHOT</n5-zarr.version>
-		<n5-hdf5.version>2.2.2-SNAPSHOT</n5-hdf5.version>
-		<n5-blosc.version>2.0.0-alpha-2-SNAPSHOT</n5-blosc.version>
-		<n5-imglib2.version>7.1.0-alpha-1-SNAPSHOT</n5-imglib2.version>
-		<n5-zstandard.version>2.0.0-alpha-2-SNAPSHOT</n5-zstandard.version>
-		<n5-ij.version>4.3.0</n5-ij.version>
+		<n5.version>4.0.0-alpha-6</n5.version>
+		<n5-aws-s3.version>4.4.0-alpha-4</n5-aws-s3.version>
+		<n5-google-cloud.version>5.2.0-alpha-4</n5-google-cloud.version>
+		<n5-zarr.version>2.0.0-alpha-4</n5-zarr.version>
+		<n5-hdf5.version>2.3.0-alpha-4</n5-hdf5.version>
+		<n5-blosc.version>2.0.0-alpha-4</n5-blosc.version>
+		<n5-imglib2.version>7.1.0-alpha-6</n5-imglib2.version>
+		<n5-zstandard.version>2.0.0-alpha-4</n5-zstandard.version>
 
 		<jackson-jq.version>1.0.0-preview.20191208</jackson-jq.version>
 		<alphanumeric-comparator.version>1.4.1</alphanumeric-comparator.version>

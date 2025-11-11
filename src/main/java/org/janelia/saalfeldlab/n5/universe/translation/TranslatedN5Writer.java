@@ -2,11 +2,14 @@ package org.janelia.saalfeldlab.n5.universe.translation;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.N5Writer.DataBlockSupplier;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataWriter;
 
@@ -107,6 +110,18 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	@Override
 	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
 		writer.writeBlock(originalPath(pathName), datasetAttributes, dataBlock);
+	}
+
+	@Override
+	public <T> void writeRegion(String datasetPath, DatasetAttributes datasetAttributes, long[] min, long[] size, DataBlockSupplier<T> dataBlocks,
+			boolean writeFully) throws N5Exception {
+		writer.writeRegion(datasetPath, datasetAttributes, min, size, dataBlocks, writeFully);
+	}
+
+	@Override
+	public <T> void writeRegion(String datasetPath, DatasetAttributes datasetAttributes, long[] min, long[] size, DataBlockSupplier<T> dataBlocks,
+			boolean writeFully, ExecutorService exec) throws N5Exception, InterruptedException, ExecutionException {
+		writer.writeRegion(datasetPath, datasetAttributes, min, size, dataBlocks, writeFully, exec);
 	}
 
 	@Override

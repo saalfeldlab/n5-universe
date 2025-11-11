@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -335,6 +336,19 @@ public class ContainerMetadataNode implements GsonN5Writer {
 
 	@Override
 	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
+		throw new UnsupportedOperationException("ContainerMetadata does not support writeBlock");
+	}
+
+	@Override
+	public <T> void writeRegion(String datasetPath, DatasetAttributes datasetAttributes, long[] min, long[] size, DataBlockSupplier<T> dataBlocks,
+			boolean writeFully) throws N5Exception {
+		throw new UnsupportedOperationException("ContainerMetadata does not support writeRegion");
+	}
+
+	@Override
+	public <T> void writeRegion(String datasetPath, DatasetAttributes datasetAttributes, long[] min, long[] size, DataBlockSupplier<T> dataBlocks,
+			boolean writeFully, ExecutorService exec) throws N5Exception, InterruptedException, ExecutionException {
+		throw new UnsupportedOperationException("ContainerMetadata does not support writeRegion");
 	}
 
 	@Override
