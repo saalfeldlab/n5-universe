@@ -1,17 +1,18 @@
 package org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr3;
 
-import com.amazonaws.services.s3.AmazonS3;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests;
 import org.janelia.saalfeldlab.n5.s3.mock.MockS3Factory;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.storage.AmazonTest;
 import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.TestWatcher;
+import software.amazon.awssdk.services.s3.S3Client;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -20,15 +21,16 @@ import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempBucketName;
 import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempContainerPath;
 import static org.junit.Assert.assertTrue;
 
+@Category({AmazonTest.class})
 public abstract class Zarr3AmazonS3FactoryTest extends ZarrStorageTests.Zarr3FactoryTest {
 
-	public static AmazonS3 s3 = null;
+	public static S3Client s3 = null;
 
 	final static String testBucket = tempBucketName();
 
 	final static N5Factory FACTORY = new N5Factory() {
 
-		@Override protected AmazonS3 createS3(String uri) {
+		@Override protected S3Client createS3(String uri) {
 
 			return s3 != null ? s3 : (s3 = super.createS3(uri));
 		}
@@ -78,7 +80,6 @@ public abstract class Zarr3AmazonS3FactoryTest extends ZarrStorageTests.Zarr3Fac
 		}
 	}
 
-	@Ignore
 	public static class ZarrAmazonS3BackendTest extends Zarr3AmazonS3FactoryTest {
 
 		@BeforeClass

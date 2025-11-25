@@ -1,6 +1,5 @@
 package org.janelia.saalfeldlab.n5.universe;
 
-import com.amazonaws.services.s3.AmazonS3;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageURI;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
@@ -12,6 +11,7 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
+import software.amazon.awssdk.services.s3.S3Client;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -118,7 +118,7 @@ public enum KeyValueAccessBackend implements Predicate<URI>, BiFunction<URI, N5F
 	private static AmazonS3KeyValueAccess newAmazonS3KeyValueAccess(final URI uri, final N5Factory factory) {
 
 		final String uriString = uri.toString();
-		final AmazonS3 s3 = factory.createS3(uriString);
+		final S3Client s3 = factory.createS3(uriString);
 
 		return new AmazonS3KeyValueAccess(s3, uri, true);
 	}
