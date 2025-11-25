@@ -26,10 +26,6 @@
  */
 package org.janelia.saalfeldlab.n5.universe;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.services.s3.AmazonS3;
 import com.google.cloud.storage.Storage;
 import com.google.gson.GsonBuilder;
 import net.imglib2.util.Pair;
@@ -52,6 +48,10 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.services.s3.S3Client;
 
 import javax.annotation.Nullable;
 import java.io.Serializable;
@@ -92,8 +92,8 @@ public class N5Factory implements Serializable {
 	private String googleCloudProjectId = null;
 	private boolean googleCloudCreateBucket = false;
 	private String s3Region = null;
-	private AWSCredentials s3Credentials = null;
-	private ClientConfiguration s3ClientConfiguration = null;
+	private AwsCredentials s3Credentials = null;
+	private SdkHttpClient.Builder<?> s3ClientBuilder = null;
 	private boolean s3Anonymous = true;
 	private String s3Endpoint;
 	private StorageFormat preferredStorageFormat = null;
@@ -153,7 +153,7 @@ public class N5Factory implements Serializable {
 	}
 
 	/**
-	 * This factory will use the {@link DefaultAWSCredentialsProviderChain} to
+	 * This factory will use the {@link DefaultCredentialsProvider} to
 	 * find s3 credentials.
 	 *
 	 * @return this N5Factory
@@ -164,15 +164,15 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
-	public N5Factory s3UseCredentials(final AWSCredentials credentials) {
+	public N5Factory s3UseCredentials(final AwsCredentials credentials) {
 
 		this.s3Credentials = credentials;
 		return this;
 	}
 
-	public N5Factory s3ClientConfiguration(final ClientConfiguration clientConfiguration) {
+	public N5Factory s3ClientConfiguration(final SdkHttpClient.Builder<?> clientBuilder) {
 
-		this.s3ClientConfiguration = clientConfiguration;
+		this.s3ClientBuilder = clientBuilder;
 		return this;
 	}
 
@@ -209,10 +209,10 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
-	protected AmazonS3 createS3(final String uri) {
+	protected S3Client createS3(final String uri) {
 
 		try {
-			return AmazonS3Utils.createS3(uri, s3Endpoint, AmazonS3Utils.getS3Credentials(s3Credentials, s3Anonymous), s3ClientConfiguration, s3Region);
+			return AmazonS3Utils.createS3(uri, s3Endpoint, AmazonS3Utils.getS3Credentials(s3Credentials, s3Anonymous), s3ClientBuilder, s3Region);
 		} catch (final Throwable e) {
 			throw new N5Exception("Could not create s3 client from uri: " + uri, e);
 		}
