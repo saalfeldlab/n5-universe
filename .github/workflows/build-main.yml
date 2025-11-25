@@ -27,6 +27,11 @@ jobs:
           java-version: '8'
           distribution: 'zulu'
           cache: 'maven'
+      - name: Start MinIO Server
+        uses: comfuture/minio-action@v1
+        with:
+          access_key: minioadmin
+          secret_key: minioadmin
       - name: Set up CI environment
         run: .github/setup.sh
       - name: Execute the build
@@ -38,3 +43,4 @@ jobs:
           MAVEN_PASS: ${{ secrets.MAVEN_PASS }}
           OSSRH_PASS: ${{ secrets.OSSRH_PASS }}
           SIGNING_ASC: ${{ secrets.SIGNING_ASC }}
+          AWS_REGION: us-east-1
