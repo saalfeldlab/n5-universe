@@ -24,6 +24,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+
+      - name: Start MinIO Server
+        if: matrix.os == 'ubuntu-latest'
+        uses: comfuture/minio-action@v1
+        with:
+          access_key: minioadmin
+          secret_key: minioadmin
       - name: Install blosc (Windows)
         if: matrix.os == 'windows-latest'
         run: |
@@ -41,4 +48,12 @@ jobs:
           distribution: 'zulu'
           cache: 'maven'
       - name: Maven Test
+        if: matrix.os == 'windows-latest'
         run: mvn -B clean test --file pom.xml
+        env:
+          AWS_REGION: us-east-1
+      - name: Maven Test (Windows)
+        if: matrix.os == 'windows-latest'
+        run: mvn -B clean test --file pom.xml -DexcludedGroups=org.janelia.saalfeldlab.n5.universe.storage.AmazonTest
+        env:
+          AWS_REGION: us-east-1
