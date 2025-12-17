@@ -2,6 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.NgffSingleScaleAxesMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
@@ -10,7 +11,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTrans
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
 
-public class OmeNgffV05Metadata extends SpatialMultiscaleMetadata<NgffSingleScaleAxesMetadata>
+public class OmeNgffV05Metadata extends SpatialMultiscaleMetadata<NgffSingleScaleAxesMetadata> implements AxisMetadata
 {
 	public final OmeNgffMultiScaleMetadata[] multiscales;
 
@@ -19,6 +20,11 @@ public class OmeNgffV05Metadata extends SpatialMultiscaleMetadata<NgffSingleScal
 		// assumes children metadata are the same for all multiscales, which should be true
 		super(path, multiscales[0].getChildrenMetadata());
 		this.multiscales = multiscales;
+	}
+
+	@Override
+	public Axis[] getAxes() {
+		return multiscales[0].getAxes();
 	}
 
 	/**
