@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+
 import org.apache.commons.lang3.ArrayUtils;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -32,9 +33,12 @@ public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Meta
 
 	private final Gson gson;
 
-	public OmeNgffV05MetadataParser(final boolean reverse) {
+	protected final boolean assumeChildren;
+
+	public OmeNgffV05MetadataParser(boolean assumeChildren) {
 
 		gson = gsonBuilder().create();
+		this.assumeChildren = assumeChildren;
 	}
 
 	public OmeNgffV05MetadataParser() {
@@ -60,9 +64,12 @@ public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Meta
 			assert version.getAsString().equals("0.5");
 			final JsonElement base = n5.getAttribute(node.getPath(), "ome/multiscales", JsonElement.class);
 			multiscales = gson.fromJson(base, OmeNgffMultiScaleMetadata[].class);
+
+			for( OmeNgffMultiScaleMetadata ms : multiscales )
+				ArrayUtils.reverse(ms.axes);
+
 		} catch (final Exception e) {
 			throw e;
-			//return Optional.empty();
 		}
 
 		if (multiscales == null || multiscales.length == 0) {
@@ -71,47 +78,61 @@ public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Meta
 
 		int nd = -1;
 		final Map<String, N5TreeNode> scaleLevelNodes = new HashMap<>();
-		for (final N5TreeNode childNode : node.childrenList()) {
-			if (childNode.isDataset() && childNode.getMetadata() != null) {
-				scaleLevelNodes.put(childNode.getPath(), childNode);
-				if (nd < 0)
-					nd = ((N5DatasetMetadata) childNode.getMetadata()).getAttributes().getNumDimensions();
+		DatasetAttributes[] attrs = null;
+		if( assumeChildren ) {
+			for (int j = 0; j < multiscales.length; j++) {
+
+				final OmeNgffMultiScaleMetadata ms = multiscales[j];
+
+				nd = ms.getAxes().length;
+
+				final int numScales = ms.datasets.length;
+				attrs = new DatasetAttributes[numScales];
+				for (int i = 0; i < numScales; i++) {
+
+					// TODO check existence here or elsewhere?
+					final N5TreeNode child = new N5TreeNode(
+							MetadataUtils.canonicalPath(node, ms.getDatasets()[i].path));
+					final DatasetAttributes dsetAttrs = n5.getDatasetAttributes(child.getPath());
+					if (dsetAttrs == null)
+						return Optional.empty();
+
+					attrs[i] = dsetAttrs;
+					node.childrenList().add(child);
+				}
+
+				final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffMultiScaleMetadata.buildMetadata(nd,
+						node.getPath(), ms.datasets, attrs, ms.coordinateTransformations, ms.metadata, ms.axes);
+
+				// add to scale level nodes map
+				node.childrenList().forEach(n -> {
+					scaleLevelNodes.put(n.getPath(), n);
+				});
 			}
-		}
 
-		if (nd < 0)
-			return Optional.empty();
-
-		/*
-		 * Need to replace all children with new children with the metadata from
-		 * this object
-		 */
-		for (int j = 0; j < multiscales.length; j++) {
-
-			final OmeNgffMultiScaleMetadata ms = multiscales[j];
-
-			final String[] paths = ms.getPaths();
-			final DatasetAttributes[] attrs = new DatasetAttributes[ms.getPaths().length];
-
-			final N5DatasetMetadata[] dsetMeta = new N5DatasetMetadata[paths.length];
-			for (int i = 0; i < paths.length; i++) {
-				dsetMeta[i] = ((N5DatasetMetadata)scaleLevelNodes.get(MetadataUtils.canonicalPath(node, paths[i])).getMetadata());
-				attrs[i] = dsetMeta[i].getAttributes();
+		} else {
+			for (final N5TreeNode childNode : node.childrenList()) {
+				if (childNode.isDataset() && childNode.getMetadata() != null) {
+					scaleLevelNodes.put(childNode.getPath(), childNode);
+					if (nd < 0)
+						nd = ((N5DatasetMetadata)childNode.getMetadata()).getAttributes().getNumDimensions();
+				}
 			}
 
-			// maybe axes can be flipped first?
-			ArrayUtils.reverse(ms.axes);
+			if (nd < 0)
+				return Optional.empty();
 
-			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffMultiScaleMetadata.buildMetadata(
-					nd, node.getPath(), ms.datasets, attrs, ms.coordinateTransformations, ms.metadata, ms.axes);
+			for (int j = 0; j < multiscales.length; j++) {
 
-			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta, false);
-
-			// axes need to be flipped after the child is created
-			// is this actually true?
-			// ArrayUtils.reverse(ms.axes);
-
-			multiscales[j] = new OmeNgffMultiScaleMetadata(ms, msChildrenMeta);
+				final OmeNgffMultiScaleMetadata ms = multiscales[j];
+				final String[] paths = ms.getPaths();
+				attrs = new DatasetAttributes[ms.getPaths().length];
+				final N5DatasetMetadata[] dsetMeta = new N5DatasetMetadata[paths.length];
+				for (int i = 0; i < paths.length; i++) {
+					dsetMeta[i] = ((N5DatasetMetadata)scaleLevelNodes.get(MetadataUtils.canonicalPath(node, paths[i])).getMetadata());
+					attrs[i] = dsetMeta[i].getAttributes();
+				}
+			}
 		}
 
 		return Optional.of(new OmeNgffV05Metadata(node.getPath(), multiscales));
@@ -129,7 +150,9 @@ public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Meta
 			Collections.reverse(axes.asList());
 		}
 
-		n5.setAttribute(groupPath, "ome.multiscales", jsonElem);
+		n5.setAttribute(groupPath, "ome/multiscales", jsonElem);
+		n5.setAttribute(groupPath, "ome/version", "0.5");
+		n5.setAttribute(groupPath, "dimension_names", new String[] {"t","c","z", "y","x"});
 	}
 
 	public static boolean cOrder(final DatasetAttributes datasetAttributes) {
