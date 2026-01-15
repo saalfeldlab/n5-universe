@@ -418,7 +418,7 @@ public class N5Factory implements Serializable {
 			case N5:
 				return new N5KeyValueReader(access, containerPath, gsonBuilder, cacheAttributes);
 			case ZARR:
-				return new ZarrV3KeyValueReader(access,containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
+				return new ZarrV3KeyValueReader(access,containerPath, gsonBuilder, cacheAttributes);
 			case ZARR2:
 				return new ZarrKeyValueReader(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
 			case HDF5:
@@ -582,7 +582,9 @@ public class N5Factory implements Serializable {
 			final String containerLocation = location.toString();
 			switch (storage) {
 			case ZARR:
-				return new ZarrV3KeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+				final ZarrV3KeyValueWriter writer = new ZarrV3KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
+				writer.setDimensionSeparator(zarrDimensionSeparator);
+				return writer;
 			case ZARR2:
 				return new ZarrKeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
 			case N5:

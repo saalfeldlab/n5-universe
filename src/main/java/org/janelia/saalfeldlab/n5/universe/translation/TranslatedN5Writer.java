@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutorService;
 
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.GsonN5Writer;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.N5Writer.DataBlockSupplier;
@@ -14,14 +15,15 @@ import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataWriter;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 
-public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
+public class TranslatedN5Writer extends TranslatedN5Reader implements GsonN5Writer {
 
-	protected N5Writer writer;
+	protected GsonN5Writer writer;
 
 	protected ContainerMetadataWriter containerWriter;
 
-	public TranslatedN5Writer( N5Writer n5Base, Gson gson, String fwdTranslation, String invTranslation) {
+	public TranslatedN5Writer( GsonN5Writer n5Base, Gson gson, String fwdTranslation, String invTranslation) {
 		super(n5Base, gson, fwdTranslation, invTranslation);
 
 		this.writer = n5Base;
@@ -42,6 +44,14 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	@Override
 	public void setAttributes(String pathName, Map<String, ?> attributes) {
 		translation.setTranslatedAttributes(pathName, attributes);
+		containerWriter.setMetadataTree(translation.getOrig());
+		containerWriter.writeAllAttributes();
+	}
+	
+	@Override
+	public void setAttributes(String groupPath, JsonElement attributes) throws N5Exception {
+
+		translation.setTranslatedAttributes(groupPath, attributes);
 		containerWriter.setMetadataTree(translation.getOrig());
 		containerWriter.writeAllAttributes();
 	}
@@ -128,5 +138,7 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements N5Writer {
 	public boolean deleteBlock(String pathName, long... gridPosition) {
 		return writer.deleteBlock(originalPath(pathName), gridPosition);
 	}
+
+
 
 }

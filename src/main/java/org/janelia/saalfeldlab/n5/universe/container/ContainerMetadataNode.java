@@ -223,6 +223,13 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	@Override
+	public boolean shardExists(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
+
+		// Consider throwing exception instead?
+		return false;
+	}
+
+	@Override
 	public String[] list(String pathName) throws N5Exception.N5IOException {
 		final Optional<ContainerMetadataNode> node = getNode(pathName);
 		if( node.isPresent() ) {
@@ -244,6 +251,15 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		final JsonElement json = gson.toJsonTree(attributes);
 		final HashMap<String, JsonElement> map = gson.fromJson(json, mapType);
 		getNode( pathName ).ifPresent( x -> x.attributes.putAll(map) );
+	}
+
+	@Override
+	public void setAttributes(String groupPath, JsonElement attributes) throws N5Exception {
+
+		// TODO validate
+		final Type mapType = new TypeToken<HashMap<String, JsonElement>>() {}.getType();
+		final HashMap<String, JsonElement> map = gson.fromJson(attributes, mapType);
+		getNode(groupPath).ifPresent(x -> x.attributes.putAll(map));
 	}
 
 	@Override
@@ -360,8 +376,6 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 		return null;
 	}
-
-
 
 	@SuppressWarnings("unchecked")
 	public static  <N extends GsonN5Reader & N5Reader > ContainerMetadataNode build(
@@ -505,14 +519,10 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	@Override
-	public void setAttributes(String groupPath, JsonElement attributes) throws N5Exception {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
 	public String getAttributesKey() {
 
 		return "attributes.json";
 	}
+
 
 }

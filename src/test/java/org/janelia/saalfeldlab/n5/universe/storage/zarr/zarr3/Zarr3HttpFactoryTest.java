@@ -13,6 +13,7 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.http.HttpReaderFsWriter;
 import org.janelia.saalfeldlab.n5.http.RunnerWithHttpServer;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.janelia.saalfeldlab.n5.zarr.chunks.DefaultChunkKeyEncoding;
@@ -93,6 +94,14 @@ public class Zarr3HttpFactoryTest extends ZarrStorageTests.Zarr3FactoryTest {
 			}
 		}
 		tempClassWriters.clear();
+	}
+
+	@Override public N5Factory getFactory() {
+
+		if (factory == null) {
+			factory = new N5Factory().cacheAttributes(false);
+		}
+		return factory;
 	}
 
 	@Override public N5Writer getWriter(String uri) {
