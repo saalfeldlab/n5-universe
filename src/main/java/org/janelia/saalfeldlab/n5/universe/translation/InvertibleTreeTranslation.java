@@ -1,6 +1,8 @@
 package org.janelia.saalfeldlab.n5.universe.translation;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+
 import java.util.Map;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
 
@@ -31,6 +33,11 @@ public class InvertibleTreeTranslation extends TreeTranslation {
 	}
 	
 	public <T> void setTranslatedAttributes(String pathName, Map<String, ?> attributes) {
+		rootTranslated.setAttributes(pathName, attributes);
+		updateOriginal();
+	}
+
+	public <T> void setTranslatedAttributes(String pathName, JsonElement attributes) {
 		rootTranslated.setAttributes(pathName, attributes);
 		updateOriginal();
 	}
