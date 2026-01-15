@@ -1,7 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.benchmarks;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,7 +30,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import com.amazonaws.services.s3.AmazonS3;
+import software.amazon.awssdk.services.s3.S3Client;
 
 @State(Scope.Benchmark)
 @Warmup(iterations = 1, time = 100, timeUnit = TimeUnit.MICROSECONDS)
@@ -77,7 +76,7 @@ public class S3PartialReadBenchmarks {
 			return;
 		}
 
-		final AmazonS3 s3 = AmazonS3Utils.createS3(uri.toASCIIString(), null,
+		final S3Client s3 = AmazonS3Utils.createS3(uri.toASCIIString(), null,
 				AmazonS3Utils.getS3Credentials(null, false), null, null);
 		kva = new AmazonS3KeyValueAccess(s3, uri, false);
 

@@ -10,7 +10,6 @@ import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -75,7 +74,6 @@ public abstract class Zarr3GoogleCloudFactoryTest extends ZarrStorageTests.Zarr3
 		}
 	}
 
-	@Ignore
 	public static class ZarrGoogleCloudBackendTest extends Zarr3GoogleCloudFactoryTest {
 
 		@BeforeClass

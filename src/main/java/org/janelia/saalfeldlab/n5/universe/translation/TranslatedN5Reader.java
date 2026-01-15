@@ -16,11 +16,11 @@ import com.google.gson.JsonElement;
 
 public class TranslatedN5Reader implements GsonN5Reader {
 
-	private final N5Reader n5;
+	private final GsonN5Reader n5;
 
 	protected final InvertibleTreeTranslation translation;
 
-	public TranslatedN5Reader( final N5Reader n5Base,
+	public TranslatedN5Reader( final GsonN5Reader n5Base,
 			final Gson gson,
 			final String fwdTranslation,
 			final String invTranslation ) {
@@ -74,6 +74,12 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	}
 
 	@Override
+	public boolean shardExists(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
+
+		return n5.shardExists( originalPath( pathName ), datasetAttributes, gridPosition);
+	}
+
+	@Override
 	public String[] list(String pathName) {
 		return translation.getTranslated().list(pathName);
 	}
@@ -101,8 +107,7 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	@Override
 	public String getAttributesKey() {
 
-		// TODO fix
-		return "attributes.json";
+		return n5.getAttributesKey();
 	}
 
 }

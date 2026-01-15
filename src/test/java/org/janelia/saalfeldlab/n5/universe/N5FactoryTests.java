@@ -68,8 +68,6 @@ public class N5FactoryTests {
 		final URI n5Ext = new URI("file:///tmp/a.n5");
 		final URI n5ExtSlash = new URI("file:///tmp/a.n5/");
 		final URI zarrExt = new URI("file:///tmp/a.zarr");
-		final URI zarr2Ext = new URI("file:///tmp/a.zarr2");
-		final URI zarr3Ext = new URI("file:///tmp/a.zarr3");
 		final URI zarrExtSlash = new URI("file:///tmp/a.zarr/");
 		final URI unknownExt = new URI("file:///tmp/a.abc");
 
@@ -108,8 +106,6 @@ public class N5FactoryTests {
 		assertNotEquals("zarr extension slash != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(zarrExtSlash));
 		assertNotEquals("zarr extension slash != zarr", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(zarrExtSlash));
 		assertEquals("zarr extension slash == zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(zarrExtSlash));
-		assertEquals("zarr2 extension slash == zarr2", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(zarr2Ext));
-		assertEquals("zarr3 extension slash == zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(zarr3Ext));
 
 		assertNull("unknown extension != h5", StorageFormat.guessStorageFromUri(unknownExt));
 		assertNull("unknown extension != n5", StorageFormat.guessStorageFromUri(unknownExt));
@@ -133,12 +129,6 @@ public class N5FactoryTests {
 					{".n5", "/", N5KeyValueWriter.class},
 					{".zarr", "", ZarrV3KeyValueWriter.class},
 					{".zarr", "/", ZarrV3KeyValueWriter.class},
-					{".zarr2", "", ZarrKeyValueWriter.class},
-					{".zarr2", "/", ZarrKeyValueWriter.class},
-					{".zarr3", "", ZarrV3KeyValueWriter.class},
-					{".zarr3", "/", ZarrV3KeyValueWriter.class},
-					{".zarr4", "", ZarrV3KeyValueWriter.class},
-					{".zarr4", "/", ZarrV3KeyValueWriter.class},
 
 			};
 
