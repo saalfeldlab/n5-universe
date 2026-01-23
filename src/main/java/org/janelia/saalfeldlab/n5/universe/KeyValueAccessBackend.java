@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe;
 
+import org.apache.commons.lang3.function.TriFunction;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageURI;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
@@ -16,6 +17,8 @@ import software.amazon.awssdk.services.s3.S3Client;
 import javax.annotation.Nullable;
 import java.net.URI;
 import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
@@ -27,7 +30,7 @@ import java.util.function.Predicate;
  * {@link KeyValueAccessBackend} you can test them in order, and stop at the first
  * {@link KeyValueAccess} that is generated.
  */
-public enum KeyValueAccessBackend implements Predicate<URI>, BiFunction<URI, N5Factory, KeyValueAccess> {
+public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5Factory, Boolean, KeyValueAccess> {
 	GOOGLE_CLOUD(uri -> {
 		final String scheme = uri.getScheme();
 		final boolean hasScheme = scheme != null;
@@ -53,17 +56,17 @@ public enum KeyValueAccessBackend implements Predicate<URI>, BiFunction<URI, N5F
 	}, KeyValueAccessBackend::newFileSystemKeyValueAccess);
 
 	private final Predicate<URI> backendTest;
-	private final BiFunction<URI, N5Factory, KeyValueAccess> backendGenerator;
+	private final TriFunction<URI, N5Factory, Boolean, KeyValueAccess> backendGenerator;
 
-	KeyValueAccessBackend(Predicate<URI> test, BiFunction<URI, N5Factory, KeyValueAccess> generator) {
+	KeyValueAccessBackend(Predicate<URI> test, TriFunction<URI, N5Factory, Boolean, KeyValueAccess> generator) {
 
 		backendTest = test;
 		backendGenerator = generator;
 	}
 
-	@Override public KeyValueAccess apply(final URI uri, final N5Factory factory) {
+	@Override public KeyValueAccess apply(final URI uri, final N5Factory factory, Boolean readOnly) {
 
-		return backendGenerator.apply(uri, factory);
+		return backendGenerator.apply(uri, factory, readOnly);
 	}
 
 	@Override public boolean test(URI uri) {
@@ -79,13 +82,13 @@ public enum KeyValueAccessBackend implements Predicate<URI>, BiFunction<URI, N5F
 	 * @return the {@link KeyValueAccess} and container path, or null if none are valid
 	 */
 	@Nullable
-	public static KeyValueAccess getKeyValueAccess(final URI uri) {
+	public static KeyValueAccess getKeyValueAccess(final URI uri, boolean readOnly) {
 
-		return getKeyValueAccess(uri, N5Factory.FACTORY);
+		return getKeyValueAccess(uri, N5Factory.FACTORY, readOnly);
 	}
 
 	@Nullable
-	static KeyValueAccess getKeyValueAccess(final URI uri, final N5Factory factory) {
+	static KeyValueAccess getKeyValueAccess(final URI uri, final N5Factory factory, final boolean readOnly) {
 
 		/*NOTE: The order of these tests is very important, as the predicates for each
 		 * backend take into account reasonable defaults when possible.
@@ -95,7 +98,7 @@ public enum KeyValueAccessBackend implements Predicate<URI>, BiFunction<URI, N5F
 		for (final KeyValueAccessBackend backend : KeyValueAccessBackend.values()) {
 			if (backend.test(uri)) {
 				try {
-					return backend.apply(uri, factory);
+					return backend.apply(uri, factory, readOnly);
 				} catch (final Exception e) {
 					String reason = String.format("Inferred Backend was %s but could not create KeyValueAccess", backend);
 					testPassedButThrown = new N5Exception.N5IOException(reason, e);
@@ -109,13 +112,13 @@ public enum KeyValueAccessBackend implements Predicate<URI>, BiFunction<URI, N5F
 		return null;
 	}
 
-	private static GoogleCloudStorageKeyValueAccess newGoogleCloudKeyValueAccess(final URI uri, final N5Factory factory) {
+	private static GoogleCloudStorageKeyValueAccess newGoogleCloudKeyValueAccess(final URI uri, final N5Factory factory, final boolean readOnly) {
 
 		final GoogleCloudStorageURI googleCloudUri = new GoogleCloudStorageURI(uri);
-		return new GoogleCloudStorageKeyValueAccess(factory.createGoogleCloudStorage(), googleCloudUri, true);
+		return new GoogleCloudStorageKeyValueAccess(factory.createGoogleCloudStorage(), googleCloudUri, !readOnly);
 	}
 
-	private static AmazonS3KeyValueAccess newAmazonS3KeyValueAccess(final URI uri, final N5Factory factory) {
+	private static AmazonS3KeyValueAccess newAmazonS3KeyValueAccess(final URI uri, final N5Factory factory, final boolean readOnly) {
 
 		final String uriString = uri.toString();
 		final S3Client s3 = factory.createS3(uriString);
@@ -123,15 +126,15 @@ public enum KeyValueAccessBackend implements Predicate<URI>, BiFunction<URI, N5F
 		// throw exception if s3 endpoint is not reachable
 		AmazonS3Utils.ensureS3EndpointIsReachable(s3);
 
-		return new AmazonS3KeyValueAccess(s3, uri, true);
+		return new AmazonS3KeyValueAccess(s3, uri, !readOnly);
 	}
 
-	private static FileSystemKeyValueAccess newFileSystemKeyValueAccess(final URI uri, final N5Factory factory) {
+	private static FileSystemKeyValueAccess newFileSystemKeyValueAccess(final URI uri, final N5Factory factory, final boolean readOnly) {
 
 		return new FileSystemKeyValueAccess();
 	}
 
-	private static HttpKeyValueAccess newHttpKeyValueAccess(final URI uri, final N5Factory factory) {
+	private static HttpKeyValueAccess newHttpKeyValueAccess(final URI uri, final N5Factory factory, final boolean readOnly) {
 
 		return new HttpKeyValueAccess();
 	}
