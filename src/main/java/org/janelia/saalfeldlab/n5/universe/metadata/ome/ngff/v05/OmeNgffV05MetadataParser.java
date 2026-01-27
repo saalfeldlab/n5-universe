@@ -61,7 +61,10 @@ public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Meta
 		OmeNgffMultiScaleMetadata[] multiscales;
 		try {
 			final JsonElement version = n5.getAttribute(node.getPath(), "ome/version", JsonElement.class);
-			assert version.getAsString().equals("0.5");
+
+			if( version == null || !version.getAsString().equals("0.5") )
+				return Optional.empty();
+
 			final JsonElement base = n5.getAttribute(node.getPath(), "ome/multiscales", JsonElement.class);
 			multiscales = gson.fromJson(base, OmeNgffMultiScaleMetadata[].class);
 
