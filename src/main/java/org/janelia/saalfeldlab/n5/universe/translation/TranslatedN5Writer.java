@@ -139,6 +139,9 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements GsonN5Writ
 		return writer.deleteBlock(originalPath(pathName), gridPosition);
 	}
 
-
+	@Override
+	public boolean deleteBlock(String datasetPath, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
+		return writer.deleteBlock(originalPath(datasetPath), datasetAttributes, gridPosition);
+	}
 
 }

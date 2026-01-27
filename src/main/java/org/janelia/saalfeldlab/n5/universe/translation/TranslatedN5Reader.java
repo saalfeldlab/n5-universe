@@ -16,11 +16,11 @@ import com.google.gson.JsonElement;
 
 public class TranslatedN5Reader implements GsonN5Reader {
 
-	private final GsonN5Reader n5;
+	private final N5Reader n5;
 
 	protected final InvertibleTreeTranslation translation;
 
-	public TranslatedN5Reader( final GsonN5Reader n5Base,
+	public TranslatedN5Reader( final N5Reader n5Base,
 			final Gson gson,
 			final String fwdTranslation,
 			final String invTranslation ) {
@@ -106,8 +106,7 @@ public class TranslatedN5Reader implements GsonN5Reader {
 
 	@Override
 	public String getAttributesKey() {
-
-		return n5.getAttributesKey();
+		return n5 instanceof GsonN5Reader ? ((GsonN5Reader)n5).getAttributesKey() : "";
 	}
 
 }

@@ -373,6 +373,11 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	@Override
+	public boolean deleteBlock(String datasetPath, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
+		return false;
+	}
+
+	@Override
 	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 		return null;
 	}
