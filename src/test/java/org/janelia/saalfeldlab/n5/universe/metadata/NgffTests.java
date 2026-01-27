@@ -14,6 +14,7 @@ import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
+import org.janelia.saalfeldlab.n5.codec.transpose.TransposeCodecInfo;
 import org.janelia.saalfeldlab.n5.universe.N5DatasetDiscoverer;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadata.CosemTransform;
@@ -24,6 +25,8 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.NgffSingleScale
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -224,8 +227,6 @@ public class NgffTests {
 			final DataType dataType,
 			final Compression compression) throws N5Exception {
 
-		assert zarr instanceof ZarrKeyValueWriter;
-
 		if (cOrder) {
 			zarr.createDataset(datasetPath, dimensions, blockSize, dataType, compression);
 		}
@@ -236,11 +237,29 @@ public class NgffTests {
 			final int[] blkSizeRev = ArrayUtils.clone(blockSize);
 			ArrayUtils.reverse(blkSizeRev);
 
-			zarr.createDataset(datasetPath, dimsRev, blkSizeRev, dataType, compression);
-			zarr.setAttribute(datasetPath, "order", "F");
-		}
+			if( zarr instanceof ZarrV3KeyValueWriter ) {
 
+				final int nd = dimsRev.length;
+				final int[] revOrder = new int[nd];
+				for( int i = 0; i < nd; i++ ) {
+					revOrder[i] = nd - i - 1;
+				}
+
+				final ZarrV3DatasetAttributes attrs = ZarrV3DatasetAttributes.builder(dimsRev, dataType)
+					.blockSize(blkSizeRev)
+					.datasetCodecInfos(new TransposeCodecInfo(revOrder))
+					.build();
+				zarr.createDataset(datasetPath, attrs);
+
+			} else if( zarr instanceof ZarrKeyValueWriter ) {
+				zarr.createDataset(datasetPath, dimsRev, blkSizeRev, dataType, compression);
+				zarr.setAttribute(datasetPath, "order", "F");
+			}
+
+		}
 	}
+
+
 
 	public static int[] permutationFromName(final String name) {
 
