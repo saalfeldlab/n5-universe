@@ -1,0 +1,47 @@
+<OME xmlns="http://www.openmicroscopy.org/Schemas/OME/2016-06" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd">
+  <Image ID="Image:0" Name="14002892">
+    <Pixels ID="Pixels:0" DimensionOrder="XYZCT" Type="uint16" SizeX="2080" SizeY="1552" SizeZ="1" SizeC="5" SizeT="1">
+      <MetadataOnly/>
+    </Pixels>
+  </Image>
+  <Image ID="Image:1" Name="14002893">
+    <Pixels ID="Pixels:1" DimensionOrder="XYZCT" Type="uint16" SizeX="2080" SizeY="1552" SizeZ="1" SizeC="5" SizeT="1">
+      <MetadataOnly/>
+    </Pixels>
+  </Image>
+  <Image ID="Image:2" Name="14002894">
+    <Pixels ID="Pixels:2" DimensionOrder="XYZCT" Type="uint16" SizeX="2080" SizeY="1552" SizeZ="1" SizeC="5" SizeT="1">
+      <MetadataOnly/>
+    </Pixels>
+  </Image>
+  <Image ID="Image:3" Name="14002895">
+    <Pixels ID="Pixels:3" DimensionOrder="XYZCT" Type="uint16" SizeX="2080" SizeY="1552" SizeZ="1" SizeC="5" SizeT="1">
+      <MetadataOnly/>
+    </Pixels>
+  </Image>
+  <Image ID="Image:4" Name="14002896">
+    <Pixels ID="Pixels:4" DimensionOrder="XYZCT" Type="uint16" SizeX="2080" SizeY="1552" SizeZ="1" SizeC="5" SizeT="1">
+      <MetadataOnly/>
+    </Pixels>
+  </Image>
+  <Image ID="Image:5" Name="14002897">
+    <Pixels ID="Pixels:5" DimensionOrder="XYZCT" Type="uint16" SizeX="2080" SizeY="1552" SizeZ="1" SizeC="5" SizeT="1">
+      <MetadataOnly/>
+    </Pixels>
+  </Image>
+  <Image ID="Image:6" Name="14002898">
+    <Pixels ID="Pixels:6" DimensionOrder="XYZCT" Type="uint16" SizeX="2080" SizeY="1552" SizeZ="1" SizeC="5" SizeT="1">
+      <MetadataOnly/>
+    </Pixels>
+  </Image>
+  <Image ID="Image:7" Name="14002899">
+    <Pixels ID="Pixels:7" DimensionOrder="XYZCT" Type="uint16" SizeX="2080" SizeY="1552" SizeZ="1" SizeC="5" SizeT="1">
+      <MetadataOnly/>
+    </Pixels>
+  </Image>
+  <Image ID="Image:8" Name="14002900">
+    <Pixels ID="Pixels:8" DimensionOrder="XYZCT" Type="uint16" SizeX="2080" SizeY="1552" SizeZ="1" SizeC="5" SizeT="1">
+      <MetadataOnly/>
+    </Pixels>
+  </Image>
+</OME>

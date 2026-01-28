@@ -154,6 +154,10 @@
 			<artifactId>n5-zarr</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.jdom</groupId>
+			<artifactId>jdom2</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>net.thisptr</groupId>
 			<artifactId>jackson-jq</artifactId>
 			<version>${jackson-jq.version}</version>
