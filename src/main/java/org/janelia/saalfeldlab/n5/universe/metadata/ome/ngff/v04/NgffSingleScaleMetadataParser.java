@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
@@ -38,6 +37,7 @@ public class NgffSingleScaleMetadataParser implements N5MetadataParser<NgffSingl
 			final JsonArray axArr = n5.getAttribute(node.getPath(), NgffSingleScaleAxesMetadata.AXIS_KEY, JsonArray.class);
 			final Axis[] axes = gson.fromJson(axArr, Axis[].class);
 
+
 			final JsonArray ctArr = n5.getAttribute(node.getPath(), NgffSingleScaleAxesMetadata.COORDINATETRANSFORMATIONS_KEY, JsonArray.class);
 			final CoordinateTransformation<?>[] cts = gson.fromJson(ctArr, CoordinateTransformation[].class);
 
@@ -48,16 +48,14 @@ public class NgffSingleScaleMetadataParser implements N5MetadataParser<NgffSingl
 			final double[] scale = scaleAndTranslation.getScaleCopy();
 			final double[] translation = scaleAndTranslation.getTranslationCopy();
 
-			final DatasetAttributes dsetAttrs = n5.getDatasetAttributes(node.getPath());
-			if( OmeNgffMetadataParser.cOrder(dsetAttrs))
-				ArrayUtils.reverse( axes );
+			// TODO need to figure out if I even do not need to reverse axes
+			ArrayUtils.reverse(axes);
 
 			return Optional.of(new NgffSingleScaleAxesMetadata(node.getPath(), scale, translation, axes, null));
 		}
 
 		return Optional.empty();
 	}
-
 
 	@Override
 	public void writeMetadata(final NgffSingleScaleAxesMetadata t, final N5Writer n5, final String path) throws Exception {
