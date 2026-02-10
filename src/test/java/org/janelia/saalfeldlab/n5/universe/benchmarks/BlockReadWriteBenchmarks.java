@@ -32,7 +32,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
@@ -96,13 +95,10 @@ public class BlockReadWriteBenchmarks {
 	DatasetAttributes dsetAttrs;
 	ArrayList<DataBlock<?>> blocks;
 
-	//@Param( value = { RAW_COMPRESSION, GZIP_COMPRESSION, LZ4_COMPRESSION, XZ_COMPRESSION, BLOSC_COMPRESSION, ZSTD_COMPRESSION } )
-	@Param( value = { RAW_COMPRESSION } )
+	@Param( value = { RAW_COMPRESSION, GZIP_COMPRESSION, LZ4_COMPRESSION, XZ_COMPRESSION, BLOSC_COMPRESSION, ZSTD_COMPRESSION } )
 	protected String compressionType;
 
-//	@Param( value = { "int8", "int16", "int32", "int64", "float32", "float64" } )
-
-	@Param( value = { "int8"} )
+	@Param( value = { "int8", "int16", "int32", "int64", "float32", "float64" } )
 	protected String dataType;
 
 	@Param( value = { "3" } )
@@ -168,29 +164,22 @@ public class BlockReadWriteBenchmarks {
 
 	}
 
-//	@Benchmark
-//	public void writeBenchmark() throws IOException {
-//
-//		blocks.forEach(blk -> {
-//			n5.writeBlock(writeGroup, dsetAttrs, blk);
-//		});
-//	}
-//
-//	@Benchmark
-//	public void readBenchmark(Blackhole hole) throws IOException {
-//
-//		final long[] p = new long[numDimensions];
-//		for (int i = 0; i < numBlocks; i++) {
-//			p[0] = i;
-//			hole.consume(n5.readBlock(readGroup, dsetAttrs, p));
-//		}
-//	}
-	
 	@Benchmark
-	public void fileRead(Blackhole hole) throws IOException {
+	public void writeBenchmark() throws IOException {
 
-		final byte[] bytes = Files.readAllBytes(Paths.get("/home/john/tmp/mri-stack.tif"));
-		hole.consume(bytes);
+		blocks.forEach(blk -> {
+			n5.writeBlock(writeGroup, dsetAttrs, blk);
+		});
+	}
+
+	@Benchmark
+	public void readBenchmark(Blackhole hole) throws IOException {
+
+		final long[] p = new long[numDimensions];
+		for (int i = 0; i < numBlocks; i++) {
+			p[0] = i;
+			hole.consume(n5.readBlock(readGroup, dsetAttrs, p));
+		}
 	}
 
 	private void fillBlock(DataType dtype, DataBlock<?> blk) {
