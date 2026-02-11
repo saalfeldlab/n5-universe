@@ -143,11 +143,6 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 					nd, node.getPath(), ms.datasets, attrs, ms.coordinateTransformations, ms.metadata, ms.axes);
 
 			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta, false);
-
-			// axes need to be flipped after the child is created
-			// is this actually true?
-			// ArrayUtils.reverse(ms.axes);
-
 			multiscales[j] = new OmeNgffMultiScaleMetadata(ms, msChildrenMeta);
 		}
 

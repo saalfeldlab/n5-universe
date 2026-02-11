@@ -138,6 +138,24 @@ public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Meta
 			}
 		}
 
+		/*
+		 * Need to replace all children with new children with the metadata from
+		 * this object
+		 */
+		for (int j = 0; j < multiscales.length; j++) {
+
+			final OmeNgffMultiScaleMetadata ms = multiscales[j];
+
+			// maybe axes can be flipped first?
+			ArrayUtils.reverse(ms.axes);
+
+			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffMultiScaleMetadata.buildMetadata(
+					nd, node.getPath(), ms.datasets, attrs, ms.coordinateTransformations, ms.metadata, ms.axes);
+
+			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta, false);
+			multiscales[j] = new OmeNgffMultiScaleMetadata(ms, msChildrenMeta);
+		}
+
 		return Optional.of(new OmeNgffV05Metadata(node.getPath(), multiscales));
 	}
 
