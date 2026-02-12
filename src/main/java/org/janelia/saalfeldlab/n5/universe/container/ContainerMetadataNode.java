@@ -354,6 +354,11 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
 		throw new UnsupportedOperationException("ContainerMetadata does not support writeBlock");
 	}
+	
+	@Override
+	public <T> void writeShard(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
+		throw new UnsupportedOperationException("ContainerMetadata does not support writeBlock");
+	}
 
 	@Override
 	public <T> void writeRegion(String datasetPath, DatasetAttributes datasetAttributes, long[] min, long[] size, DataBlockSupplier<T> dataBlocks,
@@ -379,6 +384,11 @@ public class ContainerMetadataNode implements GsonN5Writer {
 
 	@Override
 	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
+		return null;
+	}
+	
+	@Override
+	public DataBlock<?> readShard(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 		return null;
 	}
 

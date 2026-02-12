@@ -92,7 +92,7 @@ public class KeyValueAccessBenchmarks {
 	public void setup() throws IOException {
 
 		random = new Random();
-		kva = new FileSystemKeyValueAccess(FileSystems.getDefault());
+		kva = new FileSystemKeyValueAccess();
 
 		data = new byte[objectSizeBytes];
 		random.nextBytes(data);

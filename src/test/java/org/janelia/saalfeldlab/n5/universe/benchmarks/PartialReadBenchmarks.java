@@ -76,7 +76,7 @@ public class PartialReadBenchmarks {
 	public void setup() {
 
 		random = new Random(1);
-		kva = new FileSystemKeyValueAccess(FileSystems.getDefault());
+		kva = new FileSystemKeyValueAccess();
 
 		File tmpFile;
 		try {

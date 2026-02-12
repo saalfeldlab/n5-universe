@@ -76,8 +76,7 @@ public class S3PartialReadBenchmarks {
 			return;
 		}
 
-		final S3Client s3 = AmazonS3Utils.createS3(uri.toASCIIString(), null,
-				AmazonS3Utils.getS3Credentials(null, false), null, null);
+		final S3Client s3 = AmazonS3Utils.createS3(uri.toASCIIString(), null);
 		kva = new AmazonS3KeyValueAccess(s3, uri, false);
 
 		baseDir = uri + "/partialReadBenchmarkData/" + random.nextInt(99999);

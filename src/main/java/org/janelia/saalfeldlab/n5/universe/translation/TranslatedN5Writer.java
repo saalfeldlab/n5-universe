@@ -123,6 +123,11 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements GsonN5Writ
 	}
 
 	@Override
+	public <T> void writeShard(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
+		writer.writeShard(originalPath(pathName), datasetAttributes, dataBlock);
+	}
+
+	@Override
 	public <T> void writeRegion(String datasetPath, DatasetAttributes datasetAttributes, long[] min, long[] size, DataBlockSupplier<T> dataBlocks,
 			boolean writeFully) throws N5Exception {
 		writer.writeRegion(datasetPath, datasetAttributes, min, size, dataBlocks, writeFully);

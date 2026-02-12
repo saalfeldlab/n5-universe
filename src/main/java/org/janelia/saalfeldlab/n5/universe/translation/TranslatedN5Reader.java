@@ -69,6 +69,12 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	}
 
 	@Override
+	public DataBlock<?> readShard(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
+
+		return n5.readShard(originalPath(pathName), datasetAttributes, gridPosition);
+	}
+
+	@Override
 	public boolean exists(String pathName) {
 		return translation.getTranslated().exists(pathName);
 	}
