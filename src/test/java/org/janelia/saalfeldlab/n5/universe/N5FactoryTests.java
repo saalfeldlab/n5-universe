@@ -18,7 +18,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -503,7 +502,7 @@ public class N5FactoryTests {
 	public void testZarr2VsZarr3Disambiguation() throws URISyntaxException {
 
 		final URI uri = new URI("src/test/resources/metadata.zarr");
-		final FileSystemKeyValueAccess kva = new FileSystemKeyValueAccess(FileSystems.getDefault());
+		final FileSystemKeyValueAccess kva = new FileSystemKeyValueAccess();
 
 		final StorageFormat format = StorageFormat.guessStorageFromKeys(uri, kva);
 		assertEquals("zarr 2", StorageFormat.ZARR2, format);

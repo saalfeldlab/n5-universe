@@ -120,12 +120,15 @@ public enum KeyValueAccessBackend implements Predicate<URI>, BiFunction<URI, N5F
 		final String uriString = uri.toString();
 		final S3Client s3 = factory.createS3(uriString);
 
+		// throw exception if s3 endpoint is not reachable
+		AmazonS3Utils.ensureS3EndpointIsReachable(s3);
+
 		return new AmazonS3KeyValueAccess(s3, uri, true);
 	}
 
 	private static FileSystemKeyValueAccess newFileSystemKeyValueAccess(final URI uri, final N5Factory factory) {
 
-		return new FileSystemKeyValueAccess(FileSystems.getDefault());
+		return new FileSystemKeyValueAccess();
 	}
 
 	private static HttpKeyValueAccess newHttpKeyValueAccess(final URI uri, final N5Factory factory) {

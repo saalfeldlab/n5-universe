@@ -48,10 +48,8 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
 import javax.annotation.Nullable;
 import java.io.Serializable;
@@ -60,6 +58,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static org.janelia.saalfeldlab.n5.universe.StorageFormat.getStorageFromNestedScheme;
@@ -91,11 +90,7 @@ public class N5Factory implements Serializable {
 	private boolean zarrMergeAttributes = true;
 	private String googleCloudProjectId = null;
 	private boolean googleCloudCreateBucket = false;
-	private String s3Region = null;
-	private AwsCredentials s3Credentials = null;
-	private SdkHttpClient.Builder<?> s3ClientBuilder = null;
-	private boolean s3Anonymous = true;
-	private String s3Endpoint;
+	private Consumer<S3ClientBuilder> builderConfig;
 	private StorageFormat preferredStorageFormat = null;
 
 	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
@@ -153,30 +148,6 @@ public class N5Factory implements Serializable {
 	}
 
 	/**
-	 * This factory will use the {@link DefaultCredentialsProvider} to
-	 * find s3 credentials.
-	 *
-	 * @return this N5Factory
-	 */
-	public N5Factory s3UseCredentials() {
-
-		s3Anonymous = false;
-		return this;
-	}
-
-	public N5Factory s3UseCredentials(final AwsCredentials credentials) {
-
-		this.s3Credentials = credentials;
-		return this;
-	}
-
-	public N5Factory s3ClientConfiguration(final SdkHttpClient.Builder<?> clientBuilder) {
-
-		this.s3ClientBuilder = clientBuilder;
-		return this;
-	}
-
-	/**
 	 * When N5Factory cannot determine the StorageFormat from the URI, it will attempt to
 	 * try and create a reader/writer with all known StorageFormat values.
 	 * The order of th StorageFormat will dictate which will formats will be attempted first.
@@ -191,28 +162,22 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
-	@Deprecated
-	public N5Factory s3RetryWithCredentials() {
+	/**
+	 * This factory will use the builderConfig to configure the {@link S3ClientBuilder},
+	 * and thereby the {@link S3Client}.
+	 *
+	 * @return this N5Factory
+	 */
+	public N5Factory s3Configuration(final Consumer<S3ClientBuilder> builderConfig) {
 
-		return this;
-	}
-
-	public N5Factory s3Endpoint(final String s3Endpoint) {
-
-		this.s3Endpoint = s3Endpoint;
-		return this;
-	}
-
-	public N5Factory s3Region(final String s3Region) {
-
-		this.s3Region = s3Region;
+		this.builderConfig = builderConfig;
 		return this;
 	}
 
 	protected S3Client createS3(final String uri) {
 
 		try {
-			return AmazonS3Utils.createS3(uri, s3Endpoint, AmazonS3Utils.getS3Credentials(s3Credentials, s3Anonymous), s3ClientBuilder, s3Region);
+			return AmazonS3Utils.createS3(uri, builderConfig);
 		} catch (final Throwable e) {
 			throw new N5Exception("Could not create s3 client from uri: " + uri, e);
 		}
