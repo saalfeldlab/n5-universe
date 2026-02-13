@@ -133,6 +133,8 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 
 	private static HttpKeyValueAccess newHttpKeyValueAccess(final URI uri, final N5Factory factory, final boolean readOnly) {
 
+		if (!readOnly)
+			throw new UnsupportedOperationException("HttpKeyValueAccess only supports reader actions");
 		return new HttpKeyValueAccess();
 	}
 }

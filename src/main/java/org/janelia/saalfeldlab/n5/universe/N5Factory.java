@@ -48,6 +48,8 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
