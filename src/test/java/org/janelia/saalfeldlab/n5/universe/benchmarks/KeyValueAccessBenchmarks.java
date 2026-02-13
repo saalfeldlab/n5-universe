@@ -73,6 +73,7 @@ public class KeyValueAccessBenchmarks {
 	protected int objectSizeBytes;
 	
 	protected byte[] data;
+	protected ReadData readData;
 
 	protected Path path;
 	protected KeyValueAccess kva;
@@ -96,6 +97,7 @@ public class KeyValueAccessBenchmarks {
 
 		data = new byte[objectSizeBytes];
 		random.nextBytes(data);
+		readData = ReadData.from(data);
 
 		final int randomId = random.nextInt();
 		path = Files.createTempFile("KeyValueAccessBenchmark-" + objectSizeBytes, "-" + randomId + ".dat");
@@ -134,15 +136,7 @@ public class KeyValueAccessBenchmarks {
 	@Benchmark
 	public void write(Blackhole hole) throws IOException {
 
-		try (	final LockedChannel ch = kva.lockForWriting(path.toAbsolutePath().toString());
-				final OutputStream os = ch.newOutputStream()) {
-
-			os.write(data);
-			os.flush();
-			os.close();
-		} catch (final IOException e) {
-			e.printStackTrace();
-		}
+		kva.write(path.toAbsolutePath().toString(), readData);
 	}
 
 }

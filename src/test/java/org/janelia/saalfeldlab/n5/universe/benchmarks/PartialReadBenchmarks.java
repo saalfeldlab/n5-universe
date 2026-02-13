@@ -15,6 +15,7 @@ import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.LockedChannel;
+import org.janelia.saalfeldlab.n5.readdata.ReadData;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -107,14 +108,7 @@ public class PartialReadBenchmarks {
 
 		System.out.println("write to path: " + path);
 
-		try (final LockedChannel ch = kva.lockForWriting(path)) {
-			final OutputStream os = ch.newOutputStream();
-			os.write(data);
-			os.flush();
-			os.close();
-		} catch (final IOException e) {
-			e.printStackTrace();
-		}
+		kva.write(path, ReadData.from(data));
 	}
 
 	private byte[] read(String path, int startByte, int numBytes) throws IOException {
