@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.LockedChannel;
+import org.janelia.saalfeldlab.n5.readdata.ReadData;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -111,14 +112,7 @@ public class S3PartialReadBenchmarks {
 		final byte[] data = new byte[numBytes];
 		random.nextBytes(data);
 
-		try (final LockedChannel ch = kva.lockForWriting(path)) {
-			final OutputStream os = ch.newOutputStream();
-			os.write(data);
-			os.flush();
-			os.close();
-		} catch (final IOException e) {
-			e.printStackTrace();
-		}
+		kva.write(path, ReadData.from(data));
 	}
 
 	public int[] sizes() {
