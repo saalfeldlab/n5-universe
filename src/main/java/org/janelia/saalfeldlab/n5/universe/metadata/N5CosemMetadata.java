@@ -48,6 +48,8 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
  * @author John Bogovic
  */
 public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetadata {
+	
+	public static final String F_ORDER = "F";
 
 	private final CosemTransform cosemTransformMeta;
 
@@ -76,7 +78,11 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 	@Override
 	public String[] getAxisLabels() {
 
-		return reverse(cosemTransformMeta.axes);
+		final String[] labels = cosemTransformMeta.axes.clone();
+		if( !cosemTransformMeta.isFOrder())
+			return reverse(labels);
+		else
+			return labels;
 	}
 
 	@Override
@@ -89,7 +95,11 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 	@Override
 	public String[] getUnits() {
 
-		return reverse(cosemTransformMeta.units);
+		final String[] units = cosemTransformMeta.units.clone();
+		if( !cosemTransformMeta.isFOrder())
+			return reverse(units);
+		else
+			return units;
 	}
 
 	@Override
@@ -131,29 +141,25 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 		public final double[] scale;
 		public final double[] translate;
 		public final String[] units;
+		public final String ordering;
 
-		public CosemTransform(final String[] axes, final double[] scale, final double[] translate, final String[] units) {
+		public CosemTransform(final String[] axes, final double[] scale, final double[] translate, final String[] units, String ordering) {
 
 			this.axes = axes;
 			this.scale = scale;
 			this.translate = translate;
 			this.units = units;
+			this.ordering = ordering;
+		}
+
+		public CosemTransform(final String[] axes, final double[] scale, final double[] translate, final String[] units) {
+
+			this(axes, scale, translate, units, null);
 		}
 
 		public AffineGet getAffine() {
 
-			// COSEM scales and translations are in c-order
-			final double[] scaleRev = new double[scale.length];
-			final double[] translateRev = new double[translate.length];
-
-			int j = scale.length - 1;
-			for (int i = 0; i < scale.length; i++) {
-				scaleRev[i] = scale[j];
-				translateRev[i] = translate[j];
-				j--;
-			}
-
-			return new ScaleAndTranslation(scaleRev, translateRev);
+			return new ScaleAndTranslation(fOrderedScale(), fOrderedTranslation());
 		}
 
 		public AffineTransform3D toAffineTransform3d() {
@@ -162,6 +168,9 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 
 			final int[] spaceIndexes = new int[3];
 			Arrays.fill(spaceIndexes, -1);
+			
+			final double[] s = fOrderedScale();
+			final double[] t = fOrderedTranslation();
 
 			// COSEM scales and translations are in c-order
 			// but detect the axis types to be extra safe
@@ -180,18 +189,21 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 			{
 				if( spaceIndexes[i] > -1)
 				{
-					transform.set(scale[spaceIndexes[i]], i, i);
-					transform.set(translate[spaceIndexes[i]], i, 3);
+					transform.set(s[spaceIndexes[i]], i, i);
+					transform.set(t[spaceIndexes[i]], i, 3);
 				}
 			}
 
 			return transform;
 		}
-
+		
 		/**
 		 * @return scale with fortran ordering (x, y, z)
 		 */
 		public double[] fOrderedScale() {
+			
+			if (isFOrder())
+				return scale;
 
 			return IntStream.range(0, scale.length).mapToDouble(i -> scale[scale.length - i - 1]).toArray();
 		}
@@ -200,8 +212,19 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 		 * @return translation with fortran ordering (x, y, z)
 		 */
 		public double[] fOrderedTranslation() {
+			
+			if (isFOrder())
+				return translate;
 
 			return IntStream.range(0, translate.length).mapToDouble(i -> translate[translate.length - i - 1]).toArray();
+		}
+		
+		private boolean isFOrder() {
+
+			if (ordering == null)
+				return false;
+
+			return ordering.equals(F_ORDER);
 		}
 
 		public Axis[] buildAxes() {
@@ -210,7 +233,9 @@ public class N5CosemMetadata extends N5SingleScaleMetadata implements AxisMetada
 			for (int i = 0; i < axes.length; i++)
 				out[i] = new Axis(AxisUtils.getDefaultType(axes[i]), axes[i], units[i]);
 
-			ArrayUtils.reverse(out);
+			if (!isFOrder())
+				ArrayUtils.reverse(out);
+
 			return out;
 		}
 
