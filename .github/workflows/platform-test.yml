@@ -54,6 +54,7 @@ jobs:
           AWS_REGION: us-east-1
       - name: Maven Test (Windows)
         if: matrix.os == 'windows-latest'
+        shell: bash
         run: mvn -B clean test --file pom.xml -DexcludedGroups=org.janelia.saalfeldlab.n5.universe.storage.AmazonTest
         env:
           AWS_REGION: us-east-1
