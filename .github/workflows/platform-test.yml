@@ -48,7 +48,7 @@ jobs:
           distribution: 'zulu'
           cache: 'maven'
       - name: Maven Test
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'ubuntu-latest'
         run: mvn -B clean test --file pom.xml
         env:
           AWS_REGION: us-east-1
