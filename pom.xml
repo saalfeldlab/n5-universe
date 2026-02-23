@@ -300,6 +300,106 @@
 
 	<profiles>
 		<profile>
+			<id>benchmarks</id>
+			<dependencies>
+				<!-- Override to compile scope so maven-shade-plugin bundles them -->
+				<dependency>
+					<groupId>org.openjdk.jmh</groupId>
+					<artifactId>jmh-core</artifactId>
+					<scope>compile</scope>
+				</dependency>
+				<dependency>
+					<groupId>org.openjdk.jmh</groupId>
+					<artifactId>jmh-generator-annprocess</artifactId>
+					<scope>compile</scope>
+				</dependency>
+				<dependency>
+					<groupId>commons-io</groupId>
+					<artifactId>commons-io</artifactId>
+					<scope>compile</scope>
+				</dependency>
+				<dependency>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+					<scope>compile</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-shade-plugin</artifactId>
+						<version>2.0</version>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>shade</goal>
+								</goals>
+								<configuration>
+									<finalName>microbenchmarks</finalName>
+									<transformers>
+										<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+											<mainClass>org.openjdk.jmh.Main</mainClass>
+										</transformer>
+										<!-- Append SciJava plugin registries from all JARs instead of overwriting -->
+										<transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+											<resource>META-INF/json/org.janelia.saalfeldlab.n5.Compression$CompressionType</resource>
+										</transformer>
+										<transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+											<resource>META-INF/json/org.janelia.saalfeldlab.n5.serialization.NameConfig$Name</resource>
+										</transformer>
+										<transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+											<resource>META-INF/json/org.scijava.plugin.Plugin</resource>
+										</transformer>
+									</transformers>
+									<filters>
+										<filter>
+											<artifact>*:*</artifact>
+											<excludes>
+												<exclude>META-INF/services/javax.annotation.processing.Processor</exclude>
+												<exclude>META-INF/*.SF</exclude>
+												<exclude>META-INF/*.DSA</exclude>
+												<exclude>META-INF/*.RSA</exclude>
+											</excludes>
+										</filter>
+									</filters>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-resources-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>copy-benchmark-classes</id>
+								<!-- prepare-package runs after test-compile but before shade -->
+								<phase>prepare-package</phase>
+								<goals>
+									<goal>copy-resources</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${project.build.outputDirectory}</outputDirectory>
+									<resources>
+										<resource>
+											<directory>${project.build.testOutputDirectory}</directory>
+											<filtering>false</filtering>
+											<includes>
+												<include>org/janelia/saalfeldlab/n5/universe/benchmarks/**</include>
+												<include>META-INF/BenchmarkList</include>
+												<include>META-INF/CompilerHints</include>
+											</includes>
+										</resource>
+									</resources>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
 			<id>run-backend-tests</id>
 			<build>
 				<plugins>
