@@ -30,7 +30,6 @@ package org.janelia.saalfeldlab.n5.universe.benchmarks;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,7 +71,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import com.google.gson.GsonBuilder;
 
 @State(Scope.Benchmark)
-@Warmup(iterations = 50, time = 100, timeUnit = TimeUnit.MICROSECONDS)
+@Warmup(iterations = 100, time = 100, timeUnit = TimeUnit.MICROSECONDS)
 @Measurement(iterations = 500, time = 100, timeUnit = TimeUnit.MICROSECONDS)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -86,6 +85,9 @@ public class BlockReadWriteBenchmarks {
 	static final String BLOSC_COMPRESSION = "blosc";
 	static final String ZSTD_COMPRESSION = "zstd";
 
+	static final String FILL_RANDOM = "random";
+	static final String FILL_SEQUENCE = "sequence";
+
 	Random random = new Random(7777);
 
 	final String writeGroup = "writeGroup";
@@ -95,20 +97,23 @@ public class BlockReadWriteBenchmarks {
 	DatasetAttributes dsetAttrs;
 	ArrayList<DataBlock<?>> blocks;
 
-	@Param( value = { RAW_COMPRESSION, GZIP_COMPRESSION, LZ4_COMPRESSION, XZ_COMPRESSION, BLOSC_COMPRESSION, ZSTD_COMPRESSION } )
+	@Param( value = { RAW_COMPRESSION, GZIP_COMPRESSION, BLOSC_COMPRESSION, ZSTD_COMPRESSION } )
 	protected String compressionType;
 
 	@Param( value = { "int8", "int16", "int32", "int64", "float32", "float64" } )
 	protected String dataType;
 
-	@Param( value = { "3" } )
+	@Param(value = {"3"})
 	protected int numDimensions;
 
-	@Param( value = { "64" } )
+	@Param(value = {"64"})
 	protected int blockDim;
 
-	@Param( value = { "5" } )
+	@Param(value = {"5"})
 	protected int numBlocks;
+
+	@Param(value = {FILL_RANDOM, FILL_SEQUENCE})
+	protected String fillType;
 
 	public static void main( String[] args ) throws RunnerException {
 
@@ -151,6 +156,7 @@ public class BlockReadWriteBenchmarks {
 				p[0] = i;
 
 				DataBlock<?> blk = dtype.createDataBlock(blockSize, p);
+
 				fillBlock(dtype, blk);
 				blocks.add(blk);
 
@@ -253,6 +259,79 @@ public class BlockReadWriteBenchmarks {
 		random.nextBytes(arr);
 	}
 	
+	private void fillBlockSequence(DataType dtype, DataBlock<?> blk) {
+
+		switch (dtype) {
+		case INT32:
+			fillSequence((int[])blk.getData());
+			break;
+		case FLOAT32:
+			fillSequence((float[])blk.getData());
+			break;
+		case FLOAT64:
+			fillSequence((double[])blk.getData());
+			break;
+		case INT16:
+			fillSequence((short[])blk.getData());
+			break;
+		case INT64:
+			fillSequence((long[])blk.getData());
+			break;
+		case INT8:
+			fillSequence((byte[])blk.getData());
+			break;
+		case OBJECT:
+			break;
+		case STRING:
+			break;
+		case UINT16:
+			fillSequence((short[])blk.getData());
+			break;
+		case UINT32:
+			fillSequence((int[])blk.getData());
+			break;
+		case UINT64:
+			fillSequence((long[])blk.getData());
+			break;
+		case UINT8:
+			fillSequence((byte[])blk.getData());
+			break;
+		default:
+			break;
+		}
+	}
+	
+
+	private void fillSequence(byte[] arr) {
+		for (int i = 0; i < arr.length; i++)
+			arr[i] = (byte)i;
+	}
+	
+	private void fillSequence(short[] arr) {
+		for (int i = 0; i < arr.length; i++)
+			arr[i] = (short)i;
+	}
+
+	private void fillSequence(int[] arr) {
+		for (int i = 0; i < arr.length; i++)
+			arr[i] = i;
+	}
+
+	private void fillSequence(long[] arr) {
+		for (int i = 0; i < arr.length; i++)
+			arr[i] = i;
+	}
+
+	private void fillSequence(float[] arr) {
+		for (int i = 0; i < arr.length; i++)
+			arr[i] = i;
+	}
+
+	private void fillSequence(double[] arr) {
+		for (int i = 0; i < arr.length; i++)
+			arr[i] = i;
+	}
+
 	public static Compression getCompression(final String compressionArg) {
 
 		switch (compressionArg) {
