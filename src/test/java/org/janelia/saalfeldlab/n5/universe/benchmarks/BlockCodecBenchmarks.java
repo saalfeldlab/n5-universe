@@ -93,7 +93,7 @@ public class BlockCodecBenchmarks {
 	@Param(value = {"64"})
 	protected int blockDim;
 
-	@Param(value = {FILL_RANDOM, FILL_SEQUENCE})
+	@Param(value = {FILL_RANDOM})
 	protected String fillType;
 
 	public static void main(String[] args) throws RunnerException {
@@ -117,13 +117,13 @@ public class BlockCodecBenchmarks {
 		final DataBlock block = dtype.createDataBlock(blockSize, gridPosition);
 		fillBlock(dtype, block);
 		
+		compression = BlockReadWriteBenchmarks.getCompression(compressionType); 
 		BlockWriter blkWriter = compression.getWriter();
 		blkReader = compression.getReader();
 
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		blkWriter.write(block, os);
-		encodedBlock = new byte[os.size()];
-
+		encodedBlock = os.toByteArray();
 	}
 
 	@Benchmark
