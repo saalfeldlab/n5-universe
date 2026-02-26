@@ -26,11 +26,9 @@
 package org.janelia.saalfeldlab.n5.universe;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -43,11 +41,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageClient;
-import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
-import org.janelia.saalfeldlab.n5.LockedChannel;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMultiScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5GenericSingleScaleMetadataParser;
@@ -57,23 +51,10 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5ViewerMultiscaleMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalMetadataParser;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.OmeNgffV05MetadataParser;
-import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.ServiceAccountCredentials;
-import com.google.cloud.storage.Acl.User;
-import com.google.cloud.storage.Blob;
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 
 import se.sawano.java.text.AlphanumericComparator;
 
@@ -519,18 +500,6 @@ public class N5DatasetDiscoverer {
 		sortAndTrimRecursive(root, callback);
 
 		return root;
-	}
-
-	/**
-	 * Returns the name of the dataset, removing the full path and leading
-	 * groupSeparator.
-	 *
-	 * @param fullPath
-	 * @return dataset name
-	 */
-	private String normalDatasetName(final String fullPath) {
-
-		return fullPath.replaceAll("(^" + groupSeparator + "*)|(" + groupSeparator + "*$)", "");
 	}
 
 	public N5TreeNode parse(final String dataset) {
