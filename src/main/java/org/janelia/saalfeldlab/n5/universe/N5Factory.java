@@ -27,6 +27,7 @@
 package org.janelia.saalfeldlab.n5.universe;
 
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import com.google.gson.GsonBuilder;
 import net.imglib2.util.Pair;
 import org.apache.commons.lang3.function.TriFunction;
@@ -48,8 +49,6 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
@@ -91,9 +90,9 @@ public class N5Factory implements Serializable {
 	private boolean zarrMapN5DatasetAttributes = true;
 	private boolean zarrMergeAttributes = true;
 	private String googleCloudProjectId = null;
-	private boolean googleCloudCreateBucket = false;
-	private Consumer<S3ClientBuilder> builderConfig;
 	private StorageFormat preferredStorageFormat = null;
+	private Consumer<S3ClientBuilder> s3BuilderConfig;
+	private Consumer<StorageOptions.Builder> gcsBuilderConfig;
 
 	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
 
@@ -137,12 +136,6 @@ public class N5Factory implements Serializable {
 		return this;
 	}
 
-	public N5Factory googleCloudCreateBucket(final boolean createBucket) {
-
-		googleCloudCreateBucket = createBucket;
-		return this;
-	}
-
 	public N5Factory googleCloudProjectId(final String projectId) {
 
 		googleCloudProjectId = projectId;
@@ -172,14 +165,26 @@ public class N5Factory implements Serializable {
 	 */
 	public N5Factory s3Configuration(final Consumer<S3ClientBuilder> builderConfig) {
 
-		this.builderConfig = builderConfig;
+		this.s3BuilderConfig = builderConfig;
+		return this;
+	}
+
+	/**
+	 * This factory will use the gcsBuilderConfig to configure the Google Cloude Store {@link StorageOptions.Builder},
+	 * and thereby the Google Cloud {@link Storage} client.
+	 *
+	 * @return this N5Factory
+	 */
+	public N5Factory googleCloudConfiguration(final Consumer<StorageOptions.Builder> builderConfig) {
+
+		this.gcsBuilderConfig = builderConfig;
 		return this;
 	}
 
 	protected S3Client createS3(final String uri) {
 
 		try {
-			return AmazonS3Utils.createS3(uri, builderConfig);
+			return AmazonS3Utils.createS3(uri, s3BuilderConfig);
 		} catch (final Throwable e) {
 			throw new N5Exception("Could not create s3 client from uri: " + uri, e);
 		}
@@ -187,7 +192,7 @@ public class N5Factory implements Serializable {
 
 	protected Storage createGoogleCloudStorage() {
 
-		return GoogleCloudUtils.createGoogleCloudStorage(googleCloudProjectId);
+		return GoogleCloudUtils.createGoogleCloudStorage(googleCloudProjectId, gcsBuilderConfig);
 	}
 
 
