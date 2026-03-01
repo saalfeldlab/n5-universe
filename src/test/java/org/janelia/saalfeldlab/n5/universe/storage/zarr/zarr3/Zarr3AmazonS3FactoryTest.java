@@ -73,7 +73,7 @@ public abstract class Zarr3AmazonS3FactoryTest extends ZarrStorageTests.Zarr3Fac
 		@Override protected String tempN5Location() {
 
 			try {
-				return new URI("http", "localhost:8001", "/" + testBucket + tempContainerPath(), null, null).toString();
+				return new URI("http", "localhost:9000", "/" + testBucket + tempContainerPath(), null, null).toString();
 			} catch (URISyntaxException e) {
 				throw new RuntimeException(e);
 			}
