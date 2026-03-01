@@ -12,10 +12,24 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
+
 import software.amazon.awssdk.services.s3.S3Client;
 
 import javax.annotation.Nullable;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -121,12 +135,51 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 	private static AmazonS3KeyValueAccess newAmazonS3KeyValueAccess(final URI uri, final N5Factory factory, final boolean readOnly) {
 
 		final String uriString = uri.toString();
-		final S3Client s3 = factory.createS3(uriString);
 
 		// throw exception if s3 endpoint is not reachable
-		AmazonS3Utils.ensureS3EndpointIsReachable(s3);
+		if (!uri.getScheme().equals("s3"))
+			isUriS3Endpoint(uriString);
 
+		final S3Client s3 = factory.createS3(uriString);
 		return new AmazonS3KeyValueAccess(s3, uri, !readOnly);
+	}
+
+	private static boolean isUriS3Endpoint( String uriString ) {
+
+		URL url;
+		try {
+			url = new URL(uriString + "?max-keys=1");
+			final HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+			connection.setReadTimeout(5000);
+			connection.setConnectTimeout(5000);
+			connection.setRequestMethod(HttpKeyValueAccess.GET);
+			final int code = connection.getResponseCode();
+			if (code == 200) {
+				if (!isS3Response(connection.getInputStream()))
+					throw new N5Exception("No an S3 endpoint");
+			} else if (code == 403) {
+				return true;
+			}
+		} catch (IOException e) {
+			throw new N5Exception.N5IOException("Could not reach S3 endpoint", e);
+		}
+		throw new N5Exception.N5IOException("Could not reach S3 endpoint");
+	}
+
+	public static boolean isS3Response(InputStream is) {
+
+		final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setNamespaceAware(true);
+		try {
+			final DocumentBuilder builder = factory.newDocumentBuilder();
+			final Element root = builder.parse(is).getDocumentElement();
+			if (root.getLocalName().equals("ListAllMyBucketsResult")) {
+				return true;
+			} else if (root.getLocalName().equals("ListBucketResult")) {
+				return true;
+			}
+		} catch (Exception e) {}
+		return false;
 	}
 
 	private static FileSystemKeyValueAccess newFileSystemKeyValueAccess(final URI uri, final N5Factory factory, final boolean readOnly) {
