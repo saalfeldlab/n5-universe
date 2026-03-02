@@ -137,7 +137,7 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 		final String uriString = uri.toString();
 
 		// throw exception if s3 endpoint is not reachable
-		if (!uri.getScheme().equals("s3"))
+		if (readOnly && !uri.getScheme().equals("s3"))
 			isUriS3Endpoint(uriString);
 
 		final S3Client s3 = factory.createS3(uriString);
