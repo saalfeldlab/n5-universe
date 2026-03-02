@@ -1,11 +1,9 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.stream.Stream;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
-
-import com.google.common.collect.Streams;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform;
@@ -22,14 +20,15 @@ public class TransformationUtils {
 
 	public static AffineGet tranformsToAffine(final OmeNgffDataset dataset, final CoordinateTransformation<?>[] transforms )
 	{
-		Stream<CoordinateTransformation<?>> s = Stream.empty();
+		final ArrayList<CoordinateTransformation<?>> l = new ArrayList<>();
+
 		if( dataset.coordinateTransformations != null )
-			s = Streams.concat(s, Arrays.stream(dataset.coordinateTransformations));
+			l.addAll( Arrays.asList( dataset.coordinateTransformations ) );
 
 		if( transforms != null )
-			s = Streams.concat(s, Arrays.stream(transforms));
+			l.addAll( Arrays.asList( transforms ) );
 
-		return buildTransform(s.toArray(CoordinateTransformation[]::new));
+		return buildTransform( l.stream().toArray(CoordinateTransformation[]::new));
 	}
 
 	public static AffineGet buildTransform( final CoordinateTransformation<?>[] transforms ) {
