@@ -14,26 +14,19 @@ import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
+import org.w3c.dom.NodeList;
 
 import software.amazon.awssdk.services.s3.S3Client;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URI;
 import java.net.URL;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 /**
@@ -148,17 +141,27 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 
 		URL url;
 		try {
+
+			// An http requests to an S3 endpoint performs a list
+			// limit the number of returned entries
 			url = new URL(uriString + "?max-keys=1");
+
 			final HttpURLConnection connection = (HttpURLConnection)url.openConnection();
 			connection.setReadTimeout(5000);
 			connection.setConnectTimeout(5000);
 			connection.setRequestMethod(HttpKeyValueAccess.GET);
+
 			final int code = connection.getResponseCode();
-			if (code == 200) {
-				if (!isS3Response(connection.getInputStream()))
-					throw new N5Exception("No an S3 endpoint");
-			} else if (code == 403) {
-				return true;
+			if (code == HttpURLConnection.HTTP_OK) {
+				if (!isS3ListResponse(connection.getInputStream()))
+					throw new N5Exception("Not an S3 endpoint");
+				else
+					return true;
+			} else if (code == HttpURLConnection.HTTP_FORBIDDEN) {
+				if (!isS3ErrorResponse(connection.getErrorStream()))
+					throw new N5Exception("Not an S3 endpoint");
+				else
+					return true;
 			}
 		} catch (IOException e) {
 			throw new N5Exception.N5IOException("Could not reach S3 endpoint", e);
@@ -166,7 +169,7 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 		throw new N5Exception.N5IOException("Could not reach S3 endpoint");
 	}
 
-	public static boolean isS3Response(InputStream is) {
+	private static boolean isS3ListResponse(InputStream is) {
 
 		final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		factory.setNamespaceAware(true);
@@ -178,6 +181,26 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 			} else if (root.getLocalName().equals("ListBucketResult")) {
 				return true;
 			}
+		} catch (Exception e) {}
+		return false;
+	}
+	
+	private static boolean isS3ErrorResponse(InputStream is) {
+
+		final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setNamespaceAware(true);
+		try {
+			final Document doc = factory.newDocumentBuilder().parse(is);
+			final Element root = doc.getDocumentElement();
+			if (!root.getTagName().matches("Error"))
+				return false;
+
+			final NodeList codeNodes = root.getElementsByTagName("Code");
+			if (codeNodes.getLength() == 0 || !codeNodes.item(0).getTextContent().equals("AccessDenied"))
+				return false;
+
+			return true;
+
 		} catch (Exception e) {}
 		return false;
 	}
