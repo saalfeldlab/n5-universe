@@ -321,7 +321,7 @@ public class N5Factory implements Serializable {
 			final KeyValueAccess kva = getKeyValueAccess(asUri, true);
 			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
 			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
-			return openReader(inferredFormat, asUri);
+			return openReader(inferredFormat, kva, asUri);
 		}
 		return openReader(format, asUri);
 
