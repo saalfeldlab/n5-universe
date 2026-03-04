@@ -72,7 +72,7 @@ public abstract class N5AmazonS3FactoryTest extends N5StorageTests.N5FactoryTest
 		@Override protected String tempN5Location() {
 
 			try {
-				return new URI("http", "localhost:8001", "/" + testBucket + tempContainerPath(), null, null).toString();
+				return new URI("http", "localhost:9000", "/" + testBucket + tempContainerPath(), null, null).toString();
 			} catch (URISyntaxException e) {
 				throw new RuntimeException(e);
 			}
