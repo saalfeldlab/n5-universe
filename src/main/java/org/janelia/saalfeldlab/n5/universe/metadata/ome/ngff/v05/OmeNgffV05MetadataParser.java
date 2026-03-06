@@ -173,16 +173,7 @@ public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Meta
 
 		n5.setAttribute(groupPath, "ome/multiscales", jsonElem);
 		n5.setAttribute(groupPath, "ome/version", "0.5");
-		n5.setAttribute(groupPath, "dimension_names", new String[] {"t","c","z", "y","x"});
-	}
-
-	public static boolean cOrder(final DatasetAttributes datasetAttributes) {
-
-		if (datasetAttributes instanceof ZarrDatasetAttributes) {
-			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes;
-			return zattrs.isRowMajor();
-		}
-		return false;
+		n5.setAttribute(groupPath, "dimension_names", new String[] {"t","c","z","y","x"});
 	}
 
 }

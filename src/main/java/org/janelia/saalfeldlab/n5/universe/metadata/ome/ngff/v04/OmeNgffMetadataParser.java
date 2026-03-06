@@ -164,13 +164,5 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		n5.setAttribute(groupPath, "multiscales", jsonElem);
 	}
 
-	public static boolean cOrder(final DatasetAttributes datasetAttributes) {
-
-		if (datasetAttributes instanceof ZarrDatasetAttributes) {
-			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes;
-			return zattrs.isRowMajor();
-		}
-		return false;
-	}
 
 }
