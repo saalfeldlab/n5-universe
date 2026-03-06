@@ -146,9 +146,6 @@ public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Meta
 
 			final OmeNgffMultiScaleMetadata ms = multiscales[j];
 
-			// maybe axes can be flipped first?
-			ArrayUtils.reverse(ms.axes);
-
 			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffMultiScaleMetadata.buildMetadata(
 					nd, node.getPath(), ms.datasets, attrs, ms.coordinateTransformations, ms.metadata, ms.axes);
 
