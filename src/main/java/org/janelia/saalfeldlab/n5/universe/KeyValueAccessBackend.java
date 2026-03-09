@@ -142,9 +142,18 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 		URL url;
 		try {
 
-			// An http requests to an S3 endpoint performs a list
-			// limit the number of returned entries
-			url = new URL(uriString + "?max-keys=1");
+			// An http request to an S3 endpoint performs a list; limit the number of returned entries.
+			// Replace any existing query string with ?max-keys=1 so we don't accumulate parameters.
+			final URI originalUri = URI.create(uriString);
+			url = new URI(
+					originalUri.getScheme(),
+					originalUri.getUserInfo(),
+					originalUri.getHost(),
+					originalUri.getPort(),
+					originalUri.getPath(),
+					"max-keys=1",
+					null)
+				.toURL();
 
 			final HttpURLConnection connection = (HttpURLConnection)url.openConnection();
 			connection.setReadTimeout(5000);
