@@ -16,17 +16,16 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.s3.S3Client;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.function.Predicate;
 
@@ -129,13 +128,32 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 	private static AmazonS3KeyValueAccess newAmazonS3KeyValueAccess(final URI uri, final N5Factory factory, final boolean readOnly) {
 
 		final String uriString = uri.toString();
-
-		// throw exception if s3 endpoint is not reachable
-		if (readOnly && !uri.getScheme().equals("s3"))
-			isUriS3Endpoint(uriString);
-
-		final S3Client s3 = factory.createS3(uriString);
+		S3Client s3 = factory.createS3(uriString);
+		assertS3Endpoint(uri, readOnly, uriString, s3);
 		return new AmazonS3KeyValueAccess(s3, uri, !readOnly);
+	}
+
+	private static void assertS3Endpoint(URI uri, boolean readOnly, String uriString, S3Client s3) {
+		boolean queryEndpoint = readOnly && !uri.getScheme().equals("s3");
+		boolean isS3 = queryEndpoint && (checkS3EndpointHttp(uriString) || checkS3EndpointClient(s3));
+
+		if (!isS3) {
+			// throw exception if s3 endpoint is not reachable
+			throw new N5Exception.N5IOException("S3 endpoint is not reachable at " + uriString);
+		}
+	}
+
+	private static boolean checkS3EndpointClient(S3Client s3) {
+		try {
+			s3.getBucketAcl(builder -> builder.bucket("" + System.nanoTime()));
+			return true;
+		} catch (AwsServiceException ignore) {
+			/* Aws error indicates valid S3 server, even if the response failed (intentionally in this case)*/
+			return true;
+		} catch (Throwable e) {
+			return false;
+		}
+
 	}
 
 	/**
@@ -148,7 +166,7 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 	 * @return true if the replies resemble those of an s3 backend.
 	 *
 	 */
-	private static boolean isUriS3Endpoint( String uriString ) {
+	private static boolean checkS3EndpointHttp(String uriString ) {
 
 		URL url;
 		try {
@@ -183,12 +201,9 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 				if (isS3ErrorResponse(connection.getErrorStream()))
 					return true;
 			}
-		} catch (IOException e) {
-			throw new N5Exception.N5IOException("Could not reach S3 endpoint", e);
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
-		}
-		throw new N5Exception.N5IOException("Not an S3 endpoint");
+		} catch (Exception ignored) { }
+
+		return false;
 	}
 
 	/**
