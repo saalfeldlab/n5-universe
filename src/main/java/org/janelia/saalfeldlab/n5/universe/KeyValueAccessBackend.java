@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.function.Predicate;
 
@@ -137,6 +138,16 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 		return new AmazonS3KeyValueAccess(s3, uri, !readOnly);
 	}
 
+	/**
+	 * Tries to determine if the specified uri is an s3-compatible backend.
+	 * <p>
+	 * This implementation sents an http request and parses the result
+	 *
+	 * @param uriString
+	 *            A string representing an absolute URI
+	 * @return true if the replies resemble those of an s3 backend.
+	 *
+	 */
 	private static boolean isUriS3Endpoint( String uriString ) {
 
 		URL url;
@@ -159,25 +170,60 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 			connection.setReadTimeout(5000);
 			connection.setConnectTimeout(5000);
 			connection.setRequestMethod(HttpKeyValueAccess.GET);
+	
+			// The header may indicate the server is s3-compatible
+			if( isS3Header(connection))
+				return true;
 
 			final int code = connection.getResponseCode();
 			if (code == HttpURLConnection.HTTP_OK) {
-				if (!isS3ListResponse(connection.getInputStream()))
-					throw new N5Exception("Not an S3 endpoint");
-				else
+				if (isS3ListResponse(connection.getInputStream()))
 					return true;
 			} else if (code == HttpURLConnection.HTTP_FORBIDDEN) {
-				if (!isS3ErrorResponse(connection.getErrorStream()))
-					throw new N5Exception("Not an S3 endpoint");
-				else
+				if (isS3ErrorResponse(connection.getErrorStream()))
 					return true;
 			}
 		} catch (IOException e) {
 			throw new N5Exception.N5IOException("Could not reach S3 endpoint", e);
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
 		}
-		throw new N5Exception.N5IOException("Could not reach S3 endpoint");
+		throw new N5Exception.N5IOException("Not an S3 endpoint");
 	}
 
+	/**
+	 * Checks whether the http response header appears to be from an
+	 * s3-compatible backend.
+	 * <p>
+	 * This implementation returns true if any header fields start with "x-amz-"
+	 * (case insensitive).
+	 *
+	 * @param headerFields
+	 *            The collection of header fields
+	 *
+	 * @return true if the response appears to be from an s3-backend
+	 */
+	private static boolean isS3Header(HttpURLConnection connection) {
+
+		for (String header : connection.getHeaderFields().keySet()) {
+			if (header != null && header.toLowerCase().matches("^x-amz-.*"))
+				return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Checks whether the http response appears to be from an s3-compatible
+	 * backend.
+	 * <p>
+	 * This implementation looks for xml of the form
+	 * "<ListAllMyBucketsResult>" returned by AWS or
+	 * "<ListBucketResult>" returned by MinIO
+	 *
+	 * @param is
+	 *            the input stream from an HttpURLConnection
+	 * @return true if the response appears to be from an s3-backend
+	 */
 	private static boolean isS3ListResponse(InputStream is) {
 
 		final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -186,14 +232,27 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 			final DocumentBuilder builder = factory.newDocumentBuilder();
 			final Element root = builder.parse(is).getDocumentElement();
 			if (root.getLocalName().equals("ListAllMyBucketsResult")) {
+				// the list buckets response from an Amazon S3 container
 				return true;
 			} else if (root.getLocalName().equals("ListBucketResult")) {
+				// the list response from a MinIO server
 				return true;
 			}
 		} catch (Exception e) {}
 		return false;
 	}
 	
+	/**
+	 * Checks whether the http error response appears to be from an s3-compatible
+	 * backend.
+	 * <p>
+	 * This implementation looks for xml of the form "<Error><Code>AccessDenied</Code>..."
+	 * which is what the form returned by AWS and SeaweedFS.
+	 *
+	 * @param is
+	 *            the input stream from an HttpURLConnection
+	 * @return true if the error response appears to be from an s3-backend
+	 */
 	private static boolean isS3ErrorResponse(InputStream is) {
 
 		final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
