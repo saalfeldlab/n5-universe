@@ -27,14 +27,15 @@ public class MultiscalesAdapter implements JsonDeserializer<OmeNgffMultiScaleMet
 		final String type = MetadataUtils.getStringNullable(jobj.get("type"));
 		final String version = "0.5";
 
-		final Axis[] axes = context.deserialize(jobj.get("axes"), Axis[].class);
+		final Axis[] axes = context.deserialize( jobj.get( "axes" ), Axis[].class );
+		final Axis[] axesInReverseOrder = MetadataUtils.reversedCopy( axes );
 		final OmeNgffDataset[] datasets = context.deserialize(jobj.get("datasets"), OmeNgffDataset[].class);
 		final CoordinateTransformation<?>[] coordinateTransformations = context
 				.deserialize(jobj.get("coordinateTransformations"), CoordinateTransformation[].class);
 		final OmeNgffDownsamplingMetadata metadata = context.deserialize(jobj.get("metadata"),
 				OmeNgffDownsamplingMetadata.class);
 
-		return new OmeNgffMultiScaleMetadata(axes.length, "", name, type, version, axes, datasets, null,
+		return new OmeNgffMultiScaleMetadata( axesInReverseOrder.length, "", name, type, version, axesInReverseOrder, datasets, null,
 				coordinateTransformations, metadata, false);
 	}
 
@@ -62,5 +63,4 @@ public class MultiscalesAdapter implements JsonDeserializer<OmeNgffMultiScaleMet
 
 		return obj;
 	}
-
 }
