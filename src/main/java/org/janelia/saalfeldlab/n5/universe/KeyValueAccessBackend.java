@@ -16,14 +16,16 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
- import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.s3.S3Client;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -153,7 +155,7 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 		 *
 		 * Otherwise to some expensive validation
 		 */
-		if (!uri.getScheme().equals("s3") && !readOnly)
+		if (uri.getScheme().equals("s3") || !readOnly)
 			return;
 
 		final boolean isS3 = checkS3EndpointHttp(uri) || checkS3EndpointClient(s3);
@@ -185,6 +187,16 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 	 */
 	private static boolean checkS3EndpointHttp(URI uriIn) {
 
+		/**
+		 * Response parsing sometimes prints:
+		 * 		"[Fatal Error] strict.dtd:81:5: The declaration for the entity "ContentType" must end with '>'."
+		 * and we can't seem to control it. So temporarily redirect the System.out and System.err
+		 */
+		final PrintStream origOut = System.out;
+		final PrintStream origErr = System.err;
+		System.setOut(dummyPrintStream());
+		System.setErr(dummyPrintStream());
+
 		URL url;
 		try {
 
@@ -204,7 +216,7 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 			connection.setReadTimeout(5000);
 			connection.setConnectTimeout(5000);
 			connection.setRequestMethod(HttpKeyValueAccess.GET);
-	
+
 			// The header may indicate the server is s3-compatible
 			if( isS3Header(connection))
 				return true;
@@ -218,8 +230,25 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 					return true;
 			}
 		} catch (Exception ignored) { }
+		finally {
+			System.setOut(origOut);
+			System.setErr(origErr);
+		}
 
 		return false;
+	}
+
+	private static PrintStream DUMMY = null;
+	private static PrintStream dummyPrintStream() {
+		if( DUMMY == null )
+			DUMMY = new PrintStream(new OutputStream() {
+				@Override
+				public void write(int b) throws IOException {
+					// No-op
+				}
+			});
+
+		return DUMMY;
 	}
 
 	/**
