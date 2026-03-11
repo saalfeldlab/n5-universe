@@ -18,7 +18,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformationAdapter;
-import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -136,9 +135,6 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 			final OmeNgffMultiScaleMetadata ms = multiscales[j];
 
-			// maybe axes can be flipped first?
-			ArrayUtils.reverse(ms.axes);
-
 			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffMultiScaleMetadata.buildMetadata(
 					nd, node.getPath(), ms.datasets, attrs, ms.coordinateTransformations, ms.metadata, ms.axes);
 
@@ -163,6 +159,5 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 		n5.setAttribute(groupPath, "multiscales", jsonElem);
 	}
-
 
 }

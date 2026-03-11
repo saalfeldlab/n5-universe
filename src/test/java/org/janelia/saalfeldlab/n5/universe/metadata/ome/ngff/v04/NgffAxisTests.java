@@ -106,20 +106,20 @@ public class NgffAxisTests {
 		final N5Reader zarr = new N5Factory().openReader(rootF.toString());
 
 		final String[] names = new String[]{"c", "x", "y", "z"};
-		ArrayUtils.reverse(names);
 
 		// the expected scales and translations are reversed versions
 		// of the arrays appearing in the JSON
 		final double[] expectedScales = new double[]{13, 12, 11, 1};
 		final double[] expectedTranslations = new double[]{3, 2, 1, 0};
 
+		// f- and c-order metadata should have axes, scales, adn translations in the same order after parsing 
 		final OmeNgffMetadataParser parser = new OmeNgffMetadataParser();
 
-		// flip when f-Order
+		// f-Order
 		final N5TreeNode fOrderNode = CoordinateTransformParsingTest.setupNode(zarr, "fOrder", "1");
 		axisOrderTest(parser.parseMetadata(zarr, fOrderNode), names, expectedScales, expectedTranslations);
 
-		// and flip when c-Order
+		// c-Order
 		final N5TreeNode cOrderNode = CoordinateTransformParsingTest.setupNode(zarr, "cOrder", "1");
 		axisOrderTest(parser.parseMetadata(zarr, cOrderNode), names, expectedScales, expectedTranslations);
 	}
