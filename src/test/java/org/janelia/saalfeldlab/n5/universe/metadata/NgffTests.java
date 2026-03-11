@@ -194,13 +194,17 @@ public class NgffTests {
 			return new String[n];
 		});
 
+		String ordering;
 		if (cOrder) {
 			ArrayUtils.reverse(resolution);
 			ArrayUtils.reverse(translation);
 			ArrayUtils.reverse(axesLabels);
+			ordering = "C";
 		}
+		else
+			ordering = "F";
 
-		return new N5CosemMetadata.CosemTransform(axesLabels, resolution, translation, units);
+		return new N5CosemMetadata.CosemTransform(axesLabels, resolution, translation, units, ordering);
 	}
 
 	public static void writePermutedAxes(final N5Writer zarr, final String base, final boolean cOrder, final int[] permutation) {
@@ -232,12 +236,12 @@ public class NgffTests {
 		}
 		else {
 			final long[] dimsRev = ArrayUtils.clone(dimensions);
-			ArrayUtils.reverse(dimsRev);
-
 			final int[] blkSizeRev = ArrayUtils.clone(blockSize);
-			ArrayUtils.reverse(blkSizeRev);
 
 			if( zarr instanceof ZarrV3KeyValueWriter ) {
+
+				ArrayUtils.reverse(dimsRev);
+				ArrayUtils.reverse(blkSizeRev);
 
 				final int nd = dimsRev.length;
 				final int[] revOrder = new int[nd];
@@ -276,7 +280,7 @@ public class NgffTests {
 
 	public static boolean isCOrderFromName(final String name) {
 
-		return name.toLowerCase().split("_")[1].equals("c");
+		return name.toLowerCase().split("_")[1].startsWith("c");
 	}
 
 }
