@@ -22,7 +22,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiSca
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformationAdapter;
-import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -70,9 +69,6 @@ public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Meta
 
 			if (multiscales == null)
 				return Optional.empty();
-
-			for( OmeNgffMultiScaleMetadata ms : multiscales )
-				ArrayUtils.reverse(ms.axes);
 
 		} catch (final Exception e) {
 			throw e;
