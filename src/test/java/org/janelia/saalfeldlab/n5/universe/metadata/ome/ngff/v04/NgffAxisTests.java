@@ -8,7 +8,6 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Optional;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
@@ -104,8 +103,7 @@ public class NgffAxisTests {
 
 		final URI rootF = Paths.get("src", "test", "resources", "metadata.zarr").toUri();
 		final N5Reader zarr = new N5Factory().openReader(rootF.toString());
-
-		final String[] names = new String[]{"c", "x", "y", "z"};
+		final String[] names = new String[]{"z", "y", "x", "c"};
 
 		// the expected scales and translations are reversed versions
 		// of the arrays appearing in the JSON
