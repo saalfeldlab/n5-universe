@@ -129,26 +129,43 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 
 		final String uriString = uri.toString();
 		S3Client s3 = factory.createS3(uriString);
-		assertS3Endpoint(uri, readOnly, uriString, s3);
+		assertS3Endpoint(uri, readOnly, s3);
 		return new AmazonS3KeyValueAccess(s3, uri, !readOnly);
 	}
 
-	private static void assertS3Endpoint(URI uri, boolean readOnly, String uriString, S3Client s3) {
-		boolean queryEndpoint = readOnly && !uri.getScheme().equals("s3");
-		boolean isS3 = queryEndpoint && (checkS3EndpointHttp(uriString) || checkS3EndpointClient(s3));
+	/**
+	 * Throws an N5Exception if the URI does not correspond to an S3 compatible
+	 * endpoint.
+	 *
+	 * @param uri
+	 *            a uri
+	 * @param readOnly
+	 *            is the backend read only
+	 * @param s3
+	 *            an s3 client
+	 */
+	private static void assertS3Endpoint(URI uri, boolean readOnly, S3Client s3) {
 
+		/*
+		 * 1) The URI is an s3 endpoint if the uri scheme is "s3"
+		 * 2) If the backend requries write (not reqdOnly), assume the 
+		 * 	  client is an s3 backend, since an http fallback is useless (http is read-only)
+		 *
+		 * Otherwise to some expensive validation
+		 */
+		if (!uri.getScheme().equals("s3") && !readOnly)
+			return;
+
+		final boolean isS3 = checkS3EndpointHttp(uri) || checkS3EndpointClient(s3);
 		if (!isS3) {
 			// throw exception if s3 endpoint is not reachable
-			throw new N5Exception.N5IOException("S3 endpoint is not reachable at " + uriString);
+			throw new N5Exception.N5IOException("S3 endpoint is not reachable at " + uri);
 		}
 	}
 
 	private static boolean checkS3EndpointClient(S3Client s3) {
 		try {
 			s3.getBucketAcl(builder -> builder.bucket("" + System.nanoTime()));
-			return true;
-		} catch (AwsServiceException ignore) {
-			/* Aws error indicates valid S3 server, even if the response failed (intentionally in this case)*/
 			return true;
 		} catch (Throwable e) {
 			return false;
@@ -166,20 +183,19 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 	 * @return true if the replies resemble those of an s3 backend.
 	 *
 	 */
-	private static boolean checkS3EndpointHttp(String uriString ) {
+	private static boolean checkS3EndpointHttp(URI uriIn) {
 
 		URL url;
 		try {
 
 			// An http request to an S3 endpoint performs a list; limit the number of returned entries.
 			// Replace any existing query string with ?max-keys=1 so we don't accumulate parameters.
-			final URI originalUri = URI.create(uriString);
 			url = new URI(
-					originalUri.getScheme(),
-					originalUri.getUserInfo(),
-					originalUri.getHost(),
-					originalUri.getPort(),
-					originalUri.getPath(),
+					uriIn.getScheme(),
+					uriIn.getUserInfo(),
+					uriIn.getHost(),
+					uriIn.getPort(),
+					uriIn.getPath(),
 					"max-keys=1",
 					null)
 				.toURL();
