@@ -18,7 +18,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public enum StorageFormat {
-	ZARR(Pattern.compile("zarr(3)?", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
+	ZARR(Pattern.compile("zarr", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
+	ZARR3(Pattern.compile("zarr3", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 	ZARR2(Pattern.compile("zarr2", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.zarr$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 	N5(Pattern.compile("n5", Pattern.CASE_INSENSITIVE), uri -> Pattern.compile("\\.n5$", Pattern.CASE_INSENSITIVE).matcher(new File(uri.getPath()).toString()).find()),
 	HDF5(Pattern.compile("h(df)?5", Pattern.CASE_INSENSITIVE), uri -> {
@@ -93,7 +94,7 @@ public enum StorageFormat {
 				return StorageFormat.HDF5;
 		} catch (final Exception ignore) {}
 		if (kva.exists(kva.compose(uri, ZARR3_ATTRIBUTES)))
-			return StorageFormat.ZARR;
+			return StorageFormat.ZARR3;
 		if (Arrays.stream(ZARR2_KEYS).anyMatch(it -> kva.exists(kva.compose(uri, it))))
 			return StorageFormat.ZARR2;
 		if (kva.exists(kva.compose(uri, N5_ATTRIBUTES)))

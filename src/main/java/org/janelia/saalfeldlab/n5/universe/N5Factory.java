@@ -244,7 +244,7 @@ public class N5Factory implements Serializable {
 	@Deprecated
 	public N5Reader openZarrReader(final String path) {
 
-		return openN5ContainerWithStorageFormat(StorageFormat.ZARR2, path, this::openReader);
+		return openN5ContainerWithStorageFormat(StorageFormat.ZARR, path, this::openReader);
 	}
 
 	/**
@@ -430,15 +430,35 @@ public class N5Factory implements Serializable {
 			switch (storage) {
 			case N5:
 				return new N5KeyValueReader(access, containerPath, gsonBuilder, cacheAttributes);
-			case ZARR:
+			case ZARR3:
 				return new ZarrV3KeyValueReader(access,containerPath, gsonBuilder, cacheAttributes);
 			case ZARR2:
 				return new ZarrKeyValueReader(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
+			case ZARR:
+				return newGenericZarrReader(access, location);
 			case HDF5:
 				return new N5HDF5Reader(containerPath, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
 			}
 			return null;
 		}
+	}
+
+    /**
+	 * Open a zarr as N5Reader at the given {@code access} and {@code location}.
+	 * Will prefer returning the newest version of zarr that is found at the location.
+	 *
+     * @param access to the key-value access backend
+     * @param location of the zarr container
+     * @return an N5Reader
+     */
+	private N5Reader newGenericZarrReader(final KeyValueAccess access, final URI location) {
+		for (StorageFormat zarrFormat : List.of(ZARR3, ZARR2)) {
+			try {
+				return openReader(zarrFormat, access, location);
+			} catch (Exception ignored) {
+			}
+		}
+		throw new N5Exception("Unable to open Zarr reader at " + location.toString() + " as N5Reader");
 	}
 
 	/**
@@ -473,7 +493,7 @@ public class N5Factory implements Serializable {
 	@Deprecated
 	public N5Writer openZarrWriter(final String path) {
 
-		return openN5ContainerWithStorageFormat(StorageFormat.ZARR2, path, this::openWriter);
+		return openN5ContainerWithStorageFormat(StorageFormat.ZARR, path, this::openWriter);
 	}
 
 	/**
@@ -636,12 +656,14 @@ public class N5Factory implements Serializable {
 
 			final String containerLocation = location.toString();
 			switch (storage) {
-			case ZARR:
+			case ZARR3:
 				final ZarrV3KeyValueWriter writer = new ZarrV3KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
 				writer.setDimensionSeparator(zarrDimensionSeparator);
 				return writer;
 			case ZARR2:
 				return new ZarrKeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+			case ZARR:
+				return newGenericZarrWriter(access, location);
 			case N5:
 				return new N5KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
 			case HDF5:
@@ -649,6 +671,37 @@ public class N5Factory implements Serializable {
 			}
 		}
 		return null;
+	}
+
+    /**
+	 * Try to get a zarr writer at the given location and access.
+	 * If a container exists at the location, load that version as a writer if possible.
+	 * If no container exists, create a new writer with the newest zarr version.
+	 *
+     * @param access to the key-value backend
+     * @param location of the zarr writer
+     * @return the zarr writer
+     */
+	private N5Writer newGenericZarrWriter(final KeyValueAccess access, final URI location) {
+		List<StorageFormat> zarrFormats = List.of(ZARR3, ZARR2);
+		for (StorageFormat zarrFormat : zarrFormats) {
+			 /* we dont care about the read, but we do want to prefer a writer over a container that
+			 * exists, rather than creating a new writer; the only way to check is to see if
+			 * we can get a valid reader. If we can, try the writer. */
+            try (N5Reader ignore = openReader(zarrFormat, access, location)) {
+                return openWriter(zarrFormat, access, location);
+            } catch (Exception ignored) {
+            }
+		}
+		/* However, if we have no valid readers, then try and return the first valid (created) writer */
+		for (StorageFormat zarrFormat : zarrFormats) {
+			try {
+				return openWriter(zarrFormat, access, location);
+			} catch (Exception ignored) {
+			}
+		}
+
+		throw new N5Exception("Unable to open Zarr writer at " + location.toString() + " as N5Reader");
 	}
 
 	private <T extends N5Reader> T openN5ContainerWithStorageFormat(
