@@ -29,6 +29,7 @@ package org.janelia.saalfeldlab.n5.universe;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.gson.GsonBuilder;
+import com.sun.tools.javac.util.List;
 import net.imglib2.util.Pair;
 import org.apache.commons.lang3.function.TriFunction;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
@@ -62,8 +63,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
-import static org.janelia.saalfeldlab.n5.universe.StorageFormat.getStorageFromNestedScheme;
-import static org.janelia.saalfeldlab.n5.universe.StorageFormat.guessStorageFromKeys;
+import static org.janelia.saalfeldlab.n5.universe.StorageFormat.*;
 
 /**
  * Factory for various N5 readers and writers. Implementation-specific
@@ -274,7 +274,10 @@ public class N5Factory implements Serializable {
 	 * @param uri uri to the google cloud object
 	 * @return the N5Reader
 	 * @throws URISyntaxException if uri is malformed
+	 *
+	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
 	 */
+	@Deprecated
 	public N5Reader openGoogleCloudReader(final String uri) throws URISyntaxException {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.GOOGLE_CLOUD, uri, true, this::openReader);
@@ -286,7 +289,10 @@ public class N5Factory implements Serializable {
 	 * @param uri uri to the amazon s3 object
 	 * @return the N5Reader
 	 * @throws URISyntaxException if uri is malformed
+	 *
+	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
 	 */
+	@Deprecated
 	public N5Reader openAWSS3Reader(final String uri) throws URISyntaxException {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.AWS, uri, true, this::openReader);
@@ -298,10 +304,21 @@ public class N5Factory implements Serializable {
 	 * @param uri uri to the N5Reader
 	 * @return the N5Reader
 	 * @throws URISyntaxException if uri is malformed
+	 *
+	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
 	 */
+	@Deprecated
 	public N5Reader openFileSystemReader(final String uri) throws URISyntaxException {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.FILE, uri, true, this::openReader);
+	}
+
+	StorageFormat[] orderedStorageFormats() {
+
+		return Arrays.stream(StorageFormat.values()).sorted((l, r) -> {
+			if (l == preferredStorageFormat) return -1;
+			return l.compareTo(r);
+		}).toArray(StorageFormat[]::new);
 	}
 
 	/**
@@ -353,14 +370,39 @@ public class N5Factory implements Serializable {
 		return openN5Container(format, uri, true, this::openReader);
 	}
 
-	StorageFormat[] orderedStorageFormats() {
-
-		return Arrays.stream(StorageFormat.values()).sorted((l, r) -> {
-			if (l == preferredStorageFormat) return -1;
-			return l.compareTo(r);
-		}).toArray(StorageFormat[]::new);
+	/**
+	 * Open and N5Reader at the given URI given the specified {@code KeyValueAccessBackend}.
+	 *
+	 * @param backend key-value access
+	 * @param uri location of reader
+	 * @return the N5Reader
+	 */
+	public N5Reader openReader(final KeyValueAccessBackend backend, final String uri) {
+		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
+		final StorageFormat format = storageAndUri.getA();
+		final URI asUri = storageAndUri.getB();
+		final boolean inferredStorageFormat = format != null && getStorageFromNestedScheme(uri).getA() == null;
+		final KeyValueAccess kva = backend.apply(asUri, this, true);
+		if (inferredStorageFormat) {
+			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
+			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
+			return openReader(inferredFormat, kva, asUri);
+		}
+		return openReader(format, kva, asUri);
 	}
 
+    /**
+	 * Open and N5Reader at the given URI given the specified {@code KeyValueAccessBackend}.
+	 *
+     * @param backend key-value access
+     * @param uri location of reader
+     * @return the N5Reader
+     */
+	public N5Reader openReader(final KeyValueAccessBackend backend, final URI uri) {
+		final KeyValueAccess kva = backend.apply(uri, this, true);
+		final StorageFormat inferredFromKeys = guessStorageFromKeys(uri, kva);
+		return openReader(inferredFromKeys, kva, uri);
+	}
 
 
 	/**
@@ -371,8 +413,7 @@ public class N5Factory implements Serializable {
 	 * @param location root URI of the resulting N5Reader
 	 * @return the N5Reader
 	 */
-	private N5Reader openReader(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, URI location) {
-
+	public N5Reader openReader(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, URI location) {
 
 		if (storage == null) {
 			for (final StorageFormat format : orderedStorageFormats()) {
@@ -462,7 +503,10 @@ public class N5Factory implements Serializable {
 	 * @param uri uri to the google cloud object
 	 * @return the N5GoogleCloudStorageWriter
 	 * @throws URISyntaxException if uri is malformed
+	 *
+	 * @deprecated use {@link #openWriter(KeyValueAccessBackend, String)} instead.
 	 */
+	@Deprecated
 	public N5Writer openGoogleCloudWriter(final String uri) throws URISyntaxException {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.GOOGLE_CLOUD, uri, false, this::openWriter);
@@ -474,7 +518,11 @@ public class N5Factory implements Serializable {
 	 * @param uri uri to the s3 object
 	 * @return the N5Writer
 	 * @throws URISyntaxException if the URI is malformed
+	 *
+	 *
+	 * @deprecated use {@link #openWriter(KeyValueAccessBackend, String)} instead.
 	 */
+	@Deprecated()
 	public N5Writer openAWSS3Writer(final String uri) throws URISyntaxException {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.AWS, uri, false, this::openWriter);
@@ -496,10 +544,45 @@ public class N5Factory implements Serializable {
 			final KeyValueAccess kva = getKeyValueAccess(asUri, false);
 			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
 			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
-			return openWriter(inferredFormat, asUri);
+			return openWriter(inferredFormat, kva, asUri);
 		}
 
 		return openWriter(format, asUri);
+	}
+
+	/**
+	 * Create or Open an N5Writer as the given uri and backend.
+	 *
+	 * @param backend key-value access
+	 * @param uri location of writer
+	 * @return the N5Writer
+	 */
+	public N5Writer openWriter(final KeyValueAccessBackend backend, final URI uri) {
+		final KeyValueAccess kva = backend.apply(uri, this, false);
+		final StorageFormat inferredFromKeys = guessStorageFromKeys(uri, kva);
+		return openWriter(inferredFromKeys, kva, uri);
+	}
+
+    /**
+	 * Create or Open an N5Writer as the given uri and backend.
+	 *
+     * @param backend key-value access
+     * @param uri location of writer
+     * @return the N5Writer
+     */
+	public N5Writer openWriter(final KeyValueAccessBackend backend, final String uri) {
+		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
+		final StorageFormat format = storageAndUri.getA();
+		final URI asUri = storageAndUri.getB();
+		final KeyValueAccess kva = backend.apply(asUri, this, false);
+		final boolean inferredStorageFormat = format != null && getStorageFromNestedScheme(uri).getA() == null;
+		if (inferredStorageFormat) {
+			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
+			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
+			return openWriter(inferredFormat, kva, asUri);
+		}
+
+		return openWriter(format, kva, asUri);
 	}
 
 	/**
