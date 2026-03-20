@@ -389,16 +389,16 @@ public class N5FactoryTests {
 			final N5Writer writer2 = cachedFactory.openWriter(tmpPath);
 			assertSame(writer2, writer1);
 
-			final N5Writer writerFromStoragePrefix = cachedFactory.openWriter("zarr:" + tmpPath);
+			final N5Writer writerFromStoragePrefix = cachedFactory.openWriter("zarr3:" + tmpPath);
 			assertSame(writerFromStoragePrefix, writer1);
 
-			final N5Writer writerFromStoragePrefix2 = cachedFactory.openWriter("zarr://" + tmpPath);
+			final N5Writer writerFromStoragePrefix2 = cachedFactory.openWriter("zarr3://" + tmpPath);
 			assertSame(writerFromStoragePrefix2, writer1);
 
 			final N5Writer writerDifferentStorageFormat = cachedFactory.openWriter(StorageFormat.N5, tmpPath);
 			assertNotSame(writerDifferentStorageFormat, writer1);
 
-			final N5Writer writerFromStorageType = cachedFactory.openWriter(StorageFormat.ZARR2, tmpPath);
+			final N5Writer writerFromStorageType = cachedFactory.openWriter(StorageFormat.ZARR3, tmpPath);
 			assertNotSame(writerFromStorageType, writerDifferentStorageFormat);
 			assertNotSame(writerFromStorageType, writer1);
 
@@ -410,16 +410,16 @@ public class N5FactoryTests {
 			final N5Reader reader2 = cachedFactory.openReader(tmpPath);
 			assertSame(reader2, reader1);
 
-			final N5Reader readerFromStoragePrefix = cachedFactory.openReader("zarr:" + tmpPath);
+			final N5Reader readerFromStoragePrefix = cachedFactory.openReader("zarr3:" + tmpPath);
 			assertSame(readerFromStoragePrefix, reader1);
 
-			final N5Reader readerFromStoragePrefix2 = cachedFactory.openReader("zarr://" + tmpPath);
+			final N5Reader readerFromStoragePrefix2 = cachedFactory.openReader("zarr3://" + tmpPath);
 			assertSame(readerFromStoragePrefix2, reader1);
 
 			final N5Reader readerDifferentStorageFormat = cachedFactory.openReader(StorageFormat.N5, tmpPath);
 			assertNotSame(readerDifferentStorageFormat, reader1);
 
-			final N5Reader readerFromStorageType = cachedFactory.openReader(StorageFormat.ZARR2, tmpPath);
+			final N5Reader readerFromStorageType = cachedFactory.openReader(StorageFormat.ZARR3, tmpPath);
 			assertNotSame(readerFromStorageType, readerDifferentStorageFormat);
 			assertNotSame(readerFromStorageType, reader1);
 
