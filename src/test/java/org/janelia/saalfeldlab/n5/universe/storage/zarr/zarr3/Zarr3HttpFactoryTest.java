@@ -111,7 +111,7 @@ public class Zarr3HttpFactoryTest extends ZarrStorageTests.Zarr3FactoryTest {
 		final GsonKeyValueN5Writer writer = (GsonKeyValueN5Writer)getFactory().openWriter(uriWithStorageScheme);
 		final GsonKeyValueN5Reader reader = (GsonKeyValueN5Reader)getReader(uri);
 		switch (getStorageFormat()) {
-		case ZARR:
+		case ZARR3:
 			assertTrue(writer instanceof ZarrV3KeyValueWriter);
 			return new ZarrV3HttpReaderFsWriter((ZarrV3KeyValueWriter)writer, (ZarrV3KeyValueReader)reader);
 		case ZARR2:

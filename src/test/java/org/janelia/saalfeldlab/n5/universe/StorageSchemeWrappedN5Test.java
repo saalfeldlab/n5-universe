@@ -28,7 +28,7 @@ public interface StorageSchemeWrappedN5Test {
 		final String uriWithStorageScheme = prependStorageScheme(uri);
 		final GsonKeyValueN5Writer writer = (GsonKeyValueN5Writer)getFactory().openWriter(uriWithStorageScheme);
 		switch (getStorageFormat()){
-		case ZARR:
+		case ZARR3:
 			assertTrue(writer instanceof ZarrV3KeyValueWriter);
 			break;
 		case ZARR2:
