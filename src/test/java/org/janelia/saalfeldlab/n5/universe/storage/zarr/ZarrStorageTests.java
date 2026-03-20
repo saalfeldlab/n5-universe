@@ -55,7 +55,7 @@ public class ZarrStorageTests {
 
 		@Override public StorageFormat getStorageFormat() {
 
-			return StorageFormat.ZARR;
+			return StorageFormat.ZARR3;
 		}
 
 		@Override protected N5Writer createN5Writer() {

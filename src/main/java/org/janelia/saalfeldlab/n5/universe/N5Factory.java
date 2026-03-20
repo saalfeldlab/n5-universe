@@ -29,13 +29,13 @@ package org.janelia.saalfeldlab.n5.universe;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.gson.GsonBuilder;
-import com.sun.tools.javac.util.List;
 import net.imglib2.util.Pair;
 import org.apache.commons.lang3.function.TriFunction;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Exception;
+import org.janelia.saalfeldlab.n5.N5Exception.N5IOException;
 import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -59,6 +59,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -452,13 +453,13 @@ public class N5Factory implements Serializable {
      * @return an N5Reader
      */
 	private N5Reader newGenericZarrReader(final KeyValueAccess access, final URI location) {
-		for (StorageFormat zarrFormat : List.of(ZARR3, ZARR2)) {
+		for (StorageFormat zarrFormat : Arrays.asList(ZARR3, ZARR2)) {
 			try {
 				return openReader(zarrFormat, access, location);
 			} catch (Exception ignored) {
 			}
 		}
-		throw new N5Exception("Unable to open Zarr reader at " + location.toString() + " as N5Reader");
+		throw new N5IOException("Unable to open Zarr reader at " + location.toString() + " as N5Reader");
 	}
 
 	/**
@@ -683,7 +684,7 @@ public class N5Factory implements Serializable {
      * @return the zarr writer
      */
 	private N5Writer newGenericZarrWriter(final KeyValueAccess access, final URI location) {
-		List<StorageFormat> zarrFormats = List.of(ZARR3, ZARR2);
+		List<StorageFormat> zarrFormats = Arrays.asList(ZARR3, ZARR2);
 		for (StorageFormat zarrFormat : zarrFormats) {
 			 /* we dont care about the read, but we do want to prefer a writer over a container that
 			 * exists, rather than creating a new writer; the only way to check is to see if
@@ -701,7 +702,7 @@ public class N5Factory implements Serializable {
 			}
 		}
 
-		throw new N5Exception("Unable to open Zarr writer at " + location.toString() + " as N5Reader");
+		throw new N5IOException("Unable to open Zarr writer at " + location.toString() + " as N5Reader");
 	}
 
 	private <T extends N5Reader> T openN5ContainerWithStorageFormat(
