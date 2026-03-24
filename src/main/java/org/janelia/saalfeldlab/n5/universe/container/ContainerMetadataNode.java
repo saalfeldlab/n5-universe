@@ -223,7 +223,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	@Override
-	public boolean shardExists(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
+	public boolean blockExists(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
 
 		// Consider throwing exception instead?
 		return false;
@@ -351,12 +351,12 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	@Override
-	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
-		throw new UnsupportedOperationException("ContainerMetadata does not support writeBlock");
+	public <T> void writeChunk(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
+		throw new UnsupportedOperationException("ContainerMetadata does not support writeChunk");
 	}
 	
 	@Override
-	public <T> void writeShard(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
+	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
 		throw new UnsupportedOperationException("ContainerMetadata does not support writeBlock");
 	}
 
@@ -373,6 +373,16 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	@Override
+	public boolean deleteChunk(String pathName, long... gridPosition) {
+		return false;
+	}
+
+	@Override
+	public boolean deleteChunk(String datasetPath, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
+		return false;
+	}
+
+	@Override
 	public boolean deleteBlock(String pathName, long... gridPosition) {
 		return false;
 	}
@@ -383,12 +393,12 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	@Override
-	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
+	public DataBlock<?> readChunk(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 		return null;
 	}
 	
 	@Override
-	public DataBlock<?> readShard(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
+	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 		return null;
 	}
 
