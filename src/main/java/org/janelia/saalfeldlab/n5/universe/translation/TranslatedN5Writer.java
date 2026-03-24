@@ -10,7 +10,6 @@ import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GsonN5Writer;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.N5Writer.DataBlockSupplier;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataWriter;
 
@@ -118,13 +117,13 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements GsonN5Writ
 	}
 
 	@Override
-	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
-		writer.writeBlock(originalPath(pathName), datasetAttributes, dataBlock);
+	public <T> void writeChunk(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
+		writer.writeChunk(originalPath(pathName), datasetAttributes, dataBlock);
 	}
 
 	@Override
-	public <T> void writeShard(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
-		writer.writeShard(originalPath(pathName), datasetAttributes, dataBlock);
+	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
+		writer.writeBlock(originalPath(pathName), datasetAttributes, dataBlock);
 	}
 
 	@Override
@@ -137,6 +136,16 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements GsonN5Writ
 	public <T> void writeRegion(String datasetPath, DatasetAttributes datasetAttributes, long[] min, long[] size, DataBlockSupplier<T> dataBlocks,
 			boolean writeFully, ExecutorService exec) throws N5Exception, InterruptedException, ExecutionException {
 		writer.writeRegion(datasetPath, datasetAttributes, min, size, dataBlocks, writeFully, exec);
+	}
+
+	@Override
+	public boolean deleteChunk(String pathName, long... gridPosition) {
+		return writer.deleteChunk(originalPath(pathName), gridPosition);
+	}
+
+	@Override
+	public boolean deleteChunk(String datasetPath, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
+		return writer.deleteChunk(originalPath(datasetPath), datasetAttributes, gridPosition);
 	}
 
 	@Override

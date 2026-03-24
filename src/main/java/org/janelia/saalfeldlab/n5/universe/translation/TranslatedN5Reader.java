@@ -63,15 +63,15 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	}
 
 	@Override
-	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
+	public DataBlock<?> readChunk(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 
-		return n5.readBlock( originalPath( pathName ), datasetAttributes, gridPosition);
+		return n5.readChunk( originalPath( pathName ), datasetAttributes, gridPosition);
 	}
 
 	@Override
-	public DataBlock<?> readShard(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
+	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 
-		return n5.readShard(originalPath(pathName), datasetAttributes, gridPosition);
+		return n5.readBlock(originalPath(pathName), datasetAttributes, gridPosition);
 	}
 
 	@Override
@@ -80,9 +80,9 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	}
 
 	@Override
-	public boolean shardExists(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
+	public boolean blockExists(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
 
-		return n5.shardExists( originalPath( pathName ), datasetAttributes, gridPosition);
+		return n5.blockExists( originalPath( pathName ), datasetAttributes, gridPosition);
 	}
 
 	@Override
