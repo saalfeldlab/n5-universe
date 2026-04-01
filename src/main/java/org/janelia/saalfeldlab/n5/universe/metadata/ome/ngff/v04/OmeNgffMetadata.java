@@ -5,7 +5,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
@@ -15,9 +14,9 @@ import net.imglib2.view.Views;
 
 public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAxesMetadata>
 {
-	public final OmeNgffMultiScaleMetadata[] multiscales;
+	public final OmeNgffV04MultiScaleMetadata[] multiscales;
 
-	public OmeNgffMetadata( final String path, final OmeNgffMultiScaleMetadata[] multiscales)
+	public OmeNgffMetadata( final String path, final OmeNgffV04MultiScaleMetadata[] multiscales)
 	{
 		// assumes children metadata are the same for all multiscales, which should be true
 		super(path, multiscales[0].getChildrenMetadata());
@@ -69,12 +68,12 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 		}
 
 		final CoordinateTransformation<?>[] cts = null;
-		final OmeNgffMultiScaleMetadata ms = new OmeNgffMultiScaleMetadata(
+		final OmeNgffV04MultiScaleMetadata ms = new OmeNgffV04MultiScaleMetadata(
 				numDimensions, "", name,
 				type, version, axes,
 				datasets, null, cts, null);
 
-		return new OmeNgffMetadata("", new OmeNgffMultiScaleMetadata[]{ ms });
+		return new OmeNgffMetadata("", new OmeNgffV04MultiScaleMetadata[]{ ms });
 	}
 
 	public static <T, M extends AxisMetadata & N5Metadata> RandomAccessibleInterval<T> permuteForNgff(

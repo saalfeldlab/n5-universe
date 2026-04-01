@@ -4,8 +4,10 @@ import java.lang.reflect.Type;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata.OmeNgffV04Dataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 
 import com.google.gson.JsonArray;
@@ -32,26 +34,41 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 		// name and type may be null
 		final String name = MetadataUtils.getStringNullable(jobj.get("name"));
 		final String type = MetadataUtils.getStringNullable(jobj.get("type"));
+
 		final String version = jobj.get("version").getAsString();
-		if (!version.equals("0.4")) {
-			System.out.println("oh no");
-			return null;
+		if (version.equals("0.4")) {
+
+			final Axis[] axes = context.deserialize(jobj.get("axes"), Axis[].class);
+			final Axis[] axesInReverseOrder = MetadataUtils.reversedCopy( axes );
+			final OmeNgffV04Dataset[] datasets = context.deserialize(jobj.get("datasets"), OmeNgffV04Dataset[].class);
+			final CoordinateTransformation<?>[] coordinateTransformations = context
+					.deserialize(jobj.get("coordinateTransformations"), CoordinateTransformation[].class);
+			final OmeNgffDownsamplingMetadata metadata = context.deserialize(jobj.get("metadata"),
+					OmeNgffDownsamplingMetadata.class);
+
+			return new OmeNgffV04MultiScaleMetadata(axesInReverseOrder.length, "", 
+					name, type, axesInReverseOrder, datasets, null,
+					coordinateTransformations, metadata, false);
 		}
+		else if (version.equals("0.3")) {
 
-		final Axis[] axes = context.deserialize(jobj.get("axes"), Axis[].class);
-		final Axis[] axesInReverseOrder = MetadataUtils.reversedCopy( axes );
-		final OmeNgffDataset[] datasets = context.deserialize(jobj.get("datasets"), OmeNgffDataset[].class);
-		final CoordinateTransformation<?>[] coordinateTransformations = context
-				.deserialize(jobj.get("coordinateTransformations"), CoordinateTransformation[].class);
-		final OmeNgffDownsamplingMetadata metadata = context.deserialize(jobj.get("metadata"),
-				OmeNgffDownsamplingMetadata.class);
+			final Axis[] axes = context.deserialize(jobj.get("axes"), Axis[].class);
+			final Axis[] axesInReverseOrder = MetadataUtils.reversedCopy( axes );
+			org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v03.OmeNgffV03MultiScaleMetadata[] datasets = 
+					context.deserialize(jobj.get("datasets"), org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v03.OmeNgffV03MultiScaleMetadata[].class);
+			final OmeNgffDownsamplingMetadata metadata = context.deserialize(jobj.get("metadata"),
+					OmeNgffDownsamplingMetadata.class);
 
-		return new OmeNgffMultiScaleMetadata(axesInReverseOrder.length, "", name, type, version, axesInReverseOrder, datasets, null,
-				coordinateTransformations, metadata, false);
+			return new OmeNgffV03MultiScaleMetadata(
+					axesInReverseOrder.length, "", name, type, version, axesInReverseOrder, datasets, null,
+					metadata, false);
+		}
+		
+		return null;
 	}
 
 	@Override
-	public JsonElement serialize( final OmeNgffMultiScaleMetadata src, final Type typeOfSrc, final JsonSerializationContext context )
+	public JsonElement serialize( final OmeNgffV04MultiScaleMetadata src, final Type typeOfSrc, final JsonSerializationContext context )
 	{
 		final JsonObject obj = new JsonObject();
 		obj.addProperty("name", src.name);

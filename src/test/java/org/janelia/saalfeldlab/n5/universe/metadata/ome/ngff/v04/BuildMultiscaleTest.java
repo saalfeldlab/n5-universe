@@ -32,7 +32,7 @@ public class BuildMultiscaleTest {
 			ms.addChild(buildScaleLevelMetadata(childPaths[i], new double[]{s, s, s}, axes));
 		}
 
-		final OmeNgffMultiScaleMetadata meta = new OmeNgffMultiScaleMetadata(ms.getAxes().length,
+		final OmeNgffV04MultiScaleMetadata meta = new OmeNgffV04MultiScaleMetadata(ms.getAxes().length,
 				path, path, downsampleMethod, "0.4",
 				ms.getAxes(),
 				ms.getDatasets(), null,
@@ -46,7 +46,7 @@ public class BuildMultiscaleTest {
 
 		// test building children from multiscales
 		// these metadata's path variables must be relative to the root
-		final NgffSingleScaleAxesMetadata[] children = OmeNgffMultiScaleMetadata.buildMetadata(3, path, null, meta);
+		final NgffSingleScaleAxesMetadata[] children = OmeNgffV04MultiScaleMetadata.buildMetadata(3, path, null, meta);
 		for (int i = 0; i < childPaths.length; i++) {
 			// ensure the paths are equal up to normalization
 			assertEquals(

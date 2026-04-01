@@ -2,7 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
 import java.lang.reflect.Type;
 
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

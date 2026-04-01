@@ -3,17 +3,17 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05;
 import com.google.gson.*;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata.OmeNgffDataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata.OmeNgffDownsamplingMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 
 import java.lang.reflect.Type;
 
-public class MultiscalesAdapter implements JsonDeserializer<OmeNgffMultiScaleMetadata>, JsonSerializer< OmeNgffMultiScaleMetadata >
+public class MultiscalesAdapter implements JsonDeserializer<OmeNgffV04MultiScaleMetadata>, JsonSerializer< OmeNgffV04MultiScaleMetadata >
 {
 	@Override
-	public OmeNgffMultiScaleMetadata deserialize( final JsonElement json, final Type typeOfT, final JsonDeserializationContext context ) throws JsonParseException
+	public OmeNgffV04MultiScaleMetadata deserialize( final JsonElement json, final Type typeOfT, final JsonDeserializationContext context ) throws JsonParseException
 	{
 		if (!json.isJsonObject())
 			return null;
@@ -35,12 +35,12 @@ public class MultiscalesAdapter implements JsonDeserializer<OmeNgffMultiScaleMet
 		final OmeNgffDownsamplingMetadata metadata = context.deserialize(jobj.get("metadata"),
 				OmeNgffDownsamplingMetadata.class);
 
-		return new OmeNgffMultiScaleMetadata( axesInReverseOrder.length, "", name, type, version, axesInReverseOrder, datasets, null,
+		return new OmeNgffV04MultiScaleMetadata( axesInReverseOrder.length, "", name, type, version, axesInReverseOrder, datasets, null,
 				coordinateTransformations, metadata, false);
 	}
 
 	@Override
-	public JsonElement serialize( final OmeNgffMultiScaleMetadata src, final Type typeOfSrc, final JsonSerializationContext context )
+	public JsonElement serialize( final OmeNgffV04MultiScaleMetadata src, final Type typeOfSrc, final JsonSerializationContext context )
 	{
 		final JsonObject obj = new JsonObject();
 		obj.addProperty("name", src.name);

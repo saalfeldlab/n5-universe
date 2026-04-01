@@ -7,7 +7,7 @@ import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 
-public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata {
+public class OmeNgffMultiScaleMetadataMutable extends OmeNgffV04MultiScaleMetadata {
 
 	private List<OmeNgffDataset> datasets;
 

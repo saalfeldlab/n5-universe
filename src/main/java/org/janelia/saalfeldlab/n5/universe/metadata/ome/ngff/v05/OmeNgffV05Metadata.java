@@ -4,17 +4,17 @@ import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.NgffSingleScaleAxesMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
 
 public class OmeNgffV05Metadata extends SpatialMultiscaleMetadata<NgffSingleScaleAxesMetadata> 
 {
-	public final OmeNgffMultiScaleMetadata[] multiscales;
+	public final OmeNgffV04MultiScaleMetadata[] multiscales;
 
-	public OmeNgffV05Metadata(final String path, final OmeNgffMultiScaleMetadata[] multiscales)
+	public OmeNgffV05Metadata(final String path, final OmeNgffV04MultiScaleMetadata[] multiscales)
 	{
 		// assumes children metadata are the same for all multiscales, which should be true
 		super(path, multiscales[0].getChildrenMetadata());
@@ -64,12 +64,12 @@ public class OmeNgffV05Metadata extends SpatialMultiscaleMetadata<NgffSingleScal
 		}
 
 		final CoordinateTransformation<?>[] cts = null;
-		final OmeNgffMultiScaleMetadata ms = new OmeNgffMultiScaleMetadata(
+		final OmeNgffV04MultiScaleMetadata ms = new OmeNgffV04MultiScaleMetadata(
 				numDimensions, "", name,
 				type, version, axes,
 				datasets, null, cts, null);
 
-		return new OmeNgffV05Metadata("", new OmeNgffMultiScaleMetadata[]{ ms });
+		return new OmeNgffV05Metadata("", new OmeNgffV04MultiScaleMetadata[]{ ms });
 	}
 
 }
