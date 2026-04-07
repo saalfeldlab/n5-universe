@@ -414,7 +414,7 @@ public class N5Factory implements Serializable {
 	 * @param location root URI of the resulting N5Reader
 	 * @return the N5Reader
 	 */
-	public N5Reader openReader(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, URI location) {
+	public N5Reader openReader(@Nullable final StorageFormat storage, final KeyValueAccess access, URI location) {
 
 		if (storage == null) {
 			for (final StorageFormat format : orderedStorageFormats()) {
@@ -642,7 +642,7 @@ public class N5Factory implements Serializable {
 	 * @param location root location of the resulting N5Writer
 	 * @return the N5Writer
 	 */
-	public N5Writer openWriter(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, final URI location) {
+	public N5Writer openWriter(@Nullable final StorageFormat storage, final KeyValueAccess access, final URI location) {
 
 		if (storage == null) {
 			for (final StorageFormat format : orderedStorageFormats()) {
