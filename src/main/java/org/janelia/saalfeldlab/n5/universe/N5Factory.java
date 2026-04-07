@@ -35,6 +35,7 @@ import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Exception;
+import org.janelia.saalfeldlab.n5.N5Exception.N5IOException;
 import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -58,12 +59,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
-import static org.janelia.saalfeldlab.n5.universe.StorageFormat.getStorageFromNestedScheme;
-import static org.janelia.saalfeldlab.n5.universe.StorageFormat.guessStorageFromKeys;
+import static org.janelia.saalfeldlab.n5.universe.StorageFormat.*;
 
 /**
  * Factory for various N5 readers and writers. Implementation-specific
@@ -244,7 +245,7 @@ public class N5Factory implements Serializable {
 	@Deprecated
 	public N5Reader openZarrReader(final String path) {
 
-		return openN5ContainerWithStorageFormat(StorageFormat.ZARR2, path, this::openReader);
+		return openN5ContainerWithStorageFormat(StorageFormat.ZARR, path, this::openReader);
 	}
 
 	/**
@@ -274,7 +275,10 @@ public class N5Factory implements Serializable {
 	 * @param uri uri to the google cloud object
 	 * @return the N5Reader
 	 * @throws URISyntaxException if uri is malformed
+	 *
+	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
 	 */
+	@Deprecated
 	public N5Reader openGoogleCloudReader(final String uri) throws URISyntaxException {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.GOOGLE_CLOUD, uri, true, this::openReader);
@@ -286,7 +290,10 @@ public class N5Factory implements Serializable {
 	 * @param uri uri to the amazon s3 object
 	 * @return the N5Reader
 	 * @throws URISyntaxException if uri is malformed
+	 *
+	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
 	 */
+	@Deprecated
 	public N5Reader openAWSS3Reader(final String uri) throws URISyntaxException {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.AWS, uri, true, this::openReader);
@@ -298,10 +305,21 @@ public class N5Factory implements Serializable {
 	 * @param uri uri to the N5Reader
 	 * @return the N5Reader
 	 * @throws URISyntaxException if uri is malformed
+	 *
+	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
 	 */
+	@Deprecated
 	public N5Reader openFileSystemReader(final String uri) throws URISyntaxException {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.FILE, uri, true, this::openReader);
+	}
+
+	StorageFormat[] orderedStorageFormats() {
+
+		return Arrays.stream(StorageFormat.values()).sorted((l, r) -> {
+			if (l == preferredStorageFormat) return -1;
+			return l.compareTo(r);
+		}).toArray(StorageFormat[]::new);
 	}
 
 	/**
@@ -353,14 +371,39 @@ public class N5Factory implements Serializable {
 		return openN5Container(format, uri, true, this::openReader);
 	}
 
-	StorageFormat[] orderedStorageFormats() {
-
-		return Arrays.stream(StorageFormat.values()).sorted((l, r) -> {
-			if (l == preferredStorageFormat) return -1;
-			return l.compareTo(r);
-		}).toArray(StorageFormat[]::new);
+	/**
+	 * Open and N5Reader at the given URI given the specified {@code KeyValueAccessBackend}.
+	 *
+	 * @param backend key-value access
+	 * @param uri location of reader
+	 * @return the N5Reader
+	 */
+	public N5Reader openReader(final KeyValueAccessBackend backend, final String uri) {
+		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
+		final StorageFormat format = storageAndUri.getA();
+		final URI asUri = storageAndUri.getB();
+		final boolean inferredStorageFormat = format != null && getStorageFromNestedScheme(uri).getA() == null;
+		final KeyValueAccess kva = backend.apply(asUri, this, true);
+		if (inferredStorageFormat) {
+			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
+			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
+			return openReader(inferredFormat, kva, asUri);
+		}
+		return openReader(format, kva, asUri);
 	}
 
+    /**
+	 * Open and N5Reader at the given URI given the specified {@code KeyValueAccessBackend}.
+	 *
+     * @param backend key-value access
+     * @param uri location of reader
+     * @return the N5Reader
+     */
+	public N5Reader openReader(final KeyValueAccessBackend backend, final URI uri) {
+		final KeyValueAccess kva = backend.apply(uri, this, true);
+		final StorageFormat inferredFromKeys = guessStorageFromKeys(uri, kva);
+		return openReader(inferredFromKeys, kva, uri);
+	}
 
 
 	/**
@@ -371,8 +414,7 @@ public class N5Factory implements Serializable {
 	 * @param location root URI of the resulting N5Reader
 	 * @return the N5Reader
 	 */
-	private N5Reader openReader(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, URI location) {
-
+	public N5Reader openReader(@Nullable final StorageFormat storage, final KeyValueAccess access, URI location) {
 
 		if (storage == null) {
 			for (final StorageFormat format : orderedStorageFormats()) {
@@ -389,15 +431,35 @@ public class N5Factory implements Serializable {
 			switch (storage) {
 			case N5:
 				return new N5KeyValueReader(access, containerPath, gsonBuilder, cacheAttributes);
-			case ZARR:
+			case ZARR3:
 				return new ZarrV3KeyValueReader(access,containerPath, gsonBuilder, cacheAttributes);
 			case ZARR2:
 				return new ZarrKeyValueReader(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
+			case ZARR:
+				return newGenericZarrReader(access, location);
 			case HDF5:
 				return new N5HDF5Reader(containerPath, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
 			}
 			return null;
 		}
+	}
+
+    /**
+	 * Open a zarr as N5Reader at the given {@code access} and {@code location}.
+	 * Will prefer returning the newest version of zarr that is found at the location.
+	 *
+     * @param access to the key-value access backend
+     * @param location of the zarr container
+     * @return an N5Reader
+     */
+	private N5Reader newGenericZarrReader(final KeyValueAccess access, final URI location) {
+		for (StorageFormat zarrFormat : Arrays.asList(ZARR3, ZARR2)) {
+			try {
+				return openReader(zarrFormat, access, location);
+			} catch (Exception ignored) {
+			}
+		}
+		throw new N5IOException("Unable to open Zarr reader at " + location.toString() + " as N5Reader");
 	}
 
 	/**
@@ -432,7 +494,7 @@ public class N5Factory implements Serializable {
 	@Deprecated
 	public N5Writer openZarrWriter(final String path) {
 
-		return openN5ContainerWithStorageFormat(StorageFormat.ZARR2, path, this::openWriter);
+		return openN5ContainerWithStorageFormat(StorageFormat.ZARR, path, this::openWriter);
 	}
 
 	/**
@@ -462,7 +524,10 @@ public class N5Factory implements Serializable {
 	 * @param uri uri to the google cloud object
 	 * @return the N5GoogleCloudStorageWriter
 	 * @throws URISyntaxException if uri is malformed
+	 *
+	 * @deprecated use {@link #openWriter(KeyValueAccessBackend, String)} instead.
 	 */
+	@Deprecated
 	public N5Writer openGoogleCloudWriter(final String uri) throws URISyntaxException {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.GOOGLE_CLOUD, uri, false, this::openWriter);
@@ -474,7 +539,11 @@ public class N5Factory implements Serializable {
 	 * @param uri uri to the s3 object
 	 * @return the N5Writer
 	 * @throws URISyntaxException if the URI is malformed
+	 *
+	 *
+	 * @deprecated use {@link #openWriter(KeyValueAccessBackend, String)} instead.
 	 */
+	@Deprecated()
 	public N5Writer openAWSS3Writer(final String uri) throws URISyntaxException {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.AWS, uri, false, this::openWriter);
@@ -496,10 +565,45 @@ public class N5Factory implements Serializable {
 			final KeyValueAccess kva = getKeyValueAccess(asUri, false);
 			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
 			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
-			return openWriter(inferredFormat, asUri);
+			return openWriter(inferredFormat, kva, asUri);
 		}
 
 		return openWriter(format, asUri);
+	}
+
+	/**
+	 * Create or Open an N5Writer as the given uri and backend.
+	 *
+	 * @param backend key-value access
+	 * @param uri location of writer
+	 * @return the N5Writer
+	 */
+	public N5Writer openWriter(final KeyValueAccessBackend backend, final URI uri) {
+		final KeyValueAccess kva = backend.apply(uri, this, false);
+		final StorageFormat inferredFromKeys = guessStorageFromKeys(uri, kva);
+		return openWriter(inferredFromKeys, kva, uri);
+	}
+
+    /**
+	 * Create or Open an N5Writer as the given uri and backend.
+	 *
+     * @param backend key-value access
+     * @param uri location of writer
+     * @return the N5Writer
+     */
+	public N5Writer openWriter(final KeyValueAccessBackend backend, final String uri) {
+		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
+		final StorageFormat format = storageAndUri.getA();
+		final URI asUri = storageAndUri.getB();
+		final KeyValueAccess kva = backend.apply(asUri, this, false);
+		final boolean inferredStorageFormat = format != null && getStorageFromNestedScheme(uri).getA() == null;
+		if (inferredStorageFormat) {
+			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
+			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
+			return openWriter(inferredFormat, kva, asUri);
+		}
+
+		return openWriter(format, kva, asUri);
 	}
 
 	/**
@@ -538,7 +642,7 @@ public class N5Factory implements Serializable {
 	 * @param location root location of the resulting N5Writer
 	 * @return the N5Writer
 	 */
-	public N5Writer openWriter(@Nullable final StorageFormat storage, @Nullable final KeyValueAccess access, final URI location) {
+	public N5Writer openWriter(@Nullable final StorageFormat storage, final KeyValueAccess access, final URI location) {
 
 		if (storage == null) {
 			for (final StorageFormat format : orderedStorageFormats()) {
@@ -553,12 +657,14 @@ public class N5Factory implements Serializable {
 
 			final String containerLocation = location.toString();
 			switch (storage) {
-			case ZARR:
+			case ZARR3:
 				final ZarrV3KeyValueWriter writer = new ZarrV3KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
 				writer.setDimensionSeparator(zarrDimensionSeparator);
 				return writer;
 			case ZARR2:
 				return new ZarrKeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
+			case ZARR:
+				return newGenericZarrWriter(access, location);
 			case N5:
 				return new N5KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
 			case HDF5:
@@ -566,6 +672,37 @@ public class N5Factory implements Serializable {
 			}
 		}
 		return null;
+	}
+
+    /**
+	 * Try to get a zarr writer at the given location and access.
+	 * If a container exists at the location, load that version as a writer if possible.
+	 * If no container exists, create a new writer with the newest zarr version.
+	 *
+     * @param access to the key-value backend
+     * @param location of the zarr writer
+     * @return the zarr writer
+     */
+	private N5Writer newGenericZarrWriter(final KeyValueAccess access, final URI location) {
+		List<StorageFormat> zarrFormats = Arrays.asList(ZARR3, ZARR2);
+		for (StorageFormat zarrFormat : zarrFormats) {
+			 /* we dont care about the read, but we do want to prefer a writer over a container that
+			 * exists, rather than creating a new writer; the only way to check is to see if
+			 * we can get a valid reader. If we can, try the writer. */
+            try (N5Reader ignore = openReader(zarrFormat, access, location)) {
+                return openWriter(zarrFormat, access, location);
+            } catch (Exception ignored) {
+            }
+		}
+		/* However, if we have no valid readers, then try and return the first valid (created) writer */
+		for (StorageFormat zarrFormat : zarrFormats) {
+			try {
+				return openWriter(zarrFormat, access, location);
+			} catch (Exception ignored) {
+			}
+		}
+
+		throw new N5IOException("Unable to open Zarr writer at " + location.toString() + " as N5Reader");
 	}
 
 	private <T extends N5Reader> T openN5ContainerWithStorageFormat(

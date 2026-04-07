@@ -11,8 +11,10 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
+import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 import org.junit.Test;
+import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.io.IOException;
@@ -281,6 +283,42 @@ public class N5FactoryTests {
 	}
 
 	@Test
+	public void testAmbiguousZarrFormat() throws IOException {
+
+		final N5Factory factory = new N5Factory();
+		File tmpDir = Files.createTempDirectory("factory-test-").toFile();
+
+		/* by default, should be zarr 3 with no other information */
+		URI doesntExistsIsZarr3 = tmpDir.toPath().resolve("doesnt_exists_is_zarr3").toUri();
+		N5Writer n5 = factory.openWriter(StorageFormat.ZARR, doesntExistsIsZarr3);
+		assertEquals(ZarrV3KeyValueWriter.class, n5.getClass());
+
+		/* If a zarr2 container exists, it should correctly return zarr2 */
+		URI explicitZarr2 = tmpDir.toPath().resolve("explicit_zarr2").toUri();
+		N5Writer explicitZarr2n5 = factory.openWriter(StorageFormat.ZARR2, explicitZarr2);
+		assertEquals(ZarrKeyValueWriter.class, explicitZarr2n5.getClass());
+
+		N5Reader guessZarr2Reader = factory.openReader(StorageFormat.ZARR, explicitZarr2);
+		assertEquals(ZarrKeyValueReader.class, guessZarr2Reader.getClass());
+
+		N5Reader guessZarr2Writer = factory.openWriter(StorageFormat.ZARR, explicitZarr2);
+		assertEquals(ZarrKeyValueWriter.class, guessZarr2Writer.getClass());
+
+		/* If zarr container is valid Zarr2 and Zarr3, should return zarr3 preferentially */
+		URI bothZarrs = tmpDir.toPath().resolve("both_zarr2_zarr3").toUri();
+		N5Writer bothZarr2 = factory.openWriter(StorageFormat.ZARR2, bothZarrs);
+		assertEquals(ZarrKeyValueReader.class, factory.openReader(StorageFormat.ZARR, bothZarrs).getClass());
+		assertEquals(ZarrKeyValueWriter.class, factory.openWriter(StorageFormat.ZARR, bothZarrs).getClass());
+
+		N5Writer bothZarr3 = factory.openWriter(StorageFormat.ZARR3, bothZarrs);
+		assertEquals(ZarrV3KeyValueReader.class, factory.openReader(StorageFormat.ZARR, bothZarrs).getClass());
+		assertEquals(ZarrV3KeyValueWriter.class, factory.openWriter(StorageFormat.ZARR, bothZarrs).getClass());
+
+		assertEquals(ZarrKeyValueReader.class, factory.openReader(StorageFormat.ZARR2, bothZarrs).getClass());
+		assertEquals(ZarrKeyValueWriter.class, factory.openWriter(StorageFormat.ZARR2, bothZarrs).getClass());
+	}
+
+	@Test
 	public void testForExistingWriters() throws IOException {
 
 		final N5Factory factory = new N5Factory();
@@ -292,7 +330,7 @@ public class N5FactoryTests {
 			final Object[][] testData = new Object[][] {
 					{"h5WithWeirdExtension.zarr", StorageFormat.HDF5, N5HDF5Writer.class},
 					{"zarr2WithWeirdExtension.n5", StorageFormat.ZARR2, ZarrKeyValueWriter.class},
-					{"zarr3WithWeirdExtension.jpg", StorageFormat.ZARR, ZarrV3KeyValueWriter.class},
+					{"zarr3WithWeirdExtension.jpg", StorageFormat.ZARR3, ZarrV3KeyValueWriter.class},
 					{"n5WithWeirdExtension.h5", StorageFormat.N5, N5KeyValueWriter.class},
 			};
 
@@ -389,16 +427,16 @@ public class N5FactoryTests {
 			final N5Writer writer2 = cachedFactory.openWriter(tmpPath);
 			assertSame(writer2, writer1);
 
-			final N5Writer writerFromStoragePrefix = cachedFactory.openWriter("zarr:" + tmpPath);
+			final N5Writer writerFromStoragePrefix = cachedFactory.openWriter("zarr3:" + tmpPath);
 			assertSame(writerFromStoragePrefix, writer1);
 
-			final N5Writer writerFromStoragePrefix2 = cachedFactory.openWriter("zarr://" + tmpPath);
+			final N5Writer writerFromStoragePrefix2 = cachedFactory.openWriter("zarr3://" + tmpPath);
 			assertSame(writerFromStoragePrefix2, writer1);
 
 			final N5Writer writerDifferentStorageFormat = cachedFactory.openWriter(StorageFormat.N5, tmpPath);
 			assertNotSame(writerDifferentStorageFormat, writer1);
 
-			final N5Writer writerFromStorageType = cachedFactory.openWriter(StorageFormat.ZARR2, tmpPath);
+			final N5Writer writerFromStorageType = cachedFactory.openWriter(StorageFormat.ZARR3, tmpPath);
 			assertNotSame(writerFromStorageType, writerDifferentStorageFormat);
 			assertNotSame(writerFromStorageType, writer1);
 
@@ -410,16 +448,16 @@ public class N5FactoryTests {
 			final N5Reader reader2 = cachedFactory.openReader(tmpPath);
 			assertSame(reader2, reader1);
 
-			final N5Reader readerFromStoragePrefix = cachedFactory.openReader("zarr:" + tmpPath);
+			final N5Reader readerFromStoragePrefix = cachedFactory.openReader("zarr3:" + tmpPath);
 			assertSame(readerFromStoragePrefix, reader1);
 
-			final N5Reader readerFromStoragePrefix2 = cachedFactory.openReader("zarr://" + tmpPath);
+			final N5Reader readerFromStoragePrefix2 = cachedFactory.openReader("zarr3://" + tmpPath);
 			assertSame(readerFromStoragePrefix2, reader1);
 
 			final N5Reader readerDifferentStorageFormat = cachedFactory.openReader(StorageFormat.N5, tmpPath);
 			assertNotSame(readerDifferentStorageFormat, reader1);
 
-			final N5Reader readerFromStorageType = cachedFactory.openReader(StorageFormat.ZARR2, tmpPath);
+			final N5Reader readerFromStorageType = cachedFactory.openReader(StorageFormat.ZARR3, tmpPath);
 			assertNotSame(readerFromStorageType, readerDifferentStorageFormat);
 			assertNotSame(readerFromStorageType, reader1);
 

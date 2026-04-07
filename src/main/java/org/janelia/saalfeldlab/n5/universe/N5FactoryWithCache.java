@@ -2,13 +2,11 @@ package org.janelia.saalfeldlab.n5.universe;
 
 import com.google.gson.JsonElement;
 import net.imglib2.util.Pair;
-import org.janelia.saalfeldlab.n5.CachedGsonKeyValueN5Reader;
-import org.janelia.saalfeldlab.n5.N5KeyValueReader;
-import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.*;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
+import org.jspecify.annotations.Nullable;
 
 import java.net.URI;
 import java.nio.file.Paths;
@@ -20,36 +18,29 @@ public class N5FactoryWithCache extends N5Factory {
 	private final HashMap<URI, N5Reader> readerCache = new HashMap<>();
 	private final HashMap<URI, N5Writer> writerCache = new HashMap<>();
 
-	@Override public N5Reader openReader(StorageFormat format, URI uri) {
+	@Override
+	public N5Reader openReader(StorageFormat storage, KeyValueAccess access, URI location) {
 
-		final URI normalUri = normalizeUri(uri);
-		final N5Reader reader = getReaderFromCache(format, normalUri);
+		final N5Reader reader = getReaderFromCache(storage, location);
 		if (reader != null)
 			return reader;
-		return openAndCacheReader(format, normalUri);
+		return openAndCacheReader(storage, access, location);
 	}
 
-	@Override public N5Writer openWriter(StorageFormat format, URI uri) {
+	private N5Reader openAndCacheReader(StorageFormat storageFormat, KeyValueAccess access, URI uri) {
 
-		final URI normalUri = normalizeUri(uri);
-		final N5Writer writer = getWriterFromCache(format, normalUri);
-		if (writer != null)
-			return writer;
-		return openAndCacheWriter(format, normalUri);
-	}
-
-	private N5Reader openAndCacheReader(StorageFormat storageFormat, URI uri) {
-
-		final N5Reader reader = super.openReader(storageFormat, uri);
+		final N5Reader reader = super.openReader(storageFormat, access, uri);
 		if (reader == null)
 			return null;
 
-		readerCache.put(uri, reader);
+		URI normalUri = normalizeUri(uri);
+		readerCache.put(normalUri, reader);
 		return reader;
 	}
 
-	protected synchronized N5Reader getReaderFromCache(StorageFormat format, URI uri) {
+	protected synchronized N5Reader getReaderFromCache(StorageFormat format, URI location) {
 
+		final URI uri = normalizeUri(location);
 		final N5Reader reader = readerCache.get(uri);
 		if (reader == null)
 			return null;
@@ -60,6 +51,15 @@ public class N5FactoryWithCache extends N5Factory {
 		}
 
 		return reader;
+	}
+
+	@Override
+	public N5Writer openWriter(StorageFormat storage, KeyValueAccess access, URI location) {
+
+		final N5Writer writer = getWriterFromCache(storage, location);
+		if (writer != null)
+			return writer;
+		return openAndCacheWriter(storage, access, location);
 	}
 
 	private boolean canRead(N5Reader reader) {
@@ -76,25 +76,26 @@ public class N5FactoryWithCache extends N5Factory {
 		}
 	}
 
-	private N5Writer openAndCacheWriter(StorageFormat storageFormat, URI uri) {
+	private N5Writer openAndCacheWriter(StorageFormat storageFormat, KeyValueAccess access, URI uri) {
 
-		final N5Writer writer = super.openWriter(storageFormat, uri);
+		final N5Writer writer = super.openWriter(storageFormat, access, uri);
 		if (writer == null)
 			return null;
 
-		writerCache.put(uri, writer);
+		URI normalUri = normalizeUri(uri);
+		writerCache.put(normalUri, writer);
 		return writer;
 	}
 
 	protected synchronized N5Writer getWriterFromCache(StorageFormat format, URI uri) {
 
-
-		final N5Writer writer = writerCache.get(uri);
+		URI normalUri = normalizeUri(uri);
+		final N5Writer writer = writerCache.get(normalUri);
 		if (writer == null)
 			return null;
 
 		if (!n5MatchesFormat(writer, format) || !canWrite(writer)) {
-			writerCache.remove(uri);
+			writerCache.remove(normalUri);
 			return null;
 		}
 
@@ -136,8 +137,10 @@ public class N5FactoryWithCache extends N5Factory {
 			return reader instanceof N5KeyValueReader && !(reader instanceof ZarrV3KeyValueReader);
 		case ZARR2:
 			return reader instanceof ZarrKeyValueReader;
-		case ZARR:
+		case ZARR3:
 			return reader instanceof ZarrV3KeyValueReader;
+		case ZARR:
+			return reader instanceof ZarrKeyValueReader || reader instanceof ZarrV3KeyValueReader;
 		case HDF5:
 			return reader instanceof N5HDF5Reader;
 		default:
