@@ -21,6 +21,8 @@ import software.amazon.awssdk.services.s3.S3Client;
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,6 +31,7 @@ import java.io.PrintStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.function.Predicate;
 
 /**
@@ -225,7 +228,7 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 			if (code == HttpURLConnection.HTTP_OK) {
 				if (isS3ListResponse(connection.getInputStream()))
 					return true;
-			} else if (code == HttpURLConnection.HTTP_FORBIDDEN) {
+			} else if (code == HttpURLConnection.HTTP_FORBIDDEN|| code == HttpURLConnection.HTTP_NOT_FOUND) {
 				if (isS3ErrorResponse(connection.getErrorStream()))
 					return true;
 			}
@@ -291,15 +294,18 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 		try {
 			final DocumentBuilder builder = factory.newDocumentBuilder();
 			final Element root = builder.parse(is).getDocumentElement();
-			if (root.getLocalName().equals("ListAllMyBucketsResult")) {
-				// the list buckets response from an Amazon S3 container
-				return true;
-			} else if (root.getLocalName().equals("ListBucketResult")) {
-				// the list response from a MinIO server
-				return true;
-			}
-		} catch (Exception e) {}
+			return EXPECTED_S3_LIST_RESPONSE.contains(root.getLocalName());
+		} catch (Exception ignored) {}
 		return false;
+	}
+
+	private static final HashSet<String> EXPECTED_S3_LIST_RESPONSE = new HashSet<>();
+	static {
+		// the list buckets response from an Amazon S3 container
+		EXPECTED_S3_LIST_RESPONSE.add("ListAllMyBucketsResult");
+
+		// the list response from a MinIO server
+		EXPECTED_S3_LIST_RESPONSE.add("ListBucketResult");
 	}
 	
 	/**
@@ -318,19 +324,20 @@ public enum KeyValueAccessBackend implements Predicate<URI>, TriFunction<URI, N5
 		final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		factory.setNamespaceAware(true);
 		try {
+			XPath xPath = XPathFactory.newInstance().newXPath();
 			final Document doc = factory.newDocumentBuilder().parse(is);
-			final Element root = doc.getDocumentElement();
-			if (!root.getTagName().matches("Error"))
-				return false;
+			final String errorCode = xPath.evaluate("/Error/Code/text()", doc);
 
-			final NodeList codeNodes = root.getElementsByTagName("Code");
-			if (codeNodes.getLength() == 0 || !codeNodes.item(0).getTextContent().equals("AccessDenied"))
-				return false;
-
-			return true;
-
-		} catch (Exception e) {}
+			return EXPECTED_ERROR_CODES.contains(errorCode);
+        } catch (Exception ignored) {}
 		return false;
+	}
+
+
+	private static final HashSet<String> EXPECTED_ERROR_CODES = new HashSet<>();
+	static {
+		EXPECTED_ERROR_CODES.add("NoSuchKey");
+		EXPECTED_ERROR_CODES.add("AccessDenied");
 	}
 
 	private static FileSystemKeyValueAccess newFileSystemKeyValueAccess(final URI uri, final N5Factory factory, final boolean readOnly) {
