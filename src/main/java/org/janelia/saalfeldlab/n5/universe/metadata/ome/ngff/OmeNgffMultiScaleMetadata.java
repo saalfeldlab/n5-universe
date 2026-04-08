@@ -322,7 +322,5 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 	public static Axis[] defaultAxes() {
 		return AxisUtils.defaultAxes("x", "y", "z", "c", "t");
-
 	}
-
 }

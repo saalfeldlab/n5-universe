@@ -98,8 +98,7 @@ public class N5DatasetDiscoverer {
 
 	public static final N5MetadataParser<?>[] DEFAULT_SHALLOW_GROUP_PARSERS = new N5MetadataParser<?>[] {
 			new OmeNgffV05MetadataParser(true),
-			new OmeNgffMetadataParser(true),
-			new org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v03.OmeNgffMetadataParser(true)
+			new OmeNgffMetadataParser(true)
 	};
 
 	private final List<N5MetadataParser<?>> metadataParsers;

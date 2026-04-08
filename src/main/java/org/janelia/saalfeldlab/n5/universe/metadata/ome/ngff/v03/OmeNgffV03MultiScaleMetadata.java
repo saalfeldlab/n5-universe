@@ -34,6 +34,8 @@ import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.MultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.NgffSingleScaleAxesMetadata;
 
@@ -50,38 +52,33 @@ public class OmeNgffV03MultiScaleMetadata extends OmeNgffMultiScaleMetadata {
 
 	public OmeNgffV03MultiScaleMetadata( final OmeNgffV03MultiScaleMetadata other, final NgffV03SingleScaleAxesMetadata[] children )
 	{
-		super( MetadataUtils.normalizeGroupPath(other.getPath()), children );
-
-		this.name = other.name;
-		this.type = other.type;
-		this.version = other.version;
-		this.axes = other.axes;
-
-		final OmeNgffDataset[] dset = buildDatasets( other.getPath(), getChildrenMetadata() );
-		this.datasets = dset != null ? dset : other.datasets;
-
-		this.metadata = other.metadata;
-		this.childrenAttributes = other.childrenAttributes;
+		super( other, children );
 	}
 
 	public OmeNgffV03MultiScaleMetadata( final int nd, final String path, final String name,
 			final String type, final String version, final String[] axes,
 			final OmeNgffDataset[] datasets, final DatasetAttributes[] childrenAttributes,
-			final OmeNgffDownsamplingMetadata metadata )
+			final OmeNgffDownsamplingMetadata metadata,
+			final boolean buildDatasetsFromChildren)
 	{
-		super( path, buildMetadata( nd, path, datasets, axes, childrenAttributes, metadata ) );
-		this.name = name;
-		this.type = type;
-		this.version = version;
-		this.axes = axes;
-		this.datasets = datasets;
-		this.childrenAttributes = childrenAttributes;
-		this.metadata = metadata;
+		
+		super(nd, path, name, type, "0.3", axes,
+				datasets, childrenAttributes, metadata,
+				buildMetadata(nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes),
+				buildDatasetsFromChildren);
+//		super( path, buildMetadata( nd, path, datasets, axes, childrenAttributes, metadata ) );
+//		this.name = name;
+//		this.type = type;
+//		this.version = version;
+//		this.axes = AxisUtils.defaultAxes(axes);
+//		this.datasets = datasets;
+//		this.childrenAttributes = childrenAttributes;
+//		this.metadata = metadata;
 	}
 
-	public static NgffV03SingleScaleAxesMetadata[] buildMetadata( 
+	public static NgffSingleScaleAxesMetadata[] buildMetadata( 
 			final int nd, final String path, 
-			final OmeNgffDataset[] datasets, final String[] axes,
+			final OmeNgffDataset[] datasets, String[] axes,
 			final DatasetAttributes[] childrenAttributes,
 			final OmeNgffDownsamplingMetadata metadata )
 	{
@@ -121,41 +118,5 @@ public class OmeNgffV03MultiScaleMetadata extends OmeNgffMultiScaleMetadata {
 	{
 		return buildMetadata( nd, path, datasets, axes, datasetAttributes, metadata );
 	}
-	
-
-	@Override
-	public String[] getPaths() {
-		return Arrays.stream( datasets ).map( x -> { return x.path; }).toArray( String[]::new );
-	}
-
-	public String[] getCanonicalPaths() {
-
-		return Arrays.stream(getPaths()).map((x) -> {
-			if (x.startsWith("/"))
-				return x;
-			else {
-				N5URI url;
-				try {
-					url = new N5URI("?" + this.path + "/" + x);
-				} catch (URISyntaxException e) {
-					return null;
-				}
-				return url.getGroupPath();
-			}
-		}).toArray(String[]::new);
-	}
-
-	@Override
-	public String getPath()
-	{
-		return path;
-	}
-
-	@Override
-	public String[] units()
-	{
-		return Arrays.stream( datasets ).map( x -> "pixel" ).toArray( String[]::new );
-	}
-
 
 }
