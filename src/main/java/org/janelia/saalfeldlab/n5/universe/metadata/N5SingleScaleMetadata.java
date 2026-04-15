@@ -31,7 +31,7 @@ import net.imglib2.realtransform.AffineTransform3D;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
 /**
  * Metadata representing an N5Dataset that implements {@link SpatialMetadata} and {@link IntensityMetadata}.

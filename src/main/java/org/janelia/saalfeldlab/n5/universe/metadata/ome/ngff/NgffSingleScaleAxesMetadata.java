@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -10,7 +10,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.SpatialModifiable;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform;

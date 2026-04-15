@@ -4,7 +4,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.NgffSingleScaleAxesMetadata;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.view.Views;

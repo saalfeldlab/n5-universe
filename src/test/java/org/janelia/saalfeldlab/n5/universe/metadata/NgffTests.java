@@ -21,9 +21,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadata.CosemTransfo
 import org.janelia.saalfeldlab.n5.universe.metadata.NgffMultiScaleGroupAttributes.MultiscaleDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.NgffSingleScaleAxesMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata.OmeNgffDataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
@@ -118,18 +118,18 @@ public class NgffTests {
 		}
 	}
 
-	public static OmeNgffV04MultiScaleMetadata parse(final N5Writer zarr, final String base) {
+	public static OmeNgffMultiScaleMetadata parse(final N5Writer zarr, final String base) {
 
 		final N5TreeNode root = N5DatasetDiscoverer.discover(zarr);
-		return (OmeNgffV04MultiScaleMetadata)root.getDescendant(base).map(n -> n.getMetadata()).orElse(null);
+		return (OmeNgffMultiScaleMetadata)root.getDescendant(base).map(n -> n.getMetadata()).orElse(null);
 	}
 
-	public static OmeNgffV04MultiScaleMetadata buildPermutedAxesMetadata(final int[] permutation, final DatasetAttributes dsetAttrs) {
+	public static OmeNgffMultiScaleMetadata buildPermutedAxesMetadata(final int[] permutation, final DatasetAttributes dsetAttrs) {
 
 		return buildPermutedAxesMetadata(permutation, true, dsetAttrs);
 	}
 
-	public static OmeNgffV04MultiScaleMetadata buildPermutedAxesMetadata(final int[] permutation, final boolean cOrder, final DatasetAttributes dsetAttrs) {
+	public static OmeNgffMultiScaleMetadata buildPermutedAxesMetadata(final int[] permutation, final boolean cOrder, final DatasetAttributes dsetAttrs) {
 
 		final HashMap<String,Double> axisResolution = new HashMap<>();
 		final HashMap<String, Double> axisTranslation = new HashMap<>();
@@ -159,13 +159,11 @@ public class NgffTests {
 		}
 
 		final int nd = axes.length;
-		return new OmeNgffV04MultiScaleMetadata(
+		return new OmeNgffMultiScaleMetadata(
 				nd, "", "test", "type", "0.4",
-				axes,
-				dsets,
+				axes, dsets, null,
 				new DatasetAttributes[] { dsetAttrs },
 				null, null);
-
 	}
 
 	public static CosemTransform buildPermutedAxesCosemMetadata(
@@ -218,8 +216,8 @@ public class NgffTests {
 
 		final DatasetAttributes dsetAttrs = zarr.getDatasetAttributes(dsetPath);
 
-		final OmeNgffV04MultiScaleMetadata meta = NgffTests.buildPermutedAxesMetadata(permutation, true, dsetAttrs);
-		zarr.setAttribute(base, "multiscales", new OmeNgffV04MultiScaleMetadata[]{meta});
+		final OmeNgffMultiScaleMetadata meta = NgffTests.buildPermutedAxesMetadata(permutation, true, dsetAttrs);
+		zarr.setAttribute(base, "multiscales", new OmeNgffMultiScaleMetadata[]{meta});
 	}
 
 	public static void createDataset(

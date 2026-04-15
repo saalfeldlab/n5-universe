@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,19 +6,15 @@ import java.util.List;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata.OmeNgffV04Dataset;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
 
 public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata {
 
-	private List<OmeNgffV04Dataset> datasets;
+	private List<OmeNgffDataset> datasets;
 
 	private List<DatasetAttributes> attributes;
 
 	private List<NgffSingleScaleAxesMetadata> children;
-
-//	private Axis[] axes;
 
 	private String path;
 
@@ -29,10 +25,7 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 	public OmeNgffMultiScaleMetadataMutable( final String path) {
 
-		super(-1, MetadataUtils.normalizeGroupPath(path), null, null, null, null, 
-//				new OmeNgffV04Dataset[]{}, 
-				new DatasetAttributes[]{}, null, null);
-
+		super(-1, "", null, null, null, null, null, null, null, null, null);
 		setPath( super.basePath );
 		datasets = new ArrayList<>();
 		attributes = new ArrayList<>();
@@ -57,7 +50,7 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 	public void addChild(final int idx, final NgffSingleScaleAxesMetadata child) {
 
-		final OmeNgffV04Dataset dset = new OmeNgffV04Dataset();
+		final OmeNgffDataset dset = new OmeNgffDataset();
 		// paths are relative to this object
 		dset.path = MetadataUtils.relativePath(getPath(), child.getPath());
 		dset.coordinateTransformations = child.getCoordinateTransformations();
@@ -97,8 +90,8 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 	}
 
 	@Override
-	public OmeNgffV04Dataset[] getDatasets() {
-		return datasets.toArray(new OmeNgffV04Dataset[0]);
+	public OmeNgffDataset[] getDatasets() {
+		return datasets.toArray(new OmeNgffDataset[0]);
 	}
 
 	@Override

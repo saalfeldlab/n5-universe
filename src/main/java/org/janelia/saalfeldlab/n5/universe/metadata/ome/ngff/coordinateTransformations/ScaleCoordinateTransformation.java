@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations;
 
 import net.imglib2.realtransform.Scale;
 import net.imglib2.realtransform.Scale2D;

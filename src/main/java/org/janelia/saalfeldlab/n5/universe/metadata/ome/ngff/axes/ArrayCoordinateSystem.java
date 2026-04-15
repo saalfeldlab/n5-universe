@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.axes;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes;
 
 import java.util.stream.IntStream;
 

@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations;
 
 import java.lang.reflect.Type;
 import java.util.Collections;

@@ -1,9 +1,9 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations;
 
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata.OmeNgffV04Dataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 
 import com.google.common.collect.Streams;
 
@@ -20,7 +20,7 @@ import net.imglib2.realtransform.Translation3D;
 
 public class TransformationUtils {
 
-	public static AffineGet tranformsToAffine(final OmeNgffV04Dataset dataset, final CoordinateTransformation<?>[] transforms )
+	public static AffineGet tranformsToAffine(final OmeNgffDataset dataset, final CoordinateTransformation<?>[] transforms )
 	{
 		Stream<CoordinateTransformation<?>> s = Stream.empty();
 		if( dataset.coordinateTransformations != null )

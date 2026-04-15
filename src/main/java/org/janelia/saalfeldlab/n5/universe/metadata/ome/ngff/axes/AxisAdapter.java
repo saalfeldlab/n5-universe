@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes;
 
 import java.lang.reflect.Type;
 

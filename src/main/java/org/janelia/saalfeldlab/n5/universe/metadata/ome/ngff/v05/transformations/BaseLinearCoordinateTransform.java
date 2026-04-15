@@ -1,7 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
