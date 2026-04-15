@@ -23,7 +23,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05;
 
 import java.util.Arrays;
 import java.util.stream.DoubleStream;
@@ -34,6 +34,8 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.NgffSingleScaleAxesMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata.OmeNgffV04Dataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TransformationUtils;
 
@@ -48,25 +50,25 @@ import net.imglib2.realtransform.AffineTransform3D;
  *
  * @author John Bogovic
  */
-public class OmeNgffV04MultiScaleMetadata extends OmeNgffMultiScaleMetadata {
+public class OmeNgffV05MultiScaleMetadata extends OmeNgffMultiScaleMetadata {
 
 	protected final CoordinateTransformation<?>[] coordinateTransformations;
 	protected final OmeNgffV04Dataset[] datasets;
 
-	public OmeNgffV04MultiScaleMetadata( final OmeNgffV04MultiScaleMetadata other, final NgffSingleScaleAxesMetadata[] children )
+	public OmeNgffV05MultiScaleMetadata( final OmeNgffV05MultiScaleMetadata other, final NgffSingleScaleAxesMetadata[] children )
 	{
 		super(other, children);
 		this.coordinateTransformations = other.coordinateTransformations;
 		this.datasets = other.datasets;
 	}
 
-	public OmeNgffV04MultiScaleMetadata(final int nd, final String path, final String name,
+	public OmeNgffV05MultiScaleMetadata(final int nd, final String path, final String name,
 			final String type, final Axis[] axes,
 			final OmeNgffV04Dataset[] datasets, final DatasetAttributes[] childrenAttributes,
 			final CoordinateTransformation<?>[] coordinateTransformations,
 			final OmeNgffDownsamplingMetadata metadata) {
 
-		super(nd, path, name, type, "0.4", axes,
+		super(nd, path, name, type, "0.5", axes,
 //				datasets, 
 				childrenAttributes, metadata,
 				buildMetadata(nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes));
@@ -85,13 +87,13 @@ public class OmeNgffV04MultiScaleMetadata extends OmeNgffMultiScaleMetadata {
 		this.childrenAttributes = childrenAttributes;
 	}
 
-//	public static NgffSingleScaleAxesMetadata[] buildMetadata( final int nd, final String path,
-//			final DatasetAttributes[] childrenAttributes,
-//			final OmeNgffV04MultiScaleMetadata multiscales) {
-//
-//		return buildMetadata(nd, path, multiscales.datasets, childrenAttributes, multiscales.coordinateTransformations, multiscales.metadata,
-//				multiscales.axes);
-//	}
+	public static NgffSingleScaleAxesMetadata[] buildMetadata( final int nd, final String path,
+			final DatasetAttributes[] childrenAttributes,
+			final OmeNgffV05MultiScaleMetadata multiscales) {
+
+		return buildMetadata(nd, path, multiscales.datasets, childrenAttributes, multiscales.coordinateTransformations, multiscales.metadata,
+				multiscales.axes);
+	}
 
 //	private static OmeNgffV04Dataset[] buildDatasets( final String path, final NgffSingleScaleAxesMetadata[] children) {
 //
@@ -109,8 +111,7 @@ public class OmeNgffV04MultiScaleMetadata extends OmeNgffMultiScaleMetadata {
 //		return datasets;
 //	}
 
-
-	protected static NgffSingleScaleAxesMetadata[] buildMetadata(
+	public static NgffSingleScaleAxesMetadata[] buildMetadata(
 			final int nd, final String path, final OmeNgffV04Dataset[] datasets,
 			final DatasetAttributes[] childrenAttributes,
 			final CoordinateTransformation<?>[] transforms,
@@ -147,21 +148,6 @@ public class OmeNgffV04MultiScaleMetadata extends OmeNgffMultiScaleMetadata {
 		return childrenMetadata;
 	}
 
-	public NgffSingleScaleAxesMetadata[] buildChildren( final int nd,
-			final DatasetAttributes[] datasetAttributes,
-			final CoordinateTransformation<?>[] coordinateTransformations,
-			final Axis[] axes)
-	{
-		return buildMetadata(nd, getPath(), datasets, datasetAttributes, coordinateTransformations, metadata, axes);
-	}
-	
-	public NgffSingleScaleAxesMetadata[] buildChildren()
-	{
-		return buildMetadata( axes.length, getPath(), datasets,
-				childrenAttributes, coordinateTransformations,
-				metadata, axes );
-	}
-
 	private static void offsetFromAffine(final AffineGet affine, final double[] offset) {
 
 		final int nd = affine.numTargetDimensions();
@@ -174,6 +160,14 @@ public class OmeNgffV04MultiScaleMetadata extends OmeNgffMultiScaleMetadata {
 		final int nd = affine.numTargetDimensions();
 		for (int i = 0; i < nd; i++)
 			scale[i] = affine.get(i, i);
+	}
+
+	public NgffSingleScaleAxesMetadata[] buildChildren( final int nd,
+			final DatasetAttributes[] datasetAttributes,
+			final CoordinateTransformation<?>[] coordinateTransformations,
+			final Axis[] axes)
+	{
+		return buildMetadata(nd, getPath(), datasets, datasetAttributes, coordinateTransformations, metadata, axes);
 	}
 
 	public N5SingleScaleMetadata buildChild( final int nd, final N5DatasetMetadata datasetMeta )
@@ -194,9 +188,9 @@ public class OmeNgffV04MultiScaleMetadata extends OmeNgffMultiScaleMetadata {
 
 	@Override
 	public OmeNgffV04Dataset[] getDatasets() {
-		return datasets;
+		return this.datasets;
 	}
-	
+
 	@Override
 	public CoordinateTransformation<?>[] getCoordinateTransformations() {
 		return coordinateTransformations;
@@ -206,18 +200,5 @@ public class OmeNgffV04MultiScaleMetadata extends OmeNgffMultiScaleMetadata {
 	public String[] getPaths() {
 		return Arrays.stream( datasets ).map( x -> { return x.path; }).toArray( String[]::new );
 	}
-
-	public static class OmeNgffV04Dataset implements OmeNgffDataset
-	{
-		public String path;
-		public CoordinateTransformation<?>[] coordinateTransformations;
-
-		@Override
-		public String getPath() {
-			return path;
-		}
-	}
-
-
 
 }

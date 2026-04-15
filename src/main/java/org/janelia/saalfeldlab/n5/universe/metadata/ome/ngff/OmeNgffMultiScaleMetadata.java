@@ -46,13 +46,13 @@ import com.google.gson.JsonObject;
 
 import net.imglib2.realtransform.AffineTransform3D;
 
-public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAxesMetadata> {
+public abstract class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAxesMetadata> {
 
 	public final String name;
 	public final String type;
 	public final String version;
 	public final Axis[] axes;
-	public final OmeNgffDataset[] datasets;
+//	public final OmeNgffDataset[] datasets;
 	public final OmeNgffDownsamplingMetadata metadata;
 
 	public transient DatasetAttributes[] childrenAttributes;
@@ -65,8 +65,8 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		this.version = other.version;
 		this.axes = other.axes;
 
-		final OmeNgffDataset[] dset = buildDatasets( other.getPath(), getChildrenMetadata() );
-		this.datasets = dset != null ? dset : other.datasets;
+//		final OmeNgffDataset[] dset = other.datasets;
+//		this.datasets = dset != null ? dset : other.datasets;
 
 		this.metadata = other.metadata;
 		this.childrenAttributes = other.childrenAttributes;
@@ -74,19 +74,10 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 	public OmeNgffMultiScaleMetadata(final int nd, final String path, final String name,
 			final String type, final String version, final Axis[] axes,
-			final OmeNgffDataset[] datasets, final DatasetAttributes[] childrenAttributes,
+//			final OmeNgffDataset[] datasets, 
+			final DatasetAttributes[] childrenAttributes,
 			final OmeNgffDownsamplingMetadata metadata,
 			final NgffSingleScaleAxesMetadata[] childrenMetadata) {
-
-		this(nd, path, name, type, version, axes, datasets, childrenAttributes, metadata, childrenMetadata, true);
-	}
-
-	public OmeNgffMultiScaleMetadata(final int nd, final String path, final String name,
-			final String type, final String version, final Axis[] axes,
-			final OmeNgffDataset[] datasets, final DatasetAttributes[] childrenAttributes,
-			final OmeNgffDownsamplingMetadata metadata,
-			final NgffSingleScaleAxesMetadata[] childrenMetadata,
-			final boolean buildDatasetsFromChildren) {
 
 		super( MetadataUtils.normalizeGroupPath(path), childrenMetadata);
 
@@ -94,33 +85,9 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		this.type = type;
 		this.version = version;
 		this.axes = axes;
-
-		if( buildDatasetsFromChildren )
-		{
-			final OmeNgffDataset[] dset = buildDatasets( getPath(), getChildrenMetadata() );
-			this.datasets = dset != null ? dset : datasets;
-		}
-		else
-			this.datasets = datasets;
-
+//		this.datasets = datasets;
 		this.metadata = metadata;
 		this.childrenAttributes = childrenAttributes;
-	}
-
-	private static OmeNgffDataset[] buildDatasets( final String path, final NgffSingleScaleAxesMetadata[] children) {
-
-		if( children == null )
-			return null;
-
-		final OmeNgffDataset[] datasets = new OmeNgffDataset[ children.length ];
-		for( int i = 0; i < children.length; i++ )
-		{
-			datasets[i] = new OmeNgffDataset();
-			datasets[i].path = MetadataUtils.relativePath(path, children[i].getPath());
-			datasets[i].coordinateTransformations = children[i].getCoordinateTransformations();
-
-		}
-		return datasets;
 	}
 
 	public Axis[] getAxes() {
@@ -144,10 +111,11 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		return childrenMetadata;
 	}
 
-	@Override
-	public String[] getPaths() {
-		return Arrays.stream( datasets ).map( x -> { return x.path; }).toArray( String[]::new );
-	}
+	public abstract NgffSingleScaleAxesMetadata[] buildChildren();
+
+	public abstract String[] getPaths();
+
+	public abstract CoordinateTransformation<?>[] getCoordinateTransformations();
 
 	public String[] getCanonicalPaths() {
 
@@ -178,19 +146,13 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		return Arrays.stream( axes ).map( x -> x.getUnit() ).toArray( String[]::new );
 	}
 
-	public OmeNgffDataset[] getDatasets()
-	{
-		return datasets;
+	public abstract OmeNgffDataset[] getDatasets();
+	
+	public static interface OmeNgffDataset {
+		public String getPath();
 	}
 
-	public static class OmeNgffDataset
-	{
-		public String path;
-		public CoordinateTransformation<?>[] coordinateTransformations;
-	}
-
-	public static class OmeNgffDownsamplingMetadata
-	{
+	public static class OmeNgffDownsamplingMetadata {
 		public int order;
 		public boolean preserve_range;
 		public double[] scale;

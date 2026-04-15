@@ -6,16 +6,19 @@ import java.util.List;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata.OmeNgffV04Dataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 
-public class OmeNgffMultiScaleMetadataMutable extends OmeNgffV04MultiScaleMetadata {
+public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata {
 
-	private List<OmeNgffDataset> datasets;
+	private List<OmeNgffV04Dataset> datasets;
 
 	private List<DatasetAttributes> attributes;
 
 	private List<NgffSingleScaleAxesMetadata> children;
 
-	private Axis[] axes;
+//	private Axis[] axes;
 
 	private String path;
 
@@ -26,7 +29,9 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffV04MultiScaleMetada
 
 	public OmeNgffMultiScaleMetadataMutable( final String path) {
 
-		super(-1, MetadataUtils.normalizeGroupPath(path), null, null, null, null, new OmeNgffDataset[]{}, new DatasetAttributes[]{}, null, null, false);
+		super(-1, MetadataUtils.normalizeGroupPath(path), null, null, null, null, 
+//				new OmeNgffV04Dataset[]{}, 
+				new DatasetAttributes[]{}, null, null);
 
 		setPath( super.basePath );
 		datasets = new ArrayList<>();
@@ -52,7 +57,7 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffV04MultiScaleMetada
 
 	public void addChild(final int idx, final NgffSingleScaleAxesMetadata child) {
 
-		final OmeNgffDataset dset = new OmeNgffDataset();
+		final OmeNgffV04Dataset dset = new OmeNgffV04Dataset();
 		// paths are relative to this object
 		dset.path = MetadataUtils.relativePath(getPath(), child.getPath());
 		dset.coordinateTransformations = child.getCoordinateTransformations();
@@ -85,11 +90,20 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffV04MultiScaleMetada
 
 		return children.toArray(new NgffSingleScaleAxesMetadata[children.size()]);
 	}
+	
+	@Override
+	public String[] getPaths() {
+		return datasets.stream().map( x -> { return x.path; }).toArray( String[]::new );
+	}
 
 	@Override
-	public OmeNgffDataset[] getDatasets()
-	{
-		return datasets.toArray(new OmeNgffDataset[datasets.size()]);
+	public OmeNgffV04Dataset[] getDatasets() {
+		return datasets.toArray(new OmeNgffV04Dataset[0]);
+	}
+
+	@Override
+	public CoordinateTransformation<?>[] getCoordinateTransformations() {
+		return null;
 	}
 
 	@Override

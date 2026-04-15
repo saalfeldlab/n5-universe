@@ -16,10 +16,8 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.AxisAdapter;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.DatasetAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.NgffSingleScaleAxesMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformationAdapter;
 
@@ -49,7 +47,7 @@ public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Meta
 
 		return new GsonBuilder()
 				.registerTypeAdapter(CoordinateTransformation.class, new CoordinateTransformationAdapter())
-				.registerTypeAdapter(OmeNgffDataset.class, new DatasetAdapter())
+//				.registerTypeAdapter(OmeNgffDataset.class, new DatasetAdapter())
 				.registerTypeAdapter(Axis.class, new AxisAdapter())
 				.registerTypeAdapter(OmeNgffV04MultiScaleMetadata.class, new MultiscalesAdapter());
 	}
@@ -158,7 +156,7 @@ public class OmeNgffV05MetadataParser implements N5MetadataParser<OmeNgffV05Meta
 	@Override
 	public void writeMetadata(final OmeNgffV05Metadata t, final N5Writer n5, final String groupPath) throws Exception {
 
-		final OmeNgffV04MultiScaleMetadata[] ms = t.multiscales;
+		final OmeNgffV05MultiScaleMetadata[] ms = t.multiscales;
 		final JsonElement jsonElem = gson.toJsonTree(ms);
 
 		// need to reverse axes

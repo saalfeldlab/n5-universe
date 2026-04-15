@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,8 +14,16 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v03.NgffV03SingleScaleAxesMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v03.OmeNgffV03MultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.AxisAdapter;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.NgffSingleScaleAxesMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffV04MultiScaleMetadata.OmeNgffV04Dataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformationAdapter;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.OmeNgffV05MultiScaleMetadata;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -44,16 +52,16 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		return new GsonBuilder()
 				.registerTypeAdapter(CoordinateTransformation.class, new CoordinateTransformationAdapter())
 				.registerTypeAdapter(Axis.class, new AxisAdapter())
-				.registerTypeAdapter(OmeNgffV04MultiScaleMetadata.class, new MultiscalesAdapter());
+				.registerTypeAdapter(OmeNgffMultiScaleMetadata.class, new MultiscalesAdapter());
 	}
 
 	@Override
 	public Optional<OmeNgffMetadata> parseMetadata(final N5Reader n5, final N5TreeNode node) {
 
-		OmeNgffV04MultiScaleMetadata[] multiscales;
+		OmeNgffMultiScaleMetadata[] multiscales;
 		try {
 			final JsonElement base = n5.getAttribute(node.getPath(), "multiscales", JsonElement.class);
-			multiscales = gson.fromJson(base, OmeNgffV04MultiScaleMetadata[].class);
+			multiscales = gson.fromJson(base, OmeNgffMultiScaleMetadata[].class);
 		} catch (final Exception e) {
 			return Optional.empty();
 		}
@@ -70,11 +78,11 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 			for (int j = 0; j < multiscales.length; j++) {
 
-				final OmeNgffV04MultiScaleMetadata ms = multiscales[j];
+				final OmeNgffMultiScaleMetadata ms = multiscales[j];
 
 				nd = ms.getAxes().length;
 
-				final int numScales = ms.datasets.length;
+				final int numScales = ms.getDatasets().length;
 				attrs = new DatasetAttributes[numScales];
 				for (int i = 0; i < numScales; i++) {
 
@@ -90,7 +98,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 				}
 
 				final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffV04MultiScaleMetadata.buildMetadata(nd,
-						node.getPath(), ms.datasets, attrs, ms.coordinateTransformations, ms.metadata, ms.axes);
+						node.getPath(), ms.getDatasets(), attrs, ms.getCoordinateTransformations(), ms.metadata, ms.axes);
 
 				// add to scale level nodes map
 				node.childrenList().forEach(n -> {
@@ -130,22 +138,57 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		 */
 		for (int j = 0; j < multiscales.length; j++) {
 
-			final OmeNgffV04MultiScaleMetadata ms = multiscales[j];
+			final OmeNgffMultiScaleMetadata ms = multiscales[j];
 
-			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffV04MultiScaleMetadata.buildMetadata(
-					nd, node.getPath(), ms.datasets, attrs, ms.coordinateTransformations, ms.metadata, ms.axes);
+//			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffV04MultiScaleMetadata.buildMetadata(
+//					nd, node.getPath(), ms.getDatasets(), attrs, ms.getCoordinateTransformations(), ms.metadata, ms.axes);
+			final NgffSingleScaleAxesMetadata[] msChildrenMeta = makeChildren( ms,
+					nd, node.getPath(), ms.getDatasets(), attrs, ms.getCoordinateTransformations(), ms.metadata, ms.axes);
 
 			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta, false);
-			multiscales[j] = new OmeNgffV04MultiScaleMetadata(ms, msChildrenMeta);
+			multiscales[j] = makeMultiscales(ms, msChildrenMeta);
 		}
 
 		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales));
+	}
+	
+	private NgffSingleScaleAxesMetadata[]  makeChildren(OmeNgffMultiScaleMetadata ms,
+			final int nd, final String path, final OmeNgffV04Dataset[] datasets,
+			final DatasetAttributes[] childrenAttributes,
+			final CoordinateTransformation<?>[] transforms,
+			final OmeNgffDownsamplingMetadata metadata,
+			final Axis[] axes )  {
+		
+		switch( ms.version ) {
+		case "0.3":
+			return new OmeNgffV03MultiScaleMetadata((OmeNgffV03MultiScaleMetadata)ms, msChildrenMeta);
+		case "0.4":
+			return ms.buildChildren();
+		case "0.5":
+			return new OmeNgffV05MultiScaleMetadata((OmeNgffV05MultiScaleMetadata)ms, msChildrenMeta);
+		default:
+			return null;
+		}
+	}
+
+	private OmeNgffMultiScaleMetadata makeMultiscales(OmeNgffMultiScaleMetadata ms, NgffSingleScaleAxesMetadata[] msChildrenMeta )  {
+		
+		switch( ms.version ) {
+		case "0.3":
+			return new OmeNgffV03MultiScaleMetadata((OmeNgffV03MultiScaleMetadata)ms, msChildrenMeta);
+		case "0.4":
+			return new OmeNgffV04MultiScaleMetadata((OmeNgffV04MultiScaleMetadata)ms, msChildrenMeta);
+		case "0.5":
+			return new OmeNgffV05MultiScaleMetadata((OmeNgffV05MultiScaleMetadata)ms, msChildrenMeta);
+		default:
+			return null;
+		}
 	}
 
 	@Override
 	public void writeMetadata(final OmeNgffMetadata t, final N5Writer n5, final String groupPath) throws Exception {
 
-		final OmeNgffV04MultiScaleMetadata[] ms = t.multiscales;
+		final OmeNgffMultiScaleMetadata[] ms = t.multiscales;
 		final JsonElement jsonElem = gson.toJsonTree(ms);
 
 		// need to reverse axes
