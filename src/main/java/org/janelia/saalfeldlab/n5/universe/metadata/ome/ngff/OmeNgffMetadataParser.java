@@ -52,10 +52,10 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 				.registerTypeAdapter(OmeNgffMultiScaleMetadata.class, new MultiscalesAdapter());
 	}
 	
-	private static JsonObject getMultiscalesObject(JsonObject obj) {
+	private static JsonElement getMultiscales(JsonObject obj) {
 
 		if (obj.has(MS))
-			return obj.get(MS).getAsJsonObject();
+			return obj.get(MS);
 		else
 			return null;
 	}
@@ -65,19 +65,20 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 		final JsonObject base = n5.getAttribute(node.getPath(), "", JsonElement.class).getAsJsonObject();
 
-		final JsonObject msBase;
+		final JsonElement msBase;
 		if( base.has(OME)) // check v0.5
-			msBase = getMultiscalesObject(base.get(OME).getAsJsonObject());
+			msBase = getMultiscales(base.get(OME).getAsJsonObject());
 		else 
-			msBase = getMultiscalesObject(base);
+			msBase = getMultiscales(base);
 
 		if (msBase == null)
 			return Optional.empty();
 
 		OmeNgffMultiScaleMetadata[] multiscales;
 		try {
-			multiscales = gson.fromJson(base, OmeNgffMultiScaleMetadata[].class);
+			multiscales = gson.fromJson(msBase, OmeNgffMultiScaleMetadata[].class);
 		} catch (final Exception e) {
+			e.printStackTrace();
 			return Optional.empty();
 		}
 
@@ -94,7 +95,6 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			for (int j = 0; j < multiscales.length; j++) {
 
 				final OmeNgffMultiScaleMetadata ms = multiscales[j];
-
 				nd = ms.getAxes().length;
 
 				final int numScales = ms.getDatasets().length;

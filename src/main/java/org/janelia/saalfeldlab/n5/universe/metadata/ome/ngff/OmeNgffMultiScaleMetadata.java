@@ -81,16 +81,48 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final OmeNgffDataset[] datasets, 
 			final CoordinateTransformation<?>[] coordinateTransformations,
 			final DatasetAttributes[] childrenAttributes,
-			final OmeNgffDownsamplingMetadata metadata,
-			final NgffSingleScaleAxesMetadata[] childrenMetadata) {
+			final OmeNgffDownsamplingMetadata metadata) {
 
-		super( MetadataUtils.normalizeGroupPath(path), childrenMetadata);
+		super( MetadataUtils.normalizeGroupPath(path), 
+				buildMetadata(nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes));
+		
+		if (datasets != null) {
+			this.datasets = datasets;
+		} else {
+			final OmeNgffDataset[] dset = buildDatasets(getPath(), getChildrenMetadata());
+			this.datasets = dset != null ? dset : datasets;
+		}
 
 		this.name = name;
 		this.type = type;
 		this.version = version;
 		this.axes = axes;
-		this.datasets = datasets;
+		this.coordinateTransformations = coordinateTransformations;
+		this.metadata = metadata;
+		this.childrenAttributes = childrenAttributes;
+	}
+	
+	public OmeNgffMultiScaleMetadata(final int nd, final String path, final String name,
+			final String type, final String version, final Axis[] axes,
+			final OmeNgffDataset[] datasets, 
+			final CoordinateTransformation<?>[] coordinateTransformations,
+			final DatasetAttributes[] childrenAttributes,
+			final OmeNgffDownsamplingMetadata metadata,
+			final NgffSingleScaleAxesMetadata[] childrenMetadata) {
+
+		super( MetadataUtils.normalizeGroupPath(path), childrenMetadata);
+		
+		if (datasets != null) {
+			this.datasets = datasets;
+		} else {
+			final OmeNgffDataset[] dset = buildDatasets(getPath(), getChildrenMetadata());
+			this.datasets = dset != null ? dset : datasets;
+		}
+
+		this.name = name;
+		this.type = type;
+		this.version = version;
+		this.axes = axes;
 		this.coordinateTransformations = coordinateTransformations;
 		this.metadata = metadata;
 		this.childrenAttributes = childrenAttributes;
@@ -115,6 +147,22 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 		final N5SingleScaleMetadata childrenMetadata = new N5SingleScaleMetadata( getPath(), id, factors, pixelRes, offset, "pixel", datasetMeta.getAttributes() );
 		return childrenMetadata;
+	}
+	
+	private static OmeNgffDataset[] buildDatasets( final String path, final NgffSingleScaleAxesMetadata[] children) {
+
+		if( children == null )
+			return null;
+
+		final OmeNgffDataset[] datasets = new OmeNgffDataset[ children.length ];
+		for( int i = 0; i < children.length; i++ )
+		{
+			datasets[i] = new OmeNgffDataset();
+			datasets[i].path = MetadataUtils.relativePath(path, children[i].getPath());
+			datasets[i].coordinateTransformations = children[i].getCoordinateTransformations();
+
+		}
+		return datasets;
 	}
 	
 	public static NgffSingleScaleAxesMetadata[] buildMetadata( final int nd, final String path,

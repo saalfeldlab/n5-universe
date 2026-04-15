@@ -4,6 +4,7 @@ import java.lang.reflect.Type;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
@@ -23,12 +24,25 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 	
 	protected Axis[] deserializeAxes( final JsonObject jobj, final JsonDeserializationContext context ) throws JsonParseException
 	{
+		final JsonElement elem = jobj.get("axes");
+		if( !elem.isJsonArray())
+			return null;
+
+		final JsonArray arr = elem.getAsJsonArray();
+		if( arr.size() == 0 ) 
+			return null;
+
+		// v0.3 uses string labels for axes
+		if ( arr.get(0).isJsonPrimitive())
+			return AxisUtils.defaultAxes(context.deserialize(jobj.get("axes"), String[].class));
+
+		// newer versions use structures
 		return context.deserialize(jobj.get("axes"), Axis[].class);	
 	}
 	
 	protected OmeNgffDataset[] deserializeDatasets( final JsonObject jobj, final JsonDeserializationContext context ) throws JsonParseException
 	{
-		return context.deserialize(jobj.get("axes"), OmeNgffDataset[].class);	
+		return context.deserialize(jobj.get("datasets"), OmeNgffDataset[].class);	
 	}
 	
 	@Override
@@ -63,7 +77,7 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 
 			return new OmeNgffMultiScaleMetadata(nd, "", 
 					name, type, version, axesInReverseOrder, datasets,
-					coordinateTransformations, null, metadata, null);
+					coordinateTransformations, null, metadata);
 
 //		}
 //		else if (version.equals("0.4")) {

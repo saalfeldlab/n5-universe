@@ -25,7 +25,7 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 	public OmeNgffMultiScaleMetadataMutable( final String path) {
 
-		super(-1, "", null, null, null, null, null, null, null, null, null);
+		super(-1, "", null, null, null, null, new OmeNgffDataset[0], null, null, null);
 		setPath( super.basePath );
 		datasets = new ArrayList<>();
 		attributes = new ArrayList<>();
