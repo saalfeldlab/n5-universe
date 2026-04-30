@@ -25,7 +25,9 @@
  */
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.stream.DoubleStream;
 
@@ -87,7 +89,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 				buildMetadata(nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes));
 		
 		if (datasets != null) {
-			this.datasets = datasets;
+			this.datasets = relativizeDatasets(path, datasets);
 		} else {
 			final OmeNgffDataset[] dset = buildDatasets(getPath(), getChildrenMetadata());
 			this.datasets = dset != null ? dset : datasets;
@@ -113,7 +115,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		super( MetadataUtils.normalizeGroupPath(path), childrenMetadata);
 		
 		if (datasets != null) {
-			this.datasets = datasets;
+			this.datasets = relativizeDatasets(path, datasets);
 		} else {
 			final OmeNgffDataset[] dset = buildDatasets(getPath(), getChildrenMetadata());
 			this.datasets = dset != null ? dset : datasets;
@@ -126,6 +128,22 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		this.coordinateTransformations = coordinateTransformations;
 		this.metadata = metadata;
 		this.childrenAttributes = childrenAttributes;
+	}
+	
+	private OmeNgffDataset[] relativizeDatasets(final String path, OmeNgffDataset[] datasets) {
+
+		final URI bu = URI.create(path);
+		final OmeNgffDataset[] dsetsOut = new OmeNgffDataset[datasets.length];
+		for (int i = 0; i < datasets.length; i++) {
+
+			final OmeNgffDataset dset = datasets[i];
+			final URI du = URI.create(dset.path);
+			final OmeNgffDataset relDset = new OmeNgffDataset();
+			relDset.path = bu.relativize(du).toString();
+			relDset.coordinateTransformations = dset.coordinateTransformations;
+			dsetsOut[i] = relDset;
+		}
+		return dsetsOut;
 	}
 
 	public Axis[] getAxes() {

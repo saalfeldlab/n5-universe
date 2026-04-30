@@ -2,8 +2,13 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.view.Views;
@@ -19,58 +24,58 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 		this.multiscales = multiscales;
 	}
 
-//	/**
-//	 * Creates an OmeNgffMetadata object for writing.
-//	 * See {@link AxisUtils#defaultAxes(String...)} for convenient creation of axes.
-//	 *
-//	 * @param numDimensions number of dimensions
-//	 * @param name a name for this dataset
-//	 * @param axes an array of axes (length numDimensions)
-//	 * @param scalePaths relative paths to children containing scale level arrays
-//	 * @param scales array of absolute resolutions. size: [numScales][numDimensions]
-//	 * @param translations array of translations. size: [numScales][numDimensions]. May be null.
-//	 * @return OmeNgffMetadata
-//	 */
-//	public static OmeNgffMetadata buildForWriting( final int numDimensions,
-//			final String name,
-//			final Axis[] axes,
-//			final String[] scalePaths,
-//			final double[][] scales,
-//			final double[][] translations) {
-//
-//		// TODO make this a constructor? (yes, says Caleb, and John)
-//
-//		assert scalePaths.length == scales.length;
-//
-//		if( translations != null )
-//			assert scalePaths.length == translations.length;
-//
-//		final int numScales = scalePaths.length;
-//		final String version = "0.4";
-//		final String type = "";
-//		final OmeNgffV04Dataset[] datasets = new OmeNgffV04Dataset[numScales];
-//		for( int i = 0; i < numScales; i++ ) {
-//
-//			final ScaleCoordinateTransformation s = new ScaleCoordinateTransformation(scales[i]);
-//			TranslationCoordinateTransformation t = null;
-//			if( translations != null && translations[i] != null )
-//				t = new TranslationCoordinateTransformation(translations[i]);
-//
-//			datasets[i] = new OmeNgffV04Dataset();
-//			datasets[i].path = scalePaths[i];
-//			datasets[i].coordinateTransformations = t == null ?
-//					new CoordinateTransformation[]{ s } :
-//					new CoordinateTransformation[]{ s, t };
-//		}
-//
-//		final CoordinateTransformation<?>[] cts = null;
-//		final OmeNgffV04MultiScaleMetadata ms = new OmeNgffV04MultiScaleMetadata(
-//				numDimensions, "", name, type, axes,
-//				datasets, null, cts, null);
-//
-//
-//		return new OmeNgffMetadata("", new OmeNgffV04MultiScaleMetadata[]{ ms });
-//	}
+	/**
+	 * Creates an OmeNgffMetadata object for writing.
+	 * See {@link AxisUtils#defaultAxes(String...)} for convenient creation of axes.
+	 *
+	 * @param numDimensions number of dimensions
+	 * @param name a name for this dataset
+	 * @param axes an array of axes (length numDimensions)
+	 * @param scalePaths relative paths to children containing scale level arrays
+	 * @param scales array of absolute resolutions. size: [numScales][numDimensions]
+	 * @param translations array of translations. size: [numScales][numDimensions]. May be null.
+	 * @return OmeNgffMetadata
+	 */
+	public static OmeNgffMetadata buildForWriting( final int numDimensions,
+			final String name,
+			final Axis[] axes,
+			final String[] scalePaths,
+			final double[][] scales,
+			final double[][] translations) {
+
+		// TODO make this a constructor? (yes, says Caleb, and John)
+
+		assert scalePaths.length == scales.length;
+
+		if( translations != null )
+			assert scalePaths.length == translations.length;
+
+		final int numScales = scalePaths.length;
+		final String version = "0.4";
+		final String type = "";
+		final OmeNgffDataset[] datasets = new OmeNgffDataset[numScales];
+		for( int i = 0; i < numScales; i++ ) {
+
+			final ScaleCoordinateTransformation s = new ScaleCoordinateTransformation(scales[i]);
+			TranslationCoordinateTransformation t = null;
+			if( translations != null && translations[i] != null )
+				t = new TranslationCoordinateTransformation(translations[i]);
+
+			datasets[i] = new OmeNgffDataset();
+			datasets[i].path = scalePaths[i];
+			datasets[i].coordinateTransformations = t == null ?
+					new CoordinateTransformation[]{ s } :
+					new CoordinateTransformation[]{ s, t };
+		}
+
+		final CoordinateTransformation<?>[] cts = null;
+		final OmeNgffMultiScaleMetadata ms = new OmeNgffMultiScaleMetadata(
+				numDimensions, "", name, type, version, axes,
+				datasets, cts, null, null);
+
+
+		return new OmeNgffMetadata("", new OmeNgffMultiScaleMetadata[]{ ms });
+	}
 
 	public static <T, M extends AxisMetadata & N5Metadata> RandomAccessibleInterval<T> permuteForNgff(
 			final RandomAccessibleInterval<T> img,

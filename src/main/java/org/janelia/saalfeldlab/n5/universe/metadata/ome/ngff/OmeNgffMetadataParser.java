@@ -141,6 +141,8 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 				attrs = new DatasetAttributes[ms.getPaths().length];
 				final N5DatasetMetadata[] dsetMeta = new N5DatasetMetadata[paths.length];
 				for (int i = 0; i < paths.length; i++) {
+					final String canPath = MetadataUtils.canonicalPath(node, paths[i]);
+//					dsetMeta[i] = ((N5DatasetMetadata)scaleLevelNodes.get(MetadataUtils.canonicalPath(node, paths[i])).getMetadata());
 					dsetMeta[i] = ((N5DatasetMetadata)scaleLevelNodes.get(MetadataUtils.canonicalPath(node, paths[i])).getMetadata());
 					attrs[i] = dsetMeta[i].getAttributes();
 				}
