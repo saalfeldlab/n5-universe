@@ -161,10 +161,13 @@ public class NgffTests {
 		final int nd = axes.length;
 		return new OmeNgffMultiScaleMetadata(
 				nd, "", "test", "type", "0.4",
-				axes, dsets, null,
-				new DatasetAttributes[] { dsetAttrs },
-				null, null);
+				axes, dsets,
+				null, // coordinate transformations
+				new DatasetAttributes[]{dsetAttrs},
+				null, // metadata
+				new NgffSingleScaleAxesMetadata[]{s0Meta});
 	}
+	
 
 	public static CosemTransform buildPermutedAxesCosemMetadata(
 			final int[] permutation, final boolean cOrder, final DatasetAttributes dsetAttrs) {
