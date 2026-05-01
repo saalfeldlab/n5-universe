@@ -36,20 +36,16 @@ import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Exception.N5IOException;
-import org.janelia.saalfeldlab.n5.N5KeyValueReader;
-import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
+import org.janelia.saalfeldlab.n5.universe.options.*;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
-import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
-import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
-import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
@@ -76,64 +72,102 @@ import static org.janelia.saalfeldlab.n5.universe.StorageFormat.*;
  * @author John Bogovic
  * @author Igor Pisarev
  */
+@SuppressWarnings("UnusedReturnValue")
 public class N5Factory implements Serializable {
 
 	static final N5Factory FACTORY = new N5Factory();
+    private N5FactoryOptions options = new N5FactoryOptions();
 
 	private static final long serialVersionUID = -6823715427289454617L;
 	final static Pattern HTTPS_SCHEME = Pattern.compile("http(s)?", Pattern.CASE_INSENSITIVE);
 	final static Pattern FILE_SCHEME = Pattern.compile("file", Pattern.CASE_INSENSITIVE);
-	private int[] hdf5DefaultBlockSize = {64, 64, 64, 1, 1};
-	private boolean hdf5OverrideBlockSize = false;
-	private GsonBuilder gsonBuilder = new GsonBuilder();
-	private boolean cacheAttributes = true;
-	private String zarrDimensionSeparator = ".";
-	private boolean zarrMapN5DatasetAttributes = true;
-	private boolean zarrMergeAttributes = true;
 	private String googleCloudProjectId = null;
 	private StorageFormat preferredStorageFormat = null;
 	private Consumer<S3ClientBuilder> s3BuilderConfig;
 	private Consumer<StorageOptions.Builder> gcsBuilderConfig;
 
+    public N5FactoryOptions getOptions() {
+
+        return options;
+    }
+
+    public void setOptions(N5FactoryOptions options) {
+        this.options = options;
+    }
+
+    /**
+     * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#hdf5(Consumer)}
+     */
 	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
 
-		hdf5DefaultBlockSize = blockSize;
+        getOptions().hdf5(opts -> opts.defaultBlockSize(blockSize));
 		return this;
 	}
 
+    /**
+     * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#hdf5(Consumer)}
+     */
 	public N5Factory hdf5OverrideBlockSize(final boolean override) {
 
-		hdf5OverrideBlockSize = override;
+        getOptions().hdf5(opts -> opts.overrideBlockSize(override));
 		return this;
 	}
 
+    /**
+     * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#gsonBuilder(GsonBuilder)}
+     */
 	public N5Factory gsonBuilder(final GsonBuilder gsonBuilder) {
 
-		this.gsonBuilder = gsonBuilder;
+        options.gsonBuilder(gsonBuilder);
 		return this;
 	}
 
+    /**
+     * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#cacheAttributes(boolean)}
+     */
 	public N5Factory cacheAttributes(final boolean cacheAttributes) {
 
-		this.cacheAttributes = cacheAttributes;
+        options.cacheAttributes(cacheAttributes);
 		return this;
 	}
 
+
+    /**
+     * Deprecated method to set dimensions separator for zarr 2 writers.
+     *
+     * @param separator to use for Zarr2 dimension separator
+     * @deprecated configure with {@link N5Factory#getOptions()}, {@link N5FactoryOptions#zarr2(Consumer)}, {@link Zarr2Builder#dimensionSeparator(String)}
+     */
 	public N5Factory zarrDimensionSeparator(final String separator) {
 
-		zarrDimensionSeparator = separator;
+        getOptions().zarr2(options -> options.dimensionSeparator(separator));
 		return this;
 	}
 
+    /**
+     * Value to set for the [mapN5DatasetAttributes] parameter of ZarrKeyValueReader.
+     * NOTE: this is only used for Zarr2 readers, not Zarr3
+     *
+     * @param mapAttributes see {@link ZarrKeyValueReader#getAttributes(String)}
+     * @deprecated configure with {@link N5Factory#getOptions()}, {@link N5FactoryOptions#zarr2(Consumer)}, {@link Zarr2Builder#mapN5DatasetAttributes(boolean)}
+	 */
 	public N5Factory zarrMapN5Attributes(final boolean mapAttributes) {
 
-		zarrMapN5DatasetAttributes = mapAttributes;
+        getOptions().zarr2(options -> options.mapN5DatasetAttributes(mapAttributes));
 		return this;
 	}
 
+
+    /**
+     * Value to set for the [mergeAttributes] parameter of ZarrKeyValueReader.
+     * NOTE: this is only used for Zarr2 readers, not Zarr3
+     *
+     * @param mergeAttributes see {@link ZarrKeyValueReader#getAttributes(String)}
+	 * @deprecated configure with {@link N5Factory#getOptions()}, {@link N5FactoryOptions#zarr2(Consumer)}, {@link Zarr2Builder#mergeAttributes(boolean)}
+	 */
 	public N5Factory zarrMergeAttributes(final boolean mergeAttributes) {
 
-		zarrMergeAttributes = mergeAttributes;
+        getOptions().zarr2(options -> options.mergeAttributes(mergeAttributes));
 		return this;
 	}
 
@@ -274,12 +308,10 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param uri uri to the google cloud object
 	 * @return the N5Reader
-	 * @throws URISyntaxException if uri is malformed
-	 *
 	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
 	 */
 	@Deprecated
-	public N5Reader openGoogleCloudReader(final String uri) throws URISyntaxException {
+	public N5Reader openGoogleCloudReader(final String uri) {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.GOOGLE_CLOUD, uri, true, this::openReader);
 	}
@@ -289,12 +321,10 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param uri uri to the amazon s3 object
 	 * @return the N5Reader
-	 * @throws URISyntaxException if uri is malformed
-	 *
 	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
 	 */
 	@Deprecated
-	public N5Reader openAWSS3Reader(final String uri) throws URISyntaxException {
+	public N5Reader openAWSS3Reader(final String uri) {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.AWS, uri, true, this::openReader);
 	}
@@ -304,12 +334,10 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param uri uri to the N5Reader
 	 * @return the N5Reader
-	 * @throws URISyntaxException if uri is malformed
-	 *
 	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
 	 */
 	@Deprecated
-	public N5Reader openFileSystemReader(final String uri) throws URISyntaxException {
+	public N5Reader openFileSystemReader(final String uri) {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.FILE, uri, true, this::openReader);
 	}
@@ -428,19 +456,20 @@ public class N5Factory implements Serializable {
 		} else {
 
 			final String containerPath = location.toString();
+
 			switch (storage) {
-			case N5:
-				return new N5KeyValueReader(access, containerPath, gsonBuilder, cacheAttributes);
-			case ZARR3:
-				return new ZarrV3KeyValueReader(access,containerPath, gsonBuilder, cacheAttributes);
-			case ZARR2:
-				return new ZarrKeyValueReader(access, containerPath, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, cacheAttributes);
-			case ZARR:
-				return newGenericZarrReader(access, location);
-			case HDF5:
-				return new N5HDF5Reader(containerPath, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
-			}
-			return null;
+                case HDF5:
+                    return getOptions().getHdf5Builder().buildReader(containerPath);
+                case N5:
+                    return getOptions().getN5Builder().buildReader(access, containerPath);
+                case ZARR3:
+                    return getOptions().getZarr3Builder().buildReader(access, containerPath);
+                case ZARR2:
+                    return getOptions().getZarr2Builder().buildReader(access, containerPath);
+                case ZARR:
+                    return newGenericZarrReader(access, location);
+            }
+            return null;
 		}
 	}
 
@@ -523,12 +552,10 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param uri uri to the google cloud object
 	 * @return the N5GoogleCloudStorageWriter
-	 * @throws URISyntaxException if uri is malformed
-	 *
 	 * @deprecated use {@link #openWriter(KeyValueAccessBackend, String)} instead.
 	 */
 	@Deprecated
-	public N5Writer openGoogleCloudWriter(final String uri) throws URISyntaxException {
+	public N5Writer openGoogleCloudWriter(final String uri) {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.GOOGLE_CLOUD, uri, false, this::openWriter);
 	}
@@ -538,13 +565,10 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param uri uri to the s3 object
 	 * @return the N5Writer
-	 * @throws URISyntaxException if the URI is malformed
-	 *
-	 *
 	 * @deprecated use {@link #openWriter(KeyValueAccessBackend, String)} instead.
 	 */
 	@Deprecated()
-	public N5Writer openAWSS3Writer(final String uri) throws URISyntaxException {
+	public N5Writer openAWSS3Writer(final String uri) {
 
 		return openN5ContainerWithBackend(KeyValueAccessBackend.AWS, uri, false, this::openWriter);
 	}
@@ -657,19 +681,17 @@ public class N5Factory implements Serializable {
 
 			final String containerLocation = location.toString();
 			switch (storage) {
-			case ZARR3:
-				final ZarrV3KeyValueWriter writer = new ZarrV3KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
-				writer.setDimensionSeparator(zarrDimensionSeparator);
-				return writer;
-			case ZARR2:
-				return new ZarrKeyValueWriter(access, containerLocation, gsonBuilder, zarrMapN5DatasetAttributes, zarrMergeAttributes, zarrDimensionSeparator, cacheAttributes);
-			case ZARR:
-				return newGenericZarrWriter(access, location);
-			case N5:
-				return new N5KeyValueWriter(access, containerLocation, gsonBuilder, cacheAttributes);
-			case HDF5:
-				return new N5HDF5Writer(containerLocation, hdf5OverrideBlockSize, gsonBuilder, hdf5DefaultBlockSize);
-			}
+                case HDF5:
+                    return options.getHdf5Builder().buildWriter(containerLocation);
+                case N5:
+                    return options.getN5Builder().buildWriter(access, containerLocation);
+                case ZARR3:
+                    return options.getZarr3Builder().buildWriter(access, containerLocation);
+                case ZARR2:
+                    return options.getZarr2Builder().buildWriter(access, containerLocation);
+                case ZARR:
+                    return newGenericZarrWriter(access, location);
+            }
 		}
 		return null;
 	}
