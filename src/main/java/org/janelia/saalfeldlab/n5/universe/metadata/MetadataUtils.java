@@ -17,6 +17,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransform
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 
@@ -532,6 +533,14 @@ public class MetadataUtils {
 		T[] result = array.clone();
 		for ( int i = 0, j = array.length - 1; i < array.length; i++, j-- )
 			result[ i ] = array[ j ];
+		return result;
+	}
+
+	public static JsonArray reversedCopy( JsonArray array )
+	{
+		final JsonArray result = new JsonArray(array.size());
+		for (int i = array.size() - 1; i >= 0; i--)
+			result.add(array.get(i));
 		return result;
 	}
 

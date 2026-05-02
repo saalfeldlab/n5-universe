@@ -27,7 +27,6 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.stream.DoubleStream;
 
@@ -190,7 +189,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		return buildMetadata(nd, path, multiscales.datasets, childrenAttributes, multiscales.coordinateTransformations, multiscales.metadata,
 				multiscales.axes);
 	}
-
+	
 	public static NgffSingleScaleAxesMetadata[] buildMetadata(
 			final int nd, final String path, final OmeNgffDataset[] datasets,
 			final DatasetAttributes[] childrenAttributes,
@@ -198,9 +197,26 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final OmeNgffDownsamplingMetadata metadata,
 			final Axis[] axes)
 	{
+			
+		return buildMetadata( nd, path, datasets, 
+				childrenAttributes, 
+				transforms,
+				metadata,
+				axes, 
+				false);
+	}
+
+	public static NgffSingleScaleAxesMetadata[] buildMetadata(
+			final int nd, final String path, final OmeNgffDataset[] datasets,
+			final DatasetAttributes[] childrenAttributes,
+			final CoordinateTransformation<?>[] transforms,
+			final OmeNgffDownsamplingMetadata metadata,
+			final Axis[] axes, 
+			boolean reverseParameters)
+	{
 		final String normPath = MetadataUtils.normalizeGroupPath(path);
 		final int N = datasets.length;
-		final Axis[] axesToWrite = axes;
+		final Axis[] axesToWrite = reverseParameters ? MetadataUtils.reversedCopy(axes) : axes;
 
 		final NgffSingleScaleAxesMetadata[] childrenMetadata = new NgffSingleScaleAxesMetadata[ N ];
 		for ( int i = 0; i < N; i++ )
@@ -311,86 +327,6 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			return !zattrs.isRowMajor();
 		}
 		return false;
-	}
-
-	public static <T> T[] reverseIfCorder(final DatasetAttributes datasetAttributes, final T[] arr) {
-
-		if (datasetAttributes == null || arr == null)
-			return arr;
-
-		if (datasetAttributes instanceof ZarrDatasetAttributes) {
-
-			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes;
-			return reverseIfCorder(zattrs.isRowMajor(), arr);
-		}
-		return arr;
-	}
-
-	public static <T> T[] reverseIfCorder(final boolean cOrder, final T[] arr) {
-
-		if (arr == null)
-			return arr;
-
-		if (cOrder) {
-			final T[] arrCopy = Arrays.copyOf(arr, arr.length);
-			ArrayUtils.reverse(arrCopy);
-			return arrCopy;
-		}
-		return arr;
-	}
-
-	public static double[] reverseIfCorder(final DatasetAttributes[] datasetAttributes, final boolean cOrder, final double[] arr) {
-
-		if (arr == null)
-			return null;
-
-		if (datasetAttributes == null || datasetAttributes.length == 0)
-			return reverseIfCorder(cOrder, arr);
-
-		if (datasetAttributes[0] instanceof ZarrDatasetAttributes) {
-
-			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes[0];
-			return reverseIfCorder(zattrs.isRowMajor(), arr);
-		}
-		return arr;
-	}
-
-	public static double[] reverseIfCorder(final DatasetAttributes datasetAttributes, final double[] arr) {
-
-		if (datasetAttributes == null || arr == null)
-			return arr;
-
-		if (datasetAttributes instanceof ZarrDatasetAttributes) {
-
-			final ZarrDatasetAttributes zattrs = (ZarrDatasetAttributes)datasetAttributes;
-			return reverseIfCorder(zattrs.isRowMajor(), arr);
-		}
-		return arr;
-	}
-
-	public static double[] reverseIfCorder(final boolean cOrder, final double[] arr) {
-
-		if (cOrder) {
-			final double[] arrCopy = Arrays.copyOf(arr, arr.length);
-			ArrayUtils.reverse(arrCopy);
-			return arrCopy;
-		}
-
-		return arr;
-	}
-
-	public static double[] reverseCopy(final double[] arr) {
-
-		final double[] arrCopy = Arrays.copyOf(arr, arr.length);
-		ArrayUtils.reverse(arrCopy);
-		return arrCopy;
-	}
-
-	public static <T> T[] reverseCopy(final T[] arr) {
-
-		final T[] arrCopy = Arrays.copyOf(arr, arr.length);
-		ArrayUtils.reverse(arrCopy);
-		return arrCopy;
 	}
 
 	public static boolean allSameAxisOrder(final DatasetAttributes[] multiscaleDatasetAttributes) {
