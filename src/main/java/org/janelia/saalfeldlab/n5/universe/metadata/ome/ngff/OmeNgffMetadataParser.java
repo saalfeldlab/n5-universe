@@ -80,9 +80,9 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		final JsonObject base = n5.getAttribute(node.getPath(), "", JsonElement.class).getAsJsonObject();
 
 		final JsonElement msBase;
-		if( base.has(OME)) // check v0.5
+		if (base.has(OME)) // check v0.5
 			msBase = getMultiscales(base.get(OME).getAsJsonObject());
-		else 
+		else
 			msBase = getMultiscales(base);
 
 		if (msBase == null)
@@ -92,7 +92,6 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		try {
 			multiscales = gson.fromJson(msBase, OmeNgffMultiScaleMetadata[].class);
 		} catch (final Exception e) {
-			e.printStackTrace();
 			return Optional.empty();
 		}
 
@@ -161,8 +160,10 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		final OmeNgffMultiScaleMetadata[] ms = t.multiscales;
 		final JsonElement jsonElem = gson.toJsonTree(ms);
 
-		if( t.multiscales[0].version.equals(0.5))
+		if( t.multiscales[0].version.equals("0.5")) {
+			n5.setAttribute(groupPath, OME + "/version", "0.5");
 			n5.setAttribute(groupPath, OMEMS, jsonElem);
+		}
 		else
 			n5.setAttribute(groupPath, MS, jsonElem);
 	}

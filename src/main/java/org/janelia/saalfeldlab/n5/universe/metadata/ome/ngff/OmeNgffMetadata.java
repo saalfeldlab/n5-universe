@@ -17,11 +17,14 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 {
 	public final OmeNgffMultiScaleMetadata[] multiscales;
 
+	public final transient String version;
+
 	public OmeNgffMetadata( final String path, final OmeNgffMultiScaleMetadata[] multiscales)
 	{
 		// assumes children metadata are the same for all multiscales, which should be true
 		super(path, multiscales[0].getChildrenMetadata());
 		this.multiscales = multiscales;
+		this.version = multiscales[0].version;
 	}
 
 	/**

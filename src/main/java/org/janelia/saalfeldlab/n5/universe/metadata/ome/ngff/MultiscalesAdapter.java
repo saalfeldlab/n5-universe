@@ -100,7 +100,14 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 		final JsonObject obj = new JsonObject();
 		obj.addProperty("name", src.name);
 		obj.addProperty("type", src.type);
-		obj.addProperty("version", src.version);
+
+		/*
+		 * We do not support writing to 0.3 or earlier.
+		 * OME-Zarr v0.4 stores version in the multiscales.
+		 * v0.5 puts the version under the "ome" key.
+		 */
+		if (src.version.equals("0.4"))
+			obj.addProperty("version", src.version);
 
 		JsonElement serializedAxes = context.serialize(src.axes);
 		if (reverse) {
@@ -116,8 +123,6 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 				obj.add("coordinateTransformations", context.serialize(new JsonArray())); // empty array
 			else
 				obj.add("coordinateTransformations", context.serialize(cts));
-		else
-			obj.add("coordinateTransformations", context.serialize(new JsonArray())); // empty array
 
 		if( src.metadata != null )
 			obj.add("metadata", context.serialize(src.metadata));
