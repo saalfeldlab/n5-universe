@@ -21,15 +21,21 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadata.CosemTransfo
 import org.janelia.saalfeldlab.n5.universe.metadata.NgffMultiScaleGroupAttributes.MultiscaleDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.NgffSingleScaleAxesMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 public class NgffTests {
 
@@ -57,7 +63,7 @@ public class NgffTests {
 	// resolution per dimension
 	public static final double RX = 6;
 	public static final double RY = 5;
-	public static final double RC = 2;
+	public static final double RC = 1;
 	public static final double RZ = 4;
 	public static final double RT = 3;
 
@@ -69,10 +75,12 @@ public class NgffTests {
 	public static final double TT = 30;
 
 	public static final long[] DEFAULT_DIMENSIONS = new long[]{NX, NY, NC, NZ, NT};
+	public static final int[]  DEFAULT_CHUNK_SIZE = new int[]{NX, NY, NC, NZ, NT};
 	public static final char[] DEFAULT_AXES = new char[]{X, Y, C, Z, T};
 	public static final String[] DEFAULT_AXES_S = charToString(DEFAULT_AXES);
 	public static final double[] DEFAULT_RESOLUTION = new double[]{RX, RY, RC, RZ, RT};
 	public static final double[] DEFAULT_TRANSLATION = new double[]{TX, TY, TC, TZ, TT};
+	public static final int[] DEFAULT_NGFF_PERMUTATION = new int[]{0, 1, 3, 2, 4};
 
 	private N5FSReader n5;
 
@@ -115,6 +123,73 @@ public class NgffTests {
 		} catch (final N5Exception e) {
 			fail("Ngff parsing failed");
 			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Checks that the reverse boolean argument to OmeNgffMetadataParser behaves as expected. 
+	 */
+	@Test
+	public void testNgffN5ParameterOrder() {
+
+		final DatasetAttributes attrs = new DatasetAttributes(DEFAULT_DIMENSIONS, DEFAULT_CHUNK_SIZE, DataType.UINT8, new RawCompression());
+		OmeNgffMultiScaleMetadata meta = buildPermutedAxesMetadata(DEFAULT_NGFF_PERMUTATION, false, attrs);
+
+		final Gson gson = new OmeNgffMetadataParser().gsonBuilder().create();
+		final JsonElement json = gson.toJsonTree(meta);
+
+		final Gson gsonNoRev = new OmeNgffMetadataParser(false).gsonBuilder().create();
+		final JsonElement jsonNoRev = gsonNoRev.toJsonTree(meta);
+
+		assertReversedParameterOrder(json, jsonNoRev);
+	}
+
+	private void assertReversedParameterOrder(final JsonElement jsonRev, final JsonElement jsonNoRev) {
+
+		final JsonObject objRev = jsonRev.getAsJsonObject();
+		final JsonObject objNoRev = jsonNoRev.getAsJsonObject();
+
+		// axes names should be element-wise reversed
+		final JsonArray axes = objRev.getAsJsonArray("axes");
+		final JsonArray axesNoRev = objNoRev.getAsJsonArray("axes");
+		Assert.assertEquals("axes count", axes.size(), axesNoRev.size());
+		final int n = axes.size();
+		for (int i = 0; i < n; i++) {
+			Assert.assertEquals("axis name at index " + i,
+					axes.get(i).getAsJsonObject().get("name").getAsString(),
+					axesNoRev.get(n - 1 - i).getAsJsonObject().get("name").getAsString());
+		}
+
+		// scale and translation values should be element-wise reversed
+		final JsonArray transforms = objRev.getAsJsonArray("datasets")
+				.get(0).getAsJsonObject()
+				.getAsJsonArray("coordinateTransformations");
+		final JsonArray transformsNoRev = objNoRev.getAsJsonArray("datasets")
+				.get(0).getAsJsonObject()
+				.getAsJsonArray("coordinateTransformations");
+
+		for (final JsonElement t : transforms) {
+			final JsonObject transform = t.getAsJsonObject();
+			final String type = transform.get("type").getAsString();
+			final JsonArray values = transform.getAsJsonArray(type);
+
+			JsonArray valuesNoRev = null;
+			for (final JsonElement tNoRev : transformsNoRev) {
+				final JsonObject transformNoRev = tNoRev.getAsJsonObject();
+				if (transformNoRev.get("type").getAsString().equals(type)) {
+					valuesNoRev = transformNoRev.getAsJsonArray(type);
+					break;
+				}
+			}
+			Assert.assertNotNull("transform type '" + type + "' not found in non-reversed JSON", valuesNoRev);
+			Assert.assertEquals(type + " length", values.size(), valuesNoRev.size());
+
+			for (int i = 0; i < values.size(); i++) {
+				Assert.assertEquals(type + " at index " + i,
+						values.get(i).getAsDouble(),
+						valuesNoRev.get(values.size() - 1 - i).getAsDouble(),
+						1e-9);
+			}
 		}
 	}
 
@@ -161,11 +236,11 @@ public class NgffTests {
 		final int nd = axes.length;
 		return new OmeNgffMultiScaleMetadata(
 				nd, "", "test", "type", "0.4",
-				axes,
-				dsets,
-				new DatasetAttributes[] { dsetAttrs },
-				null, null);
-
+				axes, dsets,
+				null, // coordinate transformations
+				new DatasetAttributes[]{dsetAttrs},
+				null, // metadata
+				new NgffSingleScaleAxesMetadata[]{s0Meta});
 	}
 
 	public static CosemTransform buildPermutedAxesCosemMetadata(
@@ -262,8 +337,6 @@ public class NgffTests {
 
 		}
 	}
-
-
 
 	public static int[] permutationFromName(final String name) {
 

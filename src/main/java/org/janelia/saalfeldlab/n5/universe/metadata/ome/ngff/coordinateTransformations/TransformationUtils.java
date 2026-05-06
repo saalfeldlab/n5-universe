@@ -1,9 +1,9 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations;
 
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 
 import com.google.common.collect.Streams;
 

@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations;
 
 import java.lang.reflect.Type;
 import java.util.Collections;
@@ -18,12 +18,19 @@ public class CoordinateTransformationAdapter implements JsonDeserializer< Coordi
 
 	public static final String[] FIELDS_TO_NULL_CHECK = new String[] { "path", "name" };
 
-//	private boolean reverse = false;
-//
-//	public CoordinateTransformationAdapter(final boolean reverse) {
-//
-//		this.reverse = reverse;
-//	}
+	private boolean reverse;
+
+	public CoordinateTransformationAdapter() {
+		this(true);
+	}
+
+	public CoordinateTransformationAdapter(final boolean reverse) {
+		setReverseParameters(reverse);
+	}
+
+	public void setReverseParameters(final boolean reverse) {
+		this.reverse = reverse;
+	}
 
 	@Override
 	public CoordinateTransformation<?> deserialize( final JsonElement json, final Type typeOfT, final JsonDeserializationContext context ) throws JsonParseException
@@ -35,8 +42,8 @@ public class CoordinateTransformationAdapter implements JsonDeserializer< Coordi
 		if ( !jobj.has( "type" ) )
 			return null;
 
-		// always reverse parameters
-		reverseParameters(jobj);
+		if (reverse)
+			reverseParameters(jobj);
 
 		Class<?> clz;
 		AbstractCoordinateTransformation< ? > out = null;
@@ -74,7 +81,8 @@ public class CoordinateTransformationAdapter implements JsonDeserializer< Coordi
 		}
 
 		// always reverse parameters
-		reverseParameters( elem.getAsJsonObject() );
+		if (reverse)
+			reverseParameters( elem.getAsJsonObject() );
 
 		return elem;
 	}

@@ -7,7 +7,7 @@ import java.io.Reader;
 import java.util.Arrays;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.axes.ArrayCoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.ArrayCoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;

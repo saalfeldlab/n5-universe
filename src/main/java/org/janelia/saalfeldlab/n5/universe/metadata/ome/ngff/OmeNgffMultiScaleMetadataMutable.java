@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,6 +6,7 @@ import java.util.List;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
 
 public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata {
 
@@ -14,8 +15,6 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 	private List<DatasetAttributes> attributes;
 
 	private List<NgffSingleScaleAxesMetadata> children;
-
-	private Axis[] axes;
 
 	private String path;
 
@@ -26,8 +25,7 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 	public OmeNgffMultiScaleMetadataMutable( final String path) {
 
-		super(-1, MetadataUtils.normalizeGroupPath(path), null, null, null, null, new OmeNgffDataset[]{}, new DatasetAttributes[]{}, null, null, false);
-
+		super(-1, "", null, null, null, null, new OmeNgffDataset[0], null, null, null);
 		setPath( super.basePath );
 		datasets = new ArrayList<>();
 		attributes = new ArrayList<>();
@@ -85,11 +83,20 @@ public class OmeNgffMultiScaleMetadataMutable extends OmeNgffMultiScaleMetadata 
 
 		return children.toArray(new NgffSingleScaleAxesMetadata[children.size()]);
 	}
+	
+	@Override
+	public String[] getPaths() {
+		return datasets.stream().map( x -> { return x.path; }).toArray( String[]::new );
+	}
 
 	@Override
-	public OmeNgffDataset[] getDatasets()
-	{
-		return datasets.toArray(new OmeNgffDataset[datasets.size()]);
+	public OmeNgffDataset[] getDatasets() {
+		return datasets.toArray(new OmeNgffDataset[0]);
+	}
+
+	@Override
+	public CoordinateTransformation<?>[] getCoordinateTransformations() {
+		return null;
 	}
 
 	@Override

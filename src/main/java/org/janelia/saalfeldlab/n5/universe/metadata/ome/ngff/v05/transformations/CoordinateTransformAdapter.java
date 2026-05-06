@@ -4,7 +4,7 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.TransformUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;

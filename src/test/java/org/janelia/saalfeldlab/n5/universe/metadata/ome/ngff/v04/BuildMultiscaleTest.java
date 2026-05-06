@@ -5,6 +5,9 @@ import static org.junit.Assert.assertEquals;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadataMutable;
 import org.junit.Test;
 
 public class BuildMultiscaleTest {
@@ -34,9 +37,8 @@ public class BuildMultiscaleTest {
 
 		final OmeNgffMultiScaleMetadata meta = new OmeNgffMultiScaleMetadata(ms.getAxes().length,
 				path, path, downsampleMethod, "0.4",
-				ms.getAxes(),
-				ms.getDatasets(), null,
-				ms.coordinateTransformations, ms.metadata, true);
+				ms.getAxes(), ms.getDatasets(), 
+				ms.coordinateTransformations, ms.childrenAttributes, ms.metadata, ms.getChildrenMetadata());
 
 		for (int i = 0; i < childPaths.length; i++) {
 			assertEquals(

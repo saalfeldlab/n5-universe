@@ -1,14 +1,14 @@
-package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
+package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.OmeNgffMultiScaleMetadata.OmeNgffDataset;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.ScaleCoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04.coordinateTransformations.TranslationCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.view.Views;
@@ -17,11 +17,14 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 {
 	public final OmeNgffMultiScaleMetadata[] multiscales;
 
+	public final transient String version;
+
 	public OmeNgffMetadata( final String path, final OmeNgffMultiScaleMetadata[] multiscales)
 	{
 		// assumes children metadata are the same for all multiscales, which should be true
 		super(path, multiscales[0].getChildrenMetadata());
 		this.multiscales = multiscales;
+		this.version = multiscales[0].version;
 	}
 
 	/**
@@ -70,9 +73,9 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 
 		final CoordinateTransformation<?>[] cts = null;
 		final OmeNgffMultiScaleMetadata ms = new OmeNgffMultiScaleMetadata(
-				numDimensions, "", name,
-				type, version, axes,
-				datasets, null, cts, null);
+				numDimensions, "", name, type, version, axes,
+				datasets, cts, null, null);
+
 
 		return new OmeNgffMetadata("", new OmeNgffMultiScaleMetadata[]{ ms });
 	}
