@@ -77,7 +77,12 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 		// name and type may be null
 		final String name = MetadataUtils.getStringNullable(jobj.get("name"));
 		final String type = MetadataUtils.getStringNullable(jobj.get("type"));
-		final String version = jobj.get("version").getAsString();
+
+		final String version;
+		if( jobj.has("version"))
+			version = jobj.get("version").getAsString();
+		else
+			version = "";
 
 		final Axis[] axes = deserializeAxes(jobj, context);
 		final int nd = axes.length;

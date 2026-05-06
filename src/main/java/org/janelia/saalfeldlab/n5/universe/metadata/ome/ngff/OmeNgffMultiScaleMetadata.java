@@ -30,7 +30,6 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.stream.DoubleStream;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
@@ -51,9 +50,12 @@ import net.imglib2.realtransform.AffineTransform3D;
 
 public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAxesMetadata> {
 
+	// may be the empty string to indicate unknown version
+	// or that the version is specified elsewhere
+	public final String version;
+
 	public final String name;
 	public final String type;
-	public final String version;
 	public final Axis[] axes;
 	public final OmeNgffDataset[] datasets;
 	public final CoordinateTransformation<?>[] coordinateTransformations;
