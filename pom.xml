@@ -108,6 +108,8 @@
 		<license.organizationName>Saalfeld Lab</license.organizationName>
 		<license.copyrightOwners>Stephan Saalfeld</license.copyrightOwners>
 
+		<scijava.jvm.version>8</scijava.jvm.version>
+
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
