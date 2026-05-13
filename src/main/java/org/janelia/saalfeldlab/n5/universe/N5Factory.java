@@ -26,6 +26,7 @@
  */
 package org.janelia.saalfeldlab.n5.universe;
 
+import com.google.cloud.resourcemanager.v3.CreateTagHoldMetadata;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.gson.GsonBuilder;
@@ -91,9 +92,15 @@ public class N5Factory implements Serializable {
         return options;
     }
 
-    public void setOptions(N5FactoryOptions options) {
+    public N5Factory setOptions(N5FactoryOptions options) {
         this.options = options;
+		return this;
     }
+
+	public N5Factory options( Consumer<N5FactoryOptions> configureOptions) {
+		configureOptions.accept(options);
+		return this;
+	}
 
     /**
      * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#hdf5(Consumer)}
