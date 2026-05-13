@@ -99,7 +99,9 @@ public class Zarr3HttpFactoryTest extends ZarrStorageTests.Zarr3FactoryTest {
 	@Override public N5Factory getFactory() {
 
 		if (factory == null) {
-			factory = new N5Factory().cacheAttributes(false);
+			N5Factory n5Factory = new N5Factory();
+			n5Factory.getOptions().cacheAttributes(false);
+			factory = n5Factory;
 		}
 		return factory;
 	}

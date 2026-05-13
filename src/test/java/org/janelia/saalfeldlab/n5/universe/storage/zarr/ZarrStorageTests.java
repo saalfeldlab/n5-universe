@@ -65,9 +65,11 @@ public class ZarrStorageTests {
 
 		@Override protected N5Writer createTempN5Writer(String location, GsonBuilder gsonBuilder, String dimensionSeparator, boolean mapN5DatasetAttributes) {
 
-			factory.gsonBuilder(gsonBuilder);
-			factory.zarrDimensionSeparator(dimensionSeparator);
-			factory.zarrMapN5Attributes(mapN5DatasetAttributes);
+			factory.getOptions().gsonBuilder(gsonBuilder)
+                    .zarr2(opts -> opts
+                            .dimensionSeparator(dimensionSeparator)
+                            .mapN5DatasetAttributes(mapN5DatasetAttributes)
+                    );
 			final N5Writer writer = getWriter(location);
 			tempWriters.add(writer);
 			return writer;
@@ -75,13 +77,13 @@ public class ZarrStorageTests {
 
 		@Override protected N5Reader createN5Reader(String location, GsonBuilder gson) {
 
-			factory.gsonBuilder(gson);
+			factory.getOptions().gsonBuilder(gson);
 			return getReader(location);
 		}
 
 		@Override protected N5Writer createN5Writer(String location, GsonBuilder gson) {
 
-			factory.gsonBuilder(gson);
+			factory.getOptions().gsonBuilder(gson);
 			return getWriter(location);
 		}
 
@@ -135,9 +137,11 @@ public class ZarrStorageTests {
 
 		@Override protected N5Writer createTempN5Writer(String location, GsonBuilder gsonBuilder, String dimensionSeparator, boolean mapN5DatasetAttributes) {
 
-			factory.gsonBuilder(gsonBuilder);
-			factory.zarrDimensionSeparator(dimensionSeparator);
-			factory.zarrMapN5Attributes(mapN5DatasetAttributes);
+            factory.getOptions().gsonBuilder(gsonBuilder)
+                    .zarr2(opts -> opts
+                            .dimensionSeparator(dimensionSeparator)
+                            .mapN5DatasetAttributes(mapN5DatasetAttributes)
+                    );
 			final N5Writer writer = getWriter(location);
 			tempWriters.add(writer);
 			return writer;
@@ -145,13 +149,13 @@ public class ZarrStorageTests {
 
 		@Override protected N5Reader createN5Reader(String location, GsonBuilder gson) {
 
-			factory.gsonBuilder(gson);
+			factory.getOptions().gsonBuilder(gson);
 			return getReader(location);
 		}
 
 		@Override protected N5Writer createN5Writer(String location, GsonBuilder gson) {
 
-			factory.gsonBuilder(gson);
+			factory.getOptions().gsonBuilder(gson);
 			return getWriter(location);
 		}
 
