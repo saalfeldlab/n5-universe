@@ -33,6 +33,7 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 	 *
 	 * @param numDimensions number of dimensions
 	 * @param name a name for this dataset
+	 * @param version the OME-Zarr version
 	 * @param axes an array of axes (length numDimensions)
 	 * @param scalePaths relative paths to children containing scale level arrays
 	 * @param scales array of absolute resolutions. size: [numScales][numDimensions]
@@ -41,6 +42,7 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 	 */
 	public static OmeNgffMetadata buildForWriting( final int numDimensions,
 			final String name,
+			final String version,
 			final Axis[] axes,
 			final String[] scalePaths,
 			final double[][] scales,
@@ -54,7 +56,6 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 			assert scalePaths.length == translations.length;
 
 		final int numScales = scalePaths.length;
-		final String version = "0.4";
 		final String type = "";
 		final OmeNgffDataset[] datasets = new OmeNgffDataset[numScales];
 		for( int i = 0; i < numScales; i++ ) {
@@ -72,10 +73,9 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 		}
 
 		final CoordinateTransformation<?>[] cts = null;
-		final OmeNgffMultiScaleMetadata ms = new OmeNgffMultiScaleMetadata(
-				numDimensions, "", name, type, version, axes,
-				datasets, cts, null, null);
-
+		final OmeNgffMultiScaleMetadata ms = new OmeNgffMultiScaleMetadata(numDimensions,
+				"", name, type, version,
+				axes, datasets, cts, null, null);
 
 		return new OmeNgffMetadata("", new OmeNgffMultiScaleMetadata[]{ ms });
 	}
