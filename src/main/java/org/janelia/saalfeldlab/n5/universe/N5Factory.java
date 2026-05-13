@@ -26,7 +26,6 @@
  */
 package org.janelia.saalfeldlab.n5.universe;
 
-import com.google.cloud.resourcemanager.v3.CreateTagHoldMetadata;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.gson.GsonBuilder;
