@@ -21,11 +21,34 @@ public class AxisAdapter implements JsonSerializer<Axis>, JsonDeserializer<Axis>
 			return null;
 
 		final JsonObject jobj = json.getAsJsonObject();
-		final String type = jobj.has("type") ? jobj.get("type").getAsString() : "";
-		final String name = jobj.has("name") ? jobj.get("name").getAsString() : "";
-		final String unit = jobj.has("unit") ? jobj.get("unit").getAsString() : "";
+
+		// Require name to be non-null, but try to be tolerant of null type or unit
+		if (!jobj.has("name"))
+			return null;
+
+		final String name = jobj.get("name").getAsString();
+		final String type = jobj.has("type") ? nullSafeString(jobj.get("type")) : "";
+		final String unit = jobj.has("unit") ? nullSafeString(jobj.get("unit")) : "";
 
 		return new Axis(type, name, unit);
+	}
+	
+
+	/**
+	 * Returns a String from the json element or null if it is JsonNull.
+	 * <p>
+	 * Gson throws an UnsupportedOperationException when calling getAsString
+	 * on JsonNull, this method returns null instead.
+	 *
+	 * @param json a json element
+	 * @return a string, or null
+	 */
+	private String nullSafeString(JsonElement json) {
+
+		if( json.isJsonNull())
+			return null;
+		else
+			return json.getAsString();
 	}
 
 	@Override
