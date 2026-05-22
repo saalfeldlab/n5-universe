@@ -249,26 +249,20 @@ public class CoordinateSystems {
 		return getSpace(name);
 	}
 
-	public String[] getInputAxes( final CoordinateTransform<?> t )
+	public int[] getInputAxes( final CoordinateTransform<?> t )
 	{
-		String[] inAxes = null;
 		if( t.getInputAxes() != null )
-			inAxes = t.getInputAxes();
-		else if( t.getInput() != null )
-			inAxes = getSpace(t.getInput()).getAxisNames();
+			return t.getInputAxes();
 
-		return inAxes;
+		return null;
 	}
 
-	public String[] getOutputAxes( final CoordinateTransform<?>  t )
+	public int[] getOutputAxes( final CoordinateTransform<?>  t )
 	{
-		String[] outAxes = null;
 		if( t.getOutputAxes() != null )
-			outAxes = t.getOutputAxes();
-		else if( t.getOutput() != null )
-			outAxes = getSpace(t.getOutput()).getAxisNames();
+			return t.getOutputAxes();
 
-		return outAxes;
+		return null;
 	}
 
 	public boolean inputIsSubspace( final CoordinateTransform<?>  t, final CoordinateSystem s ) {
@@ -280,59 +274,43 @@ public class CoordinateSystems {
 	}
 
 	public boolean outputIsSubspace( final CoordinateTransform<?>  t, final CoordinateSystem s ) {
-		if ( t.getOutputAxes() != null )
-			return s.isSubspaceOf(t.getOutputAxes());
-		else if( t.getOutput() != null )
+		if( t.getOutput() != null )
 			return s.isSubspaceOf( getSpace(t.getOutput()));
 		else
 			return false;
 	}
 
 	public boolean outputIsSuperspace( final CoordinateTransform<?>  t, final CoordinateSystem s ) {
-		if ( t.getOutputAxes() != null )
-			return s.isSuperspaceOf(t.getOutputAxes());
-		else if( t.getOutput() != null )
+		if( t.getOutput() != null )
 			return s.isSuperspaceOf( getSpace(t.getOutput()));
 		else
 			return false;
 	}
 
 	public boolean outputHasAxis( final CoordinateTransform<?>  t, final String axisLabel ) {
-		if( t.getOutputAxes() != null )
-			return Arrays.stream( t.getOutputAxes() ).anyMatch( x -> x.equals(axisLabel));
-		else if( t.getOutput() != null )
+		if( t.getOutput() != null )
 			return getSpace(t.getOutput()).hasAxis(axisLabel);
 		else
 			return false;
 	}
 
 	public boolean outputMatchesAny( final CoordinateTransform<?>  t, final Set<String> axisLabels ) {
-		String[] outAxes = null;
-		if( t.getOutputAxes() != null )
-			outAxes = t.getOutputAxes();
-		else if( t.getOutput() != null )
-			outAxes = getSpace(t.getOutput()).getAxisNames();
-		else
+		if( t.getOutput() == null )
 			return false;
 
-		for( final String axisLabel : t.getOutputAxes())
-			if( axisLabels.contains(axisLabel ))
+		for( final String axisLabel : getSpace(t.getOutput()).getAxisNames() )
+			if( axisLabels.contains(axisLabel) )
 				return true;
 
 		return false;
 	}
 
 	public boolean outputMatchesAny( final CoordinateTransform<?>  t, final String[] axisLabels ) {
-		String[] outAxes = null;
-		if( t.getOutputAxes() != null )
-			outAxes = t.getOutputAxes();
-		else if( t.getOutput() != null )
-			outAxes = getSpace(t.getOutput()).getAxisNames();
-		else
+		if( t.getOutput() == null )
 			return false;
 
-		for( final String axisLabel : t.getOutputAxes())
-			if( Arrays.stream( axisLabels ).filter( x -> x.equals(axisLabel)).count() > 0 )
+		for( final String axisLabel : getSpace(t.getOutput()).getAxisNames() )
+			if( Arrays.stream( axisLabels ).anyMatch( x -> x.equals(axisLabel) ) )
 				return true;
 
 		return false;
