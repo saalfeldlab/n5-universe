@@ -3,17 +3,24 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformation
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 
+import net.imglib2.Cursor;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.img.CachedCellImg;
+import net.imglib2.img.Img;
 import net.imglib2.img.cell.CellCursor;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.util.Util;
+import net.imglib2.view.Views;
 
 public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> extends AbstractParametrizedTransform<T,P> implements LinearCoordinateTransform<T> {
 
-	protected transient boolean serializeFlatArray = true;
+	protected AbstractLinearCoordinateTransform() {
+		super();
+	}
 
 	public AbstractLinearCoordinateTransform( final String type ) {
 		super( type );
@@ -34,7 +41,7 @@ public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> e
 	}
 
 	public AbstractLinearCoordinateTransform( final String type, final String name, final String parameterPath,
-			final String[] inputAxes, final String[] outputAxes ) {
+			final int[] inputAxes, final int[] outputAxes ) {
 		super( type, name, parameterPath, inputAxes, outputAxes );
 	}
 
@@ -43,7 +50,7 @@ public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> e
 		super(other);
 	}
 
-	public AbstractLinearCoordinateTransform(final AbstractLinearCoordinateTransform<T, P> other, String[] inputAxes, String[] outputAxes ) {
+	public AbstractLinearCoordinateTransform(final AbstractLinearCoordinateTransform<T, P> other, int[] inputAxes, int[] outputAxes ) {
 
 		super(other, inputAxes, outputAxes);
 	}
@@ -54,16 +61,6 @@ public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> e
 	@Override
 	public abstract T buildTransform( P parameters );
 
-	public boolean serializeAsFlatArray() {
-
-		return serializeFlatArray;
-	}
-
-	public void setSerializeAsFlatArray(final boolean serializeFlatArray) {
-
-		this.serializeFlatArray = serializeFlatArray;
-	}
-
 	protected static <T extends RealType<T> & NativeType<T>> double[] getDoubleArray(final N5Reader n5, final String path) {
 
 		if( n5 == null )
@@ -72,9 +69,8 @@ public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> e
 		if (n5.exists(path)) {
 			try {
 				@SuppressWarnings("unchecked")
-				final
-				CachedCellImg<T, ?> data = (CachedCellImg<T, ?>) N5Utils.open(n5, path);
-				if (data.numDimensions() != 1 || !(Util.getTypeFromInterval(data) instanceof RealType))
+				final CachedCellImg<T, ?> data = (CachedCellImg<T, ?>) N5Utils.open(n5, path);
+				if (data.numDimensions() != 1 || !(data.getType() instanceof RealType))
 					return null;
 
 				final double[] params = new double[(int) data.dimension(0)];
@@ -96,14 +92,21 @@ public abstract class AbstractLinearCoordinateTransform<T extends AffineGet,P> e
 
 		if (n5.exists(path)) {
 			try {
-				@SuppressWarnings("unchecked")
-				final
-				CachedCellImg<T, ?> data = (CachedCellImg<T, ?>) N5Utils.open(n5, path);
-				if (data.numDimensions() != 2 || !(Util.getTypeFromInterval(data) instanceof RealType))
+
+				RandomAccessibleInterval<T> matrix;
+				final CachedCellImg<T, ?> data = (CachedCellImg<T, ?>) N5Utils.open(n5, path);
+				
+				// TODO 
+				if( n5 instanceof ZarrKeyValueReader )
+					matrix = Views.moveAxis(data, 0, 1);
+				else
+					matrix = data;
+					
+				if (data.numDimensions() != 2 || !(data.getType() instanceof RealType))
 					return null;
 
-				final double[][] params = new double[(int) data.dimension(0)] [(int) data.dimension(1)];
-				final CellCursor<T, ?> c = data.cursor();
+				final double[][] params = new double[(int) matrix.dimension(0)] [(int) matrix.dimension(1)];
+				final Cursor<T> c = Views.flatIterable(matrix).cursor();
 				while (c.hasNext()) {
 					c.fwd();
 					params[c.getIntPosition(0)][c.getIntPosition(1)] = c.get().getRealDouble();

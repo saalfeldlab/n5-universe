@@ -29,6 +29,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.stream.DoubleStream;
+import java.util.stream.Stream;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5URI;
@@ -39,9 +40,10 @@ import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformationUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 
+import com.google.common.collect.Streams;
 import com.google.gson.JsonObject;
 
 import net.imglib2.realtransform.AffineGet;
@@ -223,7 +225,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		final NgffSingleScaleAxesMetadata[] childrenMetadata = new NgffSingleScaleAxesMetadata[ N ];
 		for ( int i = 0; i < N; i++ )
 		{
-			AffineGet affineTransform = TransformationUtils.tranformsToAffine(datasets[i], transforms);
+			AffineGet affineTransform = tranformsToAffine(datasets[i], transforms);
 			if( affineTransform == null )
 				affineTransform = new AffineTransform( nd );
 
@@ -369,5 +371,34 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		final int nd = affine.numTargetDimensions();
 		for (int i = 0; i < nd; i++)
 			scale[i] = affine.get(i, i);
+	}
+	
+	private static AffineGet tranformsToAffine(final OmeNgffDataset dataset, final CoordinateTransformation<?>[] transforms )
+	{
+		Stream<CoordinateTransformation<?>> s = Stream.empty();
+		if( dataset.coordinateTransformations != null )
+			s = Streams.concat(s, Arrays.stream(dataset.coordinateTransformations));
+
+		if( transforms != null )
+			s = Streams.concat(s, Arrays.stream(transforms));
+
+		return buildTransform(s.toArray(CoordinateTransformation[]::new));
+	}
+	
+	private static AffineGet buildTransform( final CoordinateTransformation<?>[] transforms ) {
+
+		AffineTransform out = null;
+		for( final CoordinateTransformation<?> ct : transforms )
+		{
+			if (out == null)
+				out = new AffineTransform(ct.getTransform().numSourceDimensions());
+
+			out.preConcatenate(ct.getTransform());
+		}
+
+		if( out == null )
+			return null;
+		else
+			return TransformUtils.simplifyAffineGet( out );
 	}
 }

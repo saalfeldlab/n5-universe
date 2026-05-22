@@ -17,6 +17,10 @@ public class TranslationCoordinateTransform extends AbstractLinearCoordinateTran
 
 	public transient AffineGet transform;
 
+	private TranslationCoordinateTransform() {
+		// for serialization
+		super(TYPE);
+	}
 
 	public TranslationCoordinateTransform( final double[] translation) {
 		this("", translation);
@@ -30,7 +34,7 @@ public class TranslationCoordinateTransform extends AbstractLinearCoordinateTran
 	}
 
 	public TranslationCoordinateTransform( String name,
-			final String[] inputAxes, String[] outputAxes,
+			final int[] inputAxes, int[] outputAxes,
 			final double[] translation) {
 		super(TYPE, name, null, inputAxes, outputAxes );
 		this.translation = translation;
@@ -62,7 +66,7 @@ public class TranslationCoordinateTransform extends AbstractLinearCoordinateTran
 		this.translation = other.translation;
 	}
 
-	public TranslationCoordinateTransform(TranslationCoordinateTransform other, String[] inputAxes, String[] outputAxes) {
+	public TranslationCoordinateTransform(TranslationCoordinateTransform other, int[] inputAxes, int[] outputAxes) {
 		super(other, inputAxes, outputAxes);
 		this.translation = other.translation;
 	}

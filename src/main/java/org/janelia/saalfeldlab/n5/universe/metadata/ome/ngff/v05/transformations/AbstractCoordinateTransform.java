@@ -17,10 +17,9 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 
 	protected JsonElement output;
 
-	// implement
-	protected transient String[] inputAxes;
+	protected int[] inputAxes;
 
-	protected transient String[] outputAxes;
+	protected int[] outputAxes;
 
 	protected transient String inputCoordinateSystemName;
 
@@ -49,7 +48,7 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 
 	public AbstractCoordinateTransform( final String type,
 			final String name,
-			final String[] inputAxes, final String[] outputAxes ) {
+			final int[] inputAxes, final int[] outputAxes ) {
 		this.type = type;
 		this.name = name;
 		this.inputAxes = inputAxes;
@@ -93,14 +92,15 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		initialize();
 	}
 
-	public AbstractCoordinateTransform( CoordinateTransform<T> other, String[] inputAxes, String[] outputAxes )
+	public AbstractCoordinateTransform( CoordinateTransform<T> other, int[] inputAxes, int[] outputAxes )
 	{
 		this.name = other.getName();
 		this.type = other.getType();
-		this.input = other.getInput();
-		this.output = other.getOutput();
-		this.inputAxes = inputAxes;
-		this.outputAxes = outputAxes;
+		this.inputCoordinateSystemName = other.getInput();
+		this.outputCoordinateSystemName = other.getOutput();
+		this.inputAxes = other.getInputAxes();
+		this.outputAxes = other.getOutputAxes();
+		initialize();
 	}
 
 	protected void initialize() {
@@ -113,30 +113,13 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	}
 
 	@Override
-	public String[] getInputAxes()
-	{
-		if( inputAxes != null )
-			return inputAxes;
-		else
-			return inputSpaceObj.getAxisNames();
+	public int[] getInputAxes() {
+		return inputAxes;
 	}
 
 	@Override
-	public String[] getOutputAxes()
-	{
-		if( outputAxes != null )
-			return outputAxes;
-		else
-			return outputSpaceObj.getAxisNames();
-	}
-
-	private static String spaceNameFromAxesLabels( final CoordinateSystems spaces, final String[] axes )
-	{
-		final ArrayList<CoordinateSystem> candidateSpaces = spaces.getSpacesFromAxes(axes);
-		if( candidateSpaces.size() == 1 )
-			return candidateSpaces.get(0).getName();
-		else
-			return null;
+	public int[] getOutputAxes() {
+		return outputAxes;
 	}
 
 	@Override
@@ -151,12 +134,26 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 
 	@Override
 	public String getInput() {
-		return input;
+		if( inputCoordinateSystemName != null)
+			return inputCoordinateSystemName;
+		else if( input != null && input.isJsonPrimitive() ) {
+			inputCoordinateSystemName = input.getAsString();
+			return inputCoordinateSystemName;
+		}
+			
+		return null;	
 	}
 
 	@Override
 	public String getOutput() {
-		return output;
+		if( outputCoordinateSystemName != null ) 
+			return outputCoordinateSystemName;
+		else if( output != null && output.isJsonPrimitive() ) {
+			outputCoordinateSystemName = output.getAsString();
+			return outputCoordinateSystemName;
+		}
+
+		return null;	
 	}
 
 	public void setInput(final CoordinateSystem inputCoordinateSystem) {
