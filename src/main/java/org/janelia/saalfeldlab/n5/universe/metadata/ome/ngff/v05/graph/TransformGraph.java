@@ -16,6 +16,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.InvertibleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.SequenceCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.StackedCoordinateTransform;
 
 import com.google.gson.Gson;
@@ -44,7 +45,7 @@ public class TransformGraph
 		gson = SpacesTransforms.buildGson();
 		this.spaces = spaces;
 		this.transforms = new ArrayList<>();
-		inferSpacesFromAxes();
+//		inferSpacesFromAxes();
 
 		spacesToNodes = new HashMap< CoordinateSystem, CTNode >();
 		for( final CoordinateTransform<?> t : transforms )
@@ -57,18 +58,18 @@ public class TransformGraph
 		this( transforms, new CoordinateSystems(spacesIn) );
 	}
 
-	protected void inferSpacesFromAxes()
-	{
-		for( final CoordinateTransform<?> ct : transforms )
-		{
-			if( ct instanceof AbstractCoordinateTransform<?> )
-				if( ! ((AbstractCoordinateTransform<?>)ct).inferSpacesFromAxes(spaces))
-				{
-					System.out.println( "uh oh - removing " + ct );
-					transforms.remove(ct);
-				}
-		}
-	}
+//	protected void inferSpacesFromAxes()
+//	{
+//		for( final CoordinateTransform<?> ct : transforms )
+//		{
+//			if( ct instanceof AbstractCoordinateTransform<?> )
+//				if( ! ((AbstractCoordinateTransform<?>)ct).inferSpacesFromAxes(spaces))
+//				{
+//					System.out.println( "uh oh - removing " + ct );
+//					transforms.remove(ct);
+//				}
+//		}
+//	}
 
 	public List<CoordinateTransform<?>> getTransforms() {
 		return transforms;
@@ -202,8 +203,8 @@ public class TransformGraph
 				}
 
 				tList.add(t);
-				outAxes.addAll( Arrays.asList(t.getOutputAxes()) );
-				inAxes.addAll( Arrays.asList(t.getInputAxes()) );
+//				outAxes.addAll( Arrays.asList(t.getOutputAxes()) );
+//				inAxes.addAll( Arrays.asList(t.getInputAxes()) );
 			}
 
 		}

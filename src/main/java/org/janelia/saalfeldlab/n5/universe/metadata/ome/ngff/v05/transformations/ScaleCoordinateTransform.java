@@ -15,21 +15,26 @@ public class ScaleCoordinateTransform extends AbstractLinearCoordinateTransform<
 
 	public transient ScaleGet transform;
 
+	private ScaleCoordinateTransform() {
+		// for serialization
+		super(TYPE);
+	}
+
 	public ScaleCoordinateTransform( final double[] scale ) {
 		super(TYPE, null, null, null );
 		this.scale = scale;
 		buildTransform( scale );
 	}
 
-	public ScaleCoordinateTransform( String name,
+	public ScaleCoordinateTransform(String name,
 			final double[] scale) {
 		super(TYPE, name, null, null );
 		this.scale = scale;
 		buildTransform( scale );
 	}
 
-	public ScaleCoordinateTransform( String name,
-			final String[] inputAxes, String[] outputAxes,
+	public ScaleCoordinateTransform(String name,
+			final int[] inputAxes, int[] outputAxes,
 			final double[] scale) {
 		super(TYPE, name, null, inputAxes, outputAxes );
 		this.scale = scale;
@@ -56,6 +61,12 @@ public class ScaleCoordinateTransform extends AbstractLinearCoordinateTransform<
 		this.scale = null;
 	}
 
+	public ScaleCoordinateTransform( final String name, final String inputSpace, final String outputSpace, final String path,
+			final double[] scale) {
+		super(TYPE, name, path, inputSpace, outputSpace );
+		this.scale = scale;
+	}
+
 	public ScaleCoordinateTransform(ScaleCoordinateTransform other, final double[] scale) {
 
 		super(other);
@@ -68,7 +79,7 @@ public class ScaleCoordinateTransform extends AbstractLinearCoordinateTransform<
 		this.scale = other.scale;
 	}
 
-	public ScaleCoordinateTransform(ScaleCoordinateTransform other, String[] inputAxes, String[] outputAxes) {
+	public ScaleCoordinateTransform(ScaleCoordinateTransform other, int[] inputAxes, int[] outputAxes) {
 
 		super(other, inputAxes, outputAxes);
 		this.scale = other.scale;

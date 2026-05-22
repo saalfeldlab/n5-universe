@@ -4,7 +4,7 @@ import net.imglib2.realtransform.InvertibleRealTransform;
 import net.imglib2.realtransform.InvertibleRealTransformSequence;
 
 public class IdentityCoordinateTransform extends AbstractCoordinateTransform<InvertibleRealTransform>
-	implements RealCoordinateTransform<InvertibleRealTransform> , InvertibleCoordinateTransform<InvertibleRealTransform> {
+	implements InvertibleCoordinateTransform<InvertibleRealTransform> {
 
 	public static final String TYPE = "identity";
 
@@ -16,7 +16,7 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 		super(TYPE, name, input, output );
 	}
 
-	public IdentityCoordinateTransform( final String name, final String[] inputAxes, final String[] outputAxes ) {
+	public IdentityCoordinateTransform( final String name, final int[] inputAxes, final int[] outputAxes ) {
 		super(TYPE, name, inputAxes, outputAxes );
 	}
 
@@ -25,7 +25,7 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 		super(other);
 	}
 
-	public IdentityCoordinateTransform(IdentityCoordinateTransform other, String[] inputAxes, String[] outputAxes) {
+	public IdentityCoordinateTransform(IdentityCoordinateTransform other, int[] inputAxes, int[] outputAxes) {
 
 		super(other, inputAxes, outputAxes);
 	}

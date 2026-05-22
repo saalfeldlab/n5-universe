@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import org.ejml.data.DMatrixRMaj;
+import org.ejml.dense.row.CommonOps_DDRM;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
@@ -18,58 +20,60 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.DoubleType;
 
-public class AffineCoordinateTransform extends AbstractLinearCoordinateTransform<AffineGet,double[][]>  {
+public class RotationCoordinateTransform extends AbstractLinearCoordinateTransform<AffineGet,double[][]> {
 
-	public static final String TYPE = "affine";
+	public static final String TYPE = "rotation";
 
-	public JsonElement affine;
+	public JsonElement rotation;
 	
 	public transient double[] affineFlat;
 
 	public transient AffineGet transform;
 
-	protected AffineCoordinateTransform() {
+	private static transient double EPSILON = 1e-3;
+
+	protected RotationCoordinateTransform() {
 		super(TYPE);
 	}
 
-	public AffineCoordinateTransform( AffineCoordinateTransform ct ) {
+	public RotationCoordinateTransform( RotationCoordinateTransform ct ) {
 		super( ct );
 	}
 
-	public AffineCoordinateTransform( final double[] affine) {
+	public RotationCoordinateTransform( final double[] affine) {
 		super(TYPE);
 		this.affineFlat = affine;
 		buildTransform();
 	}
 
-	public AffineCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
+	public RotationCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
 			final double[] affine) {
 		super(TYPE, name, inputSpace, outputSpace);
 		this.affineFlat = affine;
 		buildTransform();
 	}
 
-	public AffineCoordinateTransform(final String name, final N5Reader n5, final String path,
+	public RotationCoordinateTransform(final String name, final N5Reader n5, final String path,
 			final String inputSpace, final String outputSpace) {
 
 		super(TYPE, name, path, inputSpace, outputSpace );
 		buildTransform(getParameters(n5));
 	}
 
-	public AffineCoordinateTransform( final String name, 
+	public RotationCoordinateTransform( final String name, 
 			final int[] inputAxes, final int[] outputAxes,
 			final double[] affine ) {
 		super(TYPE, name, null, inputAxes, outputAxes);
 		this.affineFlat = affine;
 	}
 
-	public AffineCoordinateTransform( final String name, 
+	public RotationCoordinateTransform( final String name, 
 			final String inputSpace, final String outputSpace, final String path) {
 		super(TYPE, name, path, inputSpace, outputSpace );
 	}
 
 	public JsonElement getJsonParameter() {
-		return affine;
+		return rotation;
 	}
 
 	@Override
@@ -104,17 +108,17 @@ public class AffineCoordinateTransform extends AbstractLinearCoordinateTransform
 
 	public AffineGet buildTransform(double[][] params) {
 
-		affineFlat = TransformUtils.flatten(params);
+		affineFlat = TransformUtils.flattenRotation(params);
 		return buildTransform();
 	}
 
 	public AffineGet buildTransform() {
 
 		if (affineFlat == null) {
-			if (affine == null)
+			if (rotation == null)
 				return null;
 			else
-				return buildTransform(MetadataUtils.toMatrix(affine));
+				return buildTransform(MetadataUtils.toMatrix(rotation));
 		}		
 
 		if (affineFlat.length == 6) {
@@ -140,9 +144,26 @@ public class AffineCoordinateTransform extends AbstractLinearCoordinateTransform
 		if (n5 == null)
 			return null;
 
-		final double[][] affineCOrder = getDoubleArray2(n5, getParameterPath());
-		final double[][] affineFOrder = TransformUtils.reverseCoordinates(affineCOrder);
-		return affineFOrder;
+		final double[][] rotCOrder = getDoubleArray2(n5, getParameterPath());
+		final double[][] rotFOrder = TransformUtils.reverseCoordinatesRotation(rotCOrder);
+		return rotFOrder;
+	}
+
+	private static void validate(AffineGet affine, double eps) {
+
+		// imglib2 AffineGet always ave numSourceDimensions == numTargetDimensions
+		int nd = affine.numSourceDimensions();
+		final DMatrixRMaj mtx = new DMatrixRMaj( nd, nd );
+		for( int i = 0; i < nd; i++)
+			for( int j = 0; j < nd; j++)
+				mtx.set(i, j, affine.get(i, j));
+
+		final double determinant = CommonOps_DDRM.det(mtx);
+		System.out.println(determinant);
+		if (Math.abs(1 - determinant) > EPSILON)
+			throw new IllegalArgumentException(
+					String.format("Rotation matrix must have determinant = 1, but is: %f ", determinant));
+
 	}
 
 }

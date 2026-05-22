@@ -356,40 +356,36 @@ public class CoordinateSystems {
 
 	public < T extends AbstractCoordinateTransform< ? > > void updateTransform( final T t )
 	{
-//		if( t.getInputSpace() == null && t.getInputAxes() == null )
-//		{
-//			t.setInputSpace( nameToSpace.get( t.getInputSpace() ) );
-//		}
 		if ( t.getInput() != null )
 			t.setInput( nameToSpace.get( t.getInput() ));
-		else if ( t.getInputAxes() != null )
-			t.setInput( makeDefault( t.getInputAxes() ));
+//		else if ( t.getInputAxes() != null )
+//			t.setInput( makeDefault( t.getInputAxes() ));
 
 		if ( t.getOutput() != null )
 			t.setOutput( nameToSpace.get( t.getOutput() ));
-		else if ( t.getOutputAxes() != null )
-			t.setOutput( makeDefault( t.getOutputAxes() ));
+//		else if ( t.getOutputAxes() != null )
+//			t.setOutput( makeDefault( t.getOutputAxes() ));
 	}
 
-	public static String defaultName( final String[] axes ) {
-		return String.join( "", axes ) + "(DEFAULT)";
-	}
-
-	public CoordinateSystem makeDefault( final String[] axes )
-	{
-		final Axis[] a = axesFromLabels( axes );
-		if ( Arrays.stream( a ).allMatch( x -> x != null ) )
-			return new CoordinateSystem( defaultName( axes ), a );
-		else
-			return null;
-	}
-
-	public CoordinateSystem addDefault( final String[] axes )
-	{
-		final CoordinateSystem space = makeDefault( axes );
-		add( space );
-		return space;
-	}
+//	public static String defaultName( final String[] axes ) {
+//		return String.join( "", axes ) + "(DEFAULT)";
+//	}
+//
+//	public CoordinateSystem makeDefault( final String[] axes )
+//	{
+//		final Axis[] a = axesFromLabels( axes );
+//		if ( Arrays.stream( a ).allMatch( x -> x != null ) )
+//			return new CoordinateSystem( defaultName( axes ), a );
+//		else
+//			return null;
+//	}
+//
+//	public CoordinateSystem addDefault( final String[] axes )
+//	{
+//		final CoordinateSystem space = makeDefault( axes );
+//		add( space );
+//		return space;
+//	}
 
 
 }

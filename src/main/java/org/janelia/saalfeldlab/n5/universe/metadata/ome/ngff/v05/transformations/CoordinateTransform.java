@@ -1,13 +1,20 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
-
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 
 import net.imglib2.realtransform.RealTransform;
 
 public interface CoordinateTransform<T extends RealTransform> {
 
 	public final static String KEY = "coordinateTransformations";
+
+	public final static String TYPE_KEY = "type";
+	public final static String NAME_KEY = "name";
+	public final static String INPUT_KEY = "input";
+	public final static String OUTPUT_KEY = "output";
+	public final static String INPUT_AXES_KEY = "inputAxes";
+	public final static String OUTPUT_AXES_KEY = "outputAxes";
 
 	public T getTransform();
 
@@ -26,15 +33,10 @@ public interface CoordinateTransform<T extends RealTransform> {
 	public void setInput(final CoordinateSystem inputCoordinateSystem);
 
 	public void setOutput(final CoordinateSystem outputCoordinateSystem);
-	public String[] getInputAxes();
 
-	public String[] getOutputAxes();
+	public int[] getInputAxes();
 
-//	public RealCoordinate apply( RealCoordinate src, RealCoordinate dst );
-//
-//	public RealCoordinate applyAppend( RealCoordinate src );
-//
-//	public AxisPoint applyAxes( AxisPoint src );
+	public int[] getOutputAxes();
 
 	public static CoordinateTransform<?> create(CoordinateTransform<?> ct) {
 		if (ct instanceof CoordinateTransform) {

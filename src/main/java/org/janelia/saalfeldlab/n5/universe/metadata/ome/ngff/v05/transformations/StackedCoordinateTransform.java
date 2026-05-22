@@ -42,14 +42,14 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 		this.spaces = spaces;
 	}
 
-	public String[] inputAxesLabels()
+	public int[] inputAxesLabels()
 	{
-		return  transforms.stream().flatMap( t -> Arrays.stream(t.getInputAxes())).toArray( String[]::new );
+		return  transforms.stream().flatMap( t -> Arrays.stream(t.getInputAxes())).toArray();
 	}
 
-	public String[] outputAxesLabels()
+	public int[] outputAxesLabels()
 	{
-		return  transforms.stream().flatMap( t -> Arrays.stream(t.getOutputAxes())).toArray( String[]::new );
+		return  transforms.stream().flatMap( t -> Arrays.stream(t.getOutputAxes())).toArray();
 	}
 
 	public RealTransform buildTransform()
