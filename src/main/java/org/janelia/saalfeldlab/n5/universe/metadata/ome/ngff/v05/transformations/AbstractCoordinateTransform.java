@@ -52,23 +52,8 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.name = name;
 		this.inputAxes = inputAxes;
 		this.outputAxes = outputAxes;
-		initialize();
 	}
-	
-	public AbstractCoordinateTransform( final String type,
-			final String name,
-			final CoordinateSystem input, final CoordinateSystem output) {
-		this.type = type;
-		this.name = name;
 
-		this.inputCoordinateSystem = input;
-		this.inputCoordinateSystemName = inputCoordinateSystem.getName();
-
-		this.outputCoordinateSystem = output;
-		this.outputCoordinateSystemName = outputCoordinateSystem.getName();
-		initialize();
-	}
-	
 	public AbstractCoordinateTransform( final String type,
 			final String name,
 			final CoordinateSystem input, final CoordinateSystem output) {
@@ -86,12 +71,10 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	public AbstractCoordinateTransform( final String type, final String name ) {
 		this.type = type;
 		this.name = name;
-		initialize();
 	}
 
 	public AbstractCoordinateTransform( final String type ) {
 		this.type = type;
-		initialize();
 	}
 
 	public AbstractCoordinateTransform( CoordinateTransform<T> other )
@@ -102,7 +85,6 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.input = other.getOutput();
 		this.inputAxes = other.getInputAxes();
 		this.outputAxes = other.getOutputAxes();
-		initialize();
 	}
 
 	public AbstractCoordinateTransform( CoordinateTransform<T> other, int[] inputAxes, int[] outputAxes )
