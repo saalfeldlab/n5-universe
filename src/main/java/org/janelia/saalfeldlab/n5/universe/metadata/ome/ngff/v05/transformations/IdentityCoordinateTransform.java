@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import net.imglib2.RealLocalizable;
+import net.imglib2.RealPositionable;
 import net.imglib2.realtransform.InvertibleRealTransform;
 import net.imglib2.realtransform.InvertibleRealTransformSequence;
 
@@ -31,10 +33,79 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 	}
 
 	@Override
-	public InvertibleRealTransform getTransform()
-	{
-		// an empty RealTransformSequence is the identity
-		return new InvertibleRealTransformSequence();
+	public InvertibleRealTransform getTransform() {
+
+		if (getInputAxes() != null)
+			return new IdentityRealTransform(getInputAxes().length);
+		else
+			return new IdentityRealTransform(0);
+	}
+
+	private static class IdentityRealTransform implements InvertibleRealTransform {
+
+		private int nDims;
+
+		public IdentityRealTransform(int nDims) {
+
+			this.nDims = nDims;
+		}
+
+		@Override
+		public int numSourceDimensions() {
+
+			return nDims;
+		}
+
+		@Override
+		public int numTargetDimensions() {
+
+			return nDims;
+		}
+
+		@Override
+		public void apply(double[] source, double[] target) {
+
+			// use target.length instead of nDims
+			// in case nDims is not specified
+			if (source == target)
+				return;
+			else
+				System.arraycopy(source, 0, target, 0, target.length);
+		}
+
+		@Override
+		public void apply(RealLocalizable source, RealPositionable target) {
+
+			if (source == target)
+				return;
+			else
+				target.setPosition(source);
+		}
+
+		@Override
+		public void applyInverse(double[] source, double[] target) {
+
+			apply(source, target);
+		}
+
+		@Override
+		public void applyInverse(RealPositionable source, RealLocalizable target) {
+
+			apply(target, source);
+		}
+
+		@Override
+		public InvertibleRealTransform inverse() {
+
+			return this;
+		}
+
+		@Override
+		public InvertibleRealTransform copy() {
+
+			return new IdentityRealTransform(nDims);
+		}
+
 	}
 
 }
