@@ -126,8 +126,21 @@ public class TransformGraph
 			transforms.add( t );
 		}
 
-		if( addInverse && t instanceof InvertibleCoordinateTransform )
-			addTransform( new InverseCT( (InvertibleCoordinateTransform) t ), false );
+		if (addInverse) {
+			final CoordinateTransform<?> invT = inverse(t);
+			if (invT != null)
+				addTransform(invT, false);
+		}
+	}
+
+	private CoordinateTransform<?> inverse(CoordinateTransform<?> t) {
+
+		if (t instanceof InvertibleCoordinateTransform)
+			return new InverseCT((InvertibleCoordinateTransform)t);
+		else if (t instanceof SequenceCoordinateTransform)
+			return ((SequenceCoordinateTransform)t).inverse();
+
+		return null;
 	}
 
 	public void updateTransforms()
@@ -294,7 +307,7 @@ public class TransformGraph
 		}
 	}
 
-	private static class InverseCT extends AbstractCoordinateTransform<InvertibleRealTransform>
+	public static class InverseCT extends AbstractCoordinateTransform<InvertibleRealTransform>
 		implements InvertibleCoordinateTransform<InvertibleRealTransform> {
 
 		InvertibleCoordinateTransform<?> ict;
@@ -308,6 +321,10 @@ public class TransformGraph
 				final InvertibleCoordinateTransform<?> ict ) {
 			super(type, name, inputSpace, outputSpace);
 			this.ict = ict;
+		}
+		
+		public InvertibleCoordinateTransform<?> getWrappedCoordinateTransform() {
+			return ict;
 		}
 
 		@Override
@@ -328,6 +345,47 @@ public class TransformGraph
 		@Override
 		public InvertibleRealTransform getInvertibleTransform( final N5Reader n5 ) {
 			return ict.getTransform( n5 );
+		}
+	}
+
+	public static class InverseCoordinateTransformation extends AbstractCoordinateTransform<InvertibleRealTransform>
+		implements InvertibleCoordinateTransform<InvertibleRealTransform> {
+
+		InvertibleCoordinateTransform<?> ict;
+
+		public InverseCoordinateTransformation( final InvertibleCoordinateTransform<?> ict ) {
+			super("inverse", "inverse-of-" + ict.getName(), ict.getOutput(), ict.getInput());
+			this.ict = ict;
+		}
+
+		public InverseCoordinateTransformation(final String type, final String name, final String inputSpace, final String outputSpace,
+				final InvertibleCoordinateTransform<?> ict ) {
+			super(type, name, inputSpace, outputSpace);
+			this.ict = ict;
+		}
+		
+		public InvertibleCoordinateTransform<?> getWrappedCoordinateTransform() {
+			return ict;
+		}
+
+		@Override
+		public InvertibleRealTransform getTransform() {
+			return ict.getInvertibleTransform().inverse();
+		}
+
+		@Override
+		public InvertibleRealTransform getTransform( final N5Reader n5 ) {
+			return ict.getInvertibleTransform( n5 ).inverse();
+		}
+
+		@Override
+		public InvertibleRealTransform getInvertibleTransform() {
+			return ict.getTransform().inverse();
+		}
+
+		@Override
+		public InvertibleRealTransform getInvertibleTransform( final N5Reader n5 ) {
+			return ict.getTransform( n5 ).inverse();
 		}
 	}
 
