@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
 
 import net.imglib2.realtransform.RealComponentMappingTransform;
@@ -44,12 +43,12 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 
 	public int[] inputAxesLabels()
 	{
-		return  transforms.stream().flatMap( t -> Arrays.stream(t.getInputAxes())).toArray();
+		return transforms.stream().flatMapToInt(t -> Arrays.stream(t.getInputAxes())).toArray();
 	}
 
 	public int[] outputAxesLabels()
 	{
-		return  transforms.stream().flatMap( t -> Arrays.stream(t.getOutputAxes())).toArray();
+		return transforms.stream().flatMapToInt(t -> Arrays.stream(t.getOutputAxes())).toArray();
 	}
 
 	public RealTransform buildTransform()
@@ -62,27 +61,27 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 
 		if( spaces != null )
 		{
-			final String[] inputAxisLabels = spaces.getSpace(getInput()).getAxisNames();
-			final String[] tformInputAxisLabels = inputAxesLabels();
+			final int nIn = spaces.getSpace(getInput()).numDimensions();
+			final int[] tformInputAxes = inputAxesLabels();
 
-			final String[] outputAxisLabels = spaces.getSpace(getOutput()).getAxisNames();
-			final String[] tformOutputAxisLabels = outputAxesLabels();
+			final int nOut = spaces.getSpace(getOutput()).numDimensions();
+			final int[] tformOutputAxes = outputAxesLabels();
 
 			RealTransform pre = null;
-			if( !Arrays.equals(inputAxisLabels, tformInputAxisLabels))
-			{
-				// go from the input axis order to the transform's input axis order
-				final int[] inPermParams = AxisUtils.findPermutation(inputAxisLabels, tformInputAxisLabels);
-				pre = new RealComponentMappingTransform( inPermParams.length, inPermParams);
+			for (int i = 0; i < nIn; i++) {
+				if (tformInputAxes[i] != i) {
+					pre = new RealComponentMappingTransform(nIn, tformInputAxes);
+					break;
+				}
 			}
 
-			RealTransform post = null;
-			if( !Arrays.equals(outputAxisLabels, tformOutputAxisLabels))
-			{
-				// go from the transforms output to the output axis order
-				final int[] outPermParams = AxisUtils.findPermutation(tformOutputAxisLabels, outputAxisLabels );
-				post = new RealComponentMappingTransform( outPermParams.length, outPermParams);
+			final int[] invPerm = new int[nOut];
+			boolean isNatural = true;
+			for (int i = 0; i < nOut; i++) {
+				invPerm[tformOutputAxes[i]] = i;
+				if (tformOutputAxes[i] != i) isNatural = false;
 			}
+			final RealTransform post = isNatural ? null : new RealComponentMappingTransform(nOut, invPerm);
 
 			if( pre == null && post == null )
 			{

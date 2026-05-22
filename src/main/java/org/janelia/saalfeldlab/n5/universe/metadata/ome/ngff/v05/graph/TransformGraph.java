@@ -181,32 +181,12 @@ public class TransformGraph
 	public CoordinateTransform<?> buildTransformFromAxes( final CoordinateSystem from, final CoordinateSystem to )
 	{
 		final List<CoordinateTransform<?>> tList = new ArrayList<>();
-		final HashSet<String> outAxes = new HashSet<>();
-		final HashSet<String> inAxes = new HashSet<>();
 		final String[] outputAxes = to.getAxisNames();
 
 		for( final CoordinateTransform<?> t : getTransforms() )
 		{
-			// if
 			if( spaces.outputMatchesAny(t, outputAxes))
-			{
-				if( AxisUtils.containsAny( outAxes, spaces.getOutputAxes(t) ))
-				{
-					System.err.println( "warning: multiple transforms define same output axes");
-					return null;
-				}
-
-				if( AxisUtils.containsAny( inAxes, spaces.getInputAxes(t) ))
-				{
-					System.err.println( "warning: multiple transforms define same output axes");
-					return null;
-				}
-
 				tList.add(t);
-//				outAxes.addAll( Arrays.asList(t.getOutputAxes()) );
-//				inAxes.addAll( Arrays.asList(t.getInputAxes()) );
-			}
-
 		}
 
 		final StackedCoordinateTransform totalTransform = new StackedCoordinateTransform(

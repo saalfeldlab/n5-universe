@@ -66,8 +66,10 @@ public class CoordinateTransformAdapter
 		case("mapAxis"):
 			out = context.deserialize( jobj, MapAxisCoordinateTransform.class );
 			break;
-		case("scale_offset"):
-			out = context.deserialize( jobj, ScaleOffsetCoordinateTransform.class );
+		case("byDimension"):
+			ByDimensionCoordinateTransform bd = context.deserialize(jobj, ByDimensionCoordinateTransform.class);
+			ByDimensionCoordinateTransform.reverseParameters(bd.getTransformations());
+			out = bd;
 			break;
 		case("affine"):
 			out = new AffineCoordinateTransformAdapter().deserialize(json, typeOfT, context);
@@ -119,11 +121,16 @@ public class CoordinateTransformAdapter
 
 			break;
 		}
-		/*
-		 * Not necessary, since parsers or consuming code are responsible for calling
-		 * getParameters and buildTransform
-		 */
-		//readTransformParameters(out);
+
+		// populate input_axes / output_axes on any transform that declares them
+		if( out instanceof AbstractCoordinateTransform )
+		{
+			final AbstractCoordinateTransform<?> act = (AbstractCoordinateTransform<?>) out;
+			if( jobj.has("input_axes") )
+				act.setInputAxes( context.deserialize( jobj.get("input_axes"), int[].class ));
+			if( jobj.has("output_axes") )
+				act.setOutputAxes( context.deserialize( jobj.get("output_axes"), int[].class ));
+		}
 
 		return out;
 	}

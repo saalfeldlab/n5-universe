@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph.InverseCT;
@@ -169,10 +170,10 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 	 */
 	public static boolean isValid( final CoordinateTransform<?>[] tforms )
 	{
-		final HashSet<String> outputAxes = new HashSet<>();
+		final HashSet<Integer> outputAxes = new HashSet<>();
 		for( final CoordinateTransform<?> t : tforms )
 		{
-			for( final String a : t.getOutputAxes() )
+			for( final int a : t.getOutputAxes() )
 				if( outputAxes.contains( a ))
 					return false;
 				else
@@ -190,32 +191,26 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 	 * @param tgtAxes target axis names
 	 * @return list of intermediate axis lists
 	 */
-	public static ArrayList< String[] > axisOrdersForTransform2( final CoordinateTransform<?>[] tforms, final String[] tgtAxes )
+	public static ArrayList<int[]> axisOrdersForTransform2( final CoordinateTransform<?>[] tforms, final int[] tgtAxes )
 	{
-		System.out.println( "\naxisOrdersForTransform" );
-
-		// work backwards:
-		// we need to end up with the target axes
-		final ArrayList<String[]> axisOrders = new ArrayList<>();
+		final ArrayList<int[]> axisOrders = new ArrayList<>();
 		axisOrders.add( tgtAxes );
 
-		// reverse the list of transforms
 		final ArrayList<CoordinateTransform<?>> tlist = new ArrayList<>();
 		Collections.addAll( tlist, tforms );
 		Collections.reverse( tlist );
 
-		final ArrayList<String> axes = new ArrayList<>();
-		Collections.addAll( axes, tgtAxes );
+		final ArrayList<Integer> axes = new ArrayList<>();
+		for (int a : tgtAxes) axes.add(a);
 		for( final CoordinateTransform<?> t : tlist )
 		{
-			final List< String > inAx = Arrays.asList( t.getInputAxes() );
-			final List< String > outAx = Arrays.asList( t.getOutputAxes() );
+			final List<Integer> inAx = boxedList( t.getInputAxes() );
+			final List<Integer> outAx = boxedList( t.getOutputAxes() );
 			axes.removeAll( outAx );
 			axes.addAll( inAx );
 
-			axisOrders.add( axes.stream().toArray( String[]::new ));
+			axisOrders.add( axes.stream().mapToInt(Integer::intValue).toArray() );
 		}
-		System.out.println( "" );
 		Collections.reverse( axisOrders );
 		return axisOrders;
 	}
@@ -269,76 +264,64 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 	 * @param tgtAxes target axis names
 	 * @return list of intermediate axis lists
 	 */
-	public static ArrayList< String[] > axisOrdersForTransform( final CoordinateTransform<?>[] tforms, final String[] tgtAxes )
+	public static ArrayList<int[]> axisOrdersForTransform( final CoordinateTransform<?>[] tforms, final int[] tgtAxes )
 	{
-		System.out.println( "axisOrdersForTransform" );
-
-		// work backwards:
-		// we need to end up with the target axes
-		final ArrayList<String[]> axisOrders = new ArrayList<>();
+		final ArrayList<int[]> axisOrders = new ArrayList<>();
 		axisOrders.add( tgtAxes );
 
-		// reverse the list of transforms
 		final ArrayList<CoordinateTransform<?>> tlist = new ArrayList<>();
 		Collections.addAll( tlist, tforms );
 		Collections.reverse( tlist );
 
-		final ArrayList<String> axes = new ArrayList<>();
-		Collections.addAll( axes, tgtAxes );
+		final ArrayList<Integer> axes = new ArrayList<>();
+		for (int a : tgtAxes) axes.add(a);
 		for( final CoordinateTransform<?> t : tlist )
 		{
-			final List< String > inAx = Arrays.asList( t.getInputAxes() );
-			final List< String > outAx = Arrays.asList( t.getOutputAxes() );
+			final List<Integer> inAx = boxedList( t.getInputAxes() );
+			final List<Integer> outAx = boxedList( t.getOutputAxes() );
 			final int i = firstIndex( axes, outAx );
 			axes.removeAll( outAx );
 			axes.addAll( i < 0 ? 0 : i, inAx );
 
-			axisOrders.add( axes.stream().toArray( String[]::new ));
+			axisOrders.add( axes.stream().mapToInt(Integer::intValue).toArray() );
 		}
-		System.out.println( "" );
 		Collections.reverse( axisOrders );
 		return axisOrders;
 	}
 
-	public static ArrayList< String[] > axisOrdersForTransformFirst( final CoordinateTransform<?>[] tforms, final String[] tgtAxes )
+	public static ArrayList<int[]> axisOrdersForTransformFirst( final CoordinateTransform<?>[] tforms, final int[] tgtAxes )
 	{
-		System.out.println( "axisOrdersForTransformFirst" );
-
-		final ArrayList<String[]> axisOrders = new ArrayList<>();
+		final ArrayList<int[]> axisOrders = new ArrayList<>();
 		axisOrders.add( tforms[0].getInputAxes() );
 
-		final ArrayList<String> axes = new ArrayList<>();
-		Collections.addAll( axes, tgtAxes );
+		final ArrayList<Integer> axes = new ArrayList<>();
+		for (int a : tgtAxes) axes.add(a);
 		for( final CoordinateTransform<?> t : tforms )
 		{
-			final List< String > inAx = Arrays.asList( t.getInputAxes() );
-			final List< String > outAx = Arrays.asList( t.getOutputAxes() );
+			final List<Integer> inAx = boxedList( t.getInputAxes() );
+			final List<Integer> outAx = boxedList( t.getOutputAxes() );
 			final int i = firstIndex( axes, outAx );
 			axes.removeAll( outAx );
 			axes.addAll( i < 0 ? 0 : i, inAx );
 
-			axisOrders.add( axes.stream().toArray( String[]::new ));
+			axisOrders.add( axes.stream().mapToInt(Integer::intValue).toArray() );
 		}
-		System.out.println( "" );
 		Collections.reverse( axisOrders );
 		return axisOrders;
 	}
 
-	public static ArrayList< HashSet< String > > cumNeededAxes( final CoordinateTransform<?>[] tforms )
+	public static ArrayList<HashSet<Integer>> cumNeededAxes( final CoordinateTransform<?>[] tforms )
 	{
-		System.out.println("cumNeededAxes");
 		final ArrayList<CoordinateTransform> tlist = new ArrayList<>();
 		Collections.addAll( tlist, tforms );
 		Collections.reverse( tlist );
 
-		final ArrayList<HashSet<String>> cAxisList = new ArrayList<>();
-		HashSet<String> prev = null;
+		final ArrayList<HashSet<Integer>> cAxisList = new ArrayList<>();
+		HashSet<Integer> prev = null;
 		for( final CoordinateTransform t : tlist )
 		{
-			System.out.println( "t: " + t );
-			System.out.println( "  axes : " + Arrays.toString( t.getInputAxes() ) );
-			final HashSet< String > set = new HashSet<>();
-			Collections.addAll( set, t.getInputAxes());
+			final HashSet<Integer> set = new HashSet<>();
+			for (int a : t.getInputAxes()) set.add(a);
 			if( prev != null )
 				set.addAll( prev );
 
@@ -350,10 +333,10 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		return cAxisList;
 	}
 
-	private static <T> int firstIndex( final List<T> list, final List<T> search )
+	private static int firstIndex( final List<Integer> list, final List<Integer> search )
 	{
 		int idx = -1;
-		for( final T t : search )
+		for( final Integer t : search )
 		{
 			final int i = list.indexOf( t );
 			if( i >= 0 && (idx < 0 || i < idx ))
@@ -362,34 +345,25 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		return idx;
 	}
 
-	public static ArrayList< int[] > inputIndexesFromAxisOrders( final CoordinateTransform<?>[] tforms, final List<String[]> axisOrders )
+	public static ArrayList<int[]> inputIndexesFromAxisOrders( final CoordinateTransform<?>[] tforms, final List<int[]> axisOrders )
 	{
-		final ArrayList< int[] > idxList = new ArrayList<>();
+		final ArrayList<int[]> idxList = new ArrayList<>();
 		for( int i = 0; i < tforms.length; i++ )
 			idxList.add( indexes( tforms[i].getInputAxes(), axisOrders.get( i )));
 
 		return idxList;
 	}
 
-	public static ArrayList< int[] > outputIndexesFromAxisOrders( final CoordinateTransform<?>[] tforms, final List<String[]> axisOrders )
+	public static ArrayList<int[]> outputIndexesFromAxisOrders( final CoordinateTransform<?>[] tforms, final List<int[]> axisOrders )
 	{
-		final ArrayList< int[] > idxList = new ArrayList<>();
+		final ArrayList<int[]> idxList = new ArrayList<>();
 		for( int i = 0; i < tforms.length; i++ )
 			idxList.add( indexes( tforms[i].getOutputAxes(), axisOrders.get( i + 1 )));
 
 		return idxList;
 	}
 
-	/**
-	 * Returns the indexes of src objects into tgt object.
-	 *
-	 *
-	 * @param <T> the type
-	 * @param src
-	 * @param tgt
-	 * @return
-	 */
-	private static <T> int[] indexes( final T[] src, final T[] tgt )
+	private static int[] indexes( final int[] src, final int[] tgt )
 	{
 		final int[] idxs = new int[ src.length ];
 		for( int i = 0; i < src.length; i++ )
@@ -398,13 +372,18 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		return idxs;
 	}
 
-	private static <T> int indexOf( final T t, final T[] tgt )
+	private static int indexOf( final int t, final int[] tgt )
 	{
 		for( int i = 0; i < tgt.length; i++ )
-			if( tgt[i].equals( t ))
+			if( tgt[i] == t )
 				return i;
 
 		return -1;
+	}
+
+	private static List<Integer> boxedList( final int[] arr )
+	{
+		return Arrays.stream(arr).boxed().collect(Collectors.toList());
 	}
 
 	private static boolean isReindexed(final int[] indexes) {

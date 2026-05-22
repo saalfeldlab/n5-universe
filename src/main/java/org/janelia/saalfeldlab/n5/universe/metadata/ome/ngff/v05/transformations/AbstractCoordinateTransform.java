@@ -117,9 +117,17 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		return inputAxes;
 	}
 
+	public void setInputAxes(final int[] inputAxes) {
+		this.inputAxes = inputAxes;
+	}
+
 	@Override
 	public int[] getOutputAxes() {
 		return outputAxes;
+	}
+
+	public void setOutputAxes(final int[] outputAxes) {
+		this.outputAxes = outputAxes;
 	}
 
 	@Override

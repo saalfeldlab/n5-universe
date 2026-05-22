@@ -2,12 +2,10 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformation
 
 import java.util.ArrayList;
 import java.util.Arrays;
-
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 
 import net.imglib2.realtransform.AffineGet;
@@ -17,15 +15,16 @@ import net.imglib2.realtransform.RealTransformSequence;
 import net.imglib2.realtransform.StackedRealTransform;
 
 public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<RealTransform> {
-	
+
 	/**
-	 * TODO:
-	 * This class implements a specification for which transformations are applied
-	 * per-axis or per-set-of-axes. 
-	 * 
-	 * Axes in this implementation are specified by their names.
-	 * 
-	 * The specification as changed, and now the axes need to be specified by index.
+	 * To test, run
+	 * 	NgffTransformsConformance
+	 * 		/home/john/dev/ngff/ome_zarr_transformations_conformance/cases/byDimension.ome.zarr
+	 * 		input
+	 * 		output
+	 * 		[[1,2]]
+	 *
+	 * and the output should be [1,20]
 	 */
 
 	public static final String TYPE = "byDimension";
@@ -46,13 +45,21 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 			final CoordinateTransform<?>... transformations ) {
 		super(TYPE, name, inputSpace, outputSpace);
 		this.transformations = transformations;
-		validate(transformations, inputSpace.getAxisNames(), outputSpace.getAxisNames());
+		validate(transformations, inputSpace.numDimensions(), outputSpace.numDimensions());
 	}
 
 	public ByDimensionCoordinateTransform(
 			final CoordinateSystem inputSpace, final CoordinateSystem outputSpace,
 			final CoordinateTransform<?>... transformations ) {
 		this(null, inputSpace, outputSpace, transformations);
+	}
+
+	public ByDimensionCoordinateTransform(
+			final String name,
+			final String inputSpace, final String outputSpace,
+			final CoordinateTransform<?>... transformations ) {
+		super(TYPE, name, inputSpace, outputSpace);
+		this.transformations = transformations;
 	}
 
 	public RealTransform buildTransform()
@@ -83,31 +90,37 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 
 	private RealTransform createPreTransform(CoordinateSystem inputCoordinateSystem) {
 
-		String[] inputAxisLabels = inputCoordinateSystem.getAxisNames();
-	    String[] transformInputAxisLabels = inputAxesFromTransforms();
-	    
-		if (Arrays.equals(inputAxisLabels, transformInputAxisLabels)) {
-			return null;
-		}
+		final int n = inputCoordinateSystem.numDimensions();
+		final int[] transformInputAxes = inputAxesFromTransforms();
 
-		final int[] inPermParams = AxisUtils.findPermutation(inputAxisLabels, transformInputAxisLabels);
-		return new RealComponentMappingTransform(inPermParams.length, inPermParams);
+		for (int i = 0; i < n; i++) {
+			if (transformInputAxes[i] != i)
+				// transformInputAxes[i] is the overall input axis index for stacked position i
+				return new RealComponentMappingTransform(n, transformInputAxes);
+		}
+		return null;
 	}
 
 	private RealTransform createPostTransform(CoordinateSystem outputCoordinateSystem) {
 
-		String[] outputAxisLabels = outputCoordinateSystem.getAxisNames();
-		String[] transformOutputAxisLabels = outputAxesFromTransforms();
+		final int n = outputCoordinateSystem.numDimensions();
+		final int[] transformOutputAxes = outputAxesFromTransforms();
 
-		if (Arrays.equals(outputAxisLabels, transformOutputAxisLabels)) {
-			return null;
+		// build inverse permutation: invPerm[outputAxis] = stackedPosition
+		final int[] invPerm = new int[n];
+		boolean isNatural = true;
+		for (int i = 0; i < n; i++) {
+			invPerm[transformOutputAxes[i]] = i;
+			if (transformOutputAxes[i] != i)
+				isNatural = false;
 		}
-
-		int[] outPermParams = AxisUtils.findPermutation(transformOutputAxisLabels, outputAxisLabels);
-		return new RealComponentMappingTransform(outPermParams.length, outPermParams);
+		if (isNatural)
+			return null;
+		return new RealComponentMappingTransform(n, invPerm);
 	}
 
 	private RealTransform combineTransforms(RealTransform stacked, RealTransform pre, RealTransform post) {
+
 	    if (pre == null && post == null) {
 	        return stacked;
 	    }
@@ -120,16 +133,16 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 
 		if (post != null)
 			sequence.add(post);
-    
+
 	    return sequence;
 	}
 
-	protected String[] inputAxesFromTransforms() {
-		return Arrays.stream(transformations).flatMap(t -> Arrays.stream(t.getInputAxes())).toArray(String[]::new);
+	protected int[] inputAxesFromTransforms() {
+		return Arrays.stream(transformations).flatMapToInt(t -> Arrays.stream(t.getInputAxes())).toArray();
 	}
 
-	protected String[] outputAxesFromTransforms() {
-		return Arrays.stream(transformations).flatMap(t -> Arrays.stream(t.getOutputAxes())).toArray(String[]::new);
+	protected int[] outputAxesFromTransforms() {
+		return Arrays.stream(transformations).flatMapToInt(t -> Arrays.stream(t.getOutputAxes())).toArray();
 	}
 
 	@Override
@@ -152,6 +165,10 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		return totalTransform;
 	}
 
+	public CoordinateTransform<?>[] getTransformations() {
+		return transformations;
+	}
+
 	public boolean isAffine() {
 
 		return Arrays.stream(transformations)
@@ -159,59 +176,77 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 				.allMatch(x -> x.getTransform() instanceof AffineGet);
 	}
 
-	private static void validate(final CoordinateTransform<?>[] transforms, final String[] inputAxes, final String[] outputAxes) {
+	private static void validate(final CoordinateTransform<?>[] transforms, final int numInput, final int numOutput) {
 
-		final int numOutput = outputAxes.length;
 		final boolean[] outputExists = new boolean[numOutput];
 
 		int ctIndex = 0;
-		for (CoordinateTransform<?> ct : transforms ) {
+		for (CoordinateTransform<?> ct : transforms) {
 
-			if( ct.getInputAxes() == null )
-				throw new N5Exception("Coordinate transform at index " +  ctIndex + " does not declare input axes");
+			if (ct.getInputAxes() == null)
+				throw new N5Exception("Coordinate transform at index " + ctIndex + " does not declare input axes");
 
-			if( ct.getOutputAxes() == null )
-				throw new N5Exception("Coordinate transform at index " +  ctIndex + " does not declare output axes");
+			if (ct.getOutputAxes() == null)
+				throw new N5Exception("Coordinate transform at index " + ctIndex + " does not declare output axes");
 
-			for (final String ctIn : ct.getInputAxes())
-				if (!contains(ctIn, inputAxes))
-					throw new N5Exception("Coordinate transform at index " + ctIndex + " has input name " + ctIn
-							+ " that is not an input axis.");
+			for (final int ctIn : ct.getInputAxes())
+				if (ctIn < 0 || ctIn >= numInput)
+					throw new N5Exception("Coordinate transform at index " + ctIndex + " has input axis index " + ctIn
+							+ " out of range [0, " + (numInput - 1) + "].");
 
-			for (final String ctOut : ct.getOutputAxes()) {
-				final int i = firstIndexOf(ctOut, outputAxes);
-				if (i < 0)
-					throw new N5Exception("Coordinate transform at index " + ctIndex + " has output name " + ctOut
-							+ " that is not an output axis.");
-				else
-					outputExists[i] = true;
+			for (final int ctOut : ct.getOutputAxes()) {
+				if (ctOut < 0 || ctOut >= numOutput)
+					throw new N5Exception("Coordinate transform at index " + ctIndex + " has output axis index " + ctOut
+							+ " out of range [0, " + (numOutput - 1) + "].");
+				outputExists[ctOut] = true;
 			}
-	
+
 			ctIndex++;
 		}
 
-		final ArrayList<String> outputsNotPresent = new ArrayList<>();
+		final ArrayList<Integer> outputsNotPresent = new ArrayList<>();
 		for (int i = 0; i < numOutput; i++) {
 			if (!outputExists[i])
-				outputsNotPresent.add(outputAxes[i]);
+				outputsNotPresent.add(i);
 		}
 
-		if( outputsNotPresent.size() > 0 )
-			throw new N5Exception("All output axes must be keys for byDimension.\n"
-					+ "The axes\n[" + outputsNotPresent.stream().collect(Collectors.joining(","))
+		if (outputsNotPresent.size() > 0)
+			throw new N5Exception("All output axes must be covered for byDimension.\n"
+					+ "The axis indices\n[" + outputsNotPresent.stream().map(String::valueOf).collect(Collectors.joining(","))
 					+ "]\nwere not present.");
 	}
+	
+	public static void reverseParameters(CoordinateTransform<?>[] transforms) { 
 
-	private static boolean contains(final String query, final String[] set) {
-		return Arrays.stream(set).anyMatch(x -> x.equals(query));
+		int inMax = -1;
+		int outMax = -1;
+		for( CoordinateTransform<?> t : transforms) {
+			inMax = updateMax( inMax, t.getInputAxes());
+			outMax = updateMax( outMax, t.getOutputAxes());
+		}
+
+		for( CoordinateTransform<?> t : transforms) {
+			indexReversal(inMax, t.getInputAxes());
+			indexReversal(outMax, t.getOutputAxes());
+		}
 	}
 	
-	private static int firstIndexOf(String query, String[] values) {
-		for (int i = 0; i < values.length; i++) {
-			if (values[i].equals(query))
-				return i;
+	private static int updateMax(int current, int[] values) {
+
+		int max = current;
+		for (int v : values)
+			if (v > max)
+				max = v;
+
+		return max;
+	}	
+
+	private static void indexReversal(int max, int[] indexes) {
+
+		for (int i = 0; i < indexes.length; i++) {
+			indexes[i] = max - indexes[i];
 		}
-		return -1;
-	}
+
+	}	
 
 }
