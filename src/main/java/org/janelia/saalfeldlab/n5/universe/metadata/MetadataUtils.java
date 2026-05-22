@@ -17,6 +17,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransform
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
@@ -36,6 +37,8 @@ public class MetadataUtils {
 	// duplicate variables in N5ScalePyramidExporter in n5-ij
 	public static final String DOWN_SAMPLE = "Sample";
 	public static final String DOWN_AVERAGE = "Average";
+
+	private static final Gson gson = new Gson();
 
 	public static double[] mul(final double[] a, final double[] b) {
 
@@ -542,6 +545,10 @@ public class MetadataUtils {
 		for (int i = array.size() - 1; i >= 0; i--)
 			result.add(array.get(i));
 		return result;
+	}
+
+	public static double[][] toMatrix(JsonElement json) {
+		return gson.fromJson(json, double[][].class);
 	}
 
 }
