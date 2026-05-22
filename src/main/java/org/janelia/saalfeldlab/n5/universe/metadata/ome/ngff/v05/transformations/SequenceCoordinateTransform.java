@@ -57,10 +57,9 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 	public RealTransformSequence getTransform()
 	{
 		// with permutations
-		System.out.println( "getTransform" );
-		final ArrayList< String[] > axOrders = axisOrdersForTransform( getTransformations(), getOutputSpaceObj().getAxisNames() );
-		for( final String[] axes : axOrders )
-			System.out.println(String.join(" ", axes ));
+//		final ArrayList< String[] > axOrders = axisOrdersForTransform( getTransformations(), getOutputSpaceObj().getAxisNames() );
+//		for( final String[] axes : axOrders )
+//			System.out.println(String.join(" ", axes ));
 
 		final RealTransformSequence totalTransform = new RealTransformSequence();
 		final CoordinateTransform[] tforms = getTransformations();

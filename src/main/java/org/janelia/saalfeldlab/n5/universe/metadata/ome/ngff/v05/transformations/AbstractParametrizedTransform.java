@@ -10,6 +10,11 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 
 	protected transient String absolutePath;
 
+	public AbstractParametrizedTransform() {
+		super();
+		path = null;
+	}
+
 	public AbstractParametrizedTransform( String type ) {
 		this( type, null );
 	}
@@ -30,7 +35,7 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 	}
 
 	public AbstractParametrizedTransform( String type, String name, String parameterPath,
-			String[] inputAxes, String[] outputAxes ) {
+			int[] inputAxes, int[] outputAxes ) {
 		super( type, name, inputAxes, outputAxes );
 		this.path = parameterPath;
 	}
@@ -41,7 +46,7 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 		this.path = other.getParameterPath();
 	}
 
-	public AbstractParametrizedTransform( AbstractParametrizedTransform<T,P> other, String[] inputAxes, String[] outputAxes )
+	public AbstractParametrizedTransform( AbstractParametrizedTransform<T,P> other, int[] inputAxes, int[] outputAxes )
 	{
 		super( other, inputAxes, outputAxes );
 		this.path = other.getParameterPath();
