@@ -1,9 +1,9 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
-import java.util.ArrayList;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
 
 import net.imglib2.realtransform.RealTransform;
 
@@ -13,29 +13,38 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 
 	protected String name;
 
-	protected String input;
+	protected JsonElement input;
 
-	protected String output;
+	protected JsonElement output;
 
 	// implement
 	protected transient String[] inputAxes;
 
 	protected transient String[] outputAxes;
 
-	protected transient CoordinateSystem inputSpaceObj;
+	protected transient String inputCoordinateSystemName;
 
-	protected transient CoordinateSystem outputSpaceObj;
+	protected transient String outputCoordinateSystemName;
+
+	protected transient CoordinateSystem inputCoordinateSystem;
+
+	protected transient CoordinateSystem outputCoordinateSystem;
 
 	@Override
 	public abstract T getTransform();
+
+	protected AbstractCoordinateTransform() {
+		super();
+	}
 
 	public AbstractCoordinateTransform( final String type,
 			final String name,
 			final String inputSpace, final String outputSpace ) {
 		this.type = type;
 		this.name = name;
-		this.input = inputSpace;
-		this.output = outputSpace;
+		this.inputCoordinateSystemName = inputSpace;
+		this.outputCoordinateSystemName = outputSpace;
+		initialize();
 	}
 
 	public AbstractCoordinateTransform( final String type,
@@ -45,25 +54,43 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.name = name;
 		this.inputAxes = inputAxes;
 		this.outputAxes = outputAxes;
+		initialize();
+	}
+	
+	public AbstractCoordinateTransform( final String type,
+			final String name,
+			final CoordinateSystem input, final CoordinateSystem output) {
+		this.type = type;
+		this.name = name;
+
+		this.inputCoordinateSystem = input;
+		this.inputCoordinateSystemName = inputCoordinateSystem.getName();
+
+		this.outputCoordinateSystem = output;
+		this.outputCoordinateSystemName = outputCoordinateSystem.getName();
+		initialize();
 	}
 
 	public AbstractCoordinateTransform( final String type, final String name ) {
 		this.type = type;
 		this.name = name;
+		initialize();
 	}
 
 	public AbstractCoordinateTransform( final String type ) {
 		this.type = type;
+		initialize();
 	}
 
 	public AbstractCoordinateTransform( CoordinateTransform<T> other )
 	{
 		this.name = other.getName();
 		this.type = other.getType();
-		this.input = other.getInput();
-		this.output = other.getOutput();
+		this.inputCoordinateSystemName = other.getInput();
+		this.outputCoordinateSystemName = other.getOutput();
 		this.inputAxes = other.getInputAxes();
 		this.outputAxes = other.getOutputAxes();
+		initialize();
 	}
 
 	public AbstractCoordinateTransform( CoordinateTransform<T> other, String[] inputAxes, String[] outputAxes )
@@ -76,27 +103,13 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.outputAxes = outputAxes;
 	}
 
-	/**
-	 *
-	 * If this object does not have input_space or output_space defined,
-	 * attempts to infer the space name, given * input_axes or output_axes, if they are defined.
-	 *
-	 *
-	 * @param spaces the spaces object
-	 * @return true if input_space and output_space are defined.
-	 */
-	public boolean inferSpacesFromAxes( final CoordinateSystems spaces )
-	{
-		if( input == null && outputAxes != null )
-			input = spaceNameFromAxesLabels( spaces, inputAxes );
+	protected void initialize() {
 
-		if( output == null && outputAxes != null )
-			output = spaceNameFromAxesLabels( spaces, outputAxes );
+		if (this.inputCoordinateSystemName != null)
+			input = new JsonPrimitive(inputCoordinateSystemName);
 
-		if( input != null && output != null )
-			return true;
-		else
-			return false;
+		if (this.outputCoordinateSystemName != null)
+			output = new JsonPrimitive(outputCoordinateSystemName);
 	}
 
 	@Override
@@ -154,21 +167,21 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.outputCoordinateSystem = outputCoordinateSystem;
 	}
 
-	public CoordinateSystem getInputSpaceObj()
+	public CoordinateSystem getInputCoordinateSystem()
 	{
-		return inputSpaceObj;
+		return inputCoordinateSystem;
 	}
 
-	public CoordinateSystem getOutputSpaceObj()
+	public CoordinateSystem getOutputCoordinateSystem()
 	{
-		return outputSpaceObj;
+		return outputCoordinateSystem;
 	}
 
 	public AbstractCoordinateTransform<T> setNameSpaces( final String name, final String in, final String out )
 	{
 		this.name = name;
-		this.input = in;
-		this.output = out;
+		this.inputCoordinateSystemName = in;
+		this.outputCoordinateSystemName = out;
 		return this;
 	}
 
@@ -177,131 +190,5 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	{
 		return String.format("%s:(%s > %s)", name, input, output);
 	}
-
-//	@Override
-//	public RealCoordinate apply( final RealCoordinate src, final RealCoordinate dst ) {
-//
-//		final T t = getTransform();
-//
-////		RealCoordinate out = new RealCoordinate(t.numTargetDimensions());
-//		// this needs to work on subspaces correctly
-//
-//		// the simple case
-//		if( src.getSpace().axesEquals( getInputSpaceObj() ))
-//		{
-//			t.apply(src, dst);
-//			dst.setSpace(getOutputSpaceObj());
-//			return dst;
-//		}
-//
-////		if( !src.getSpace().isSubspaceOf( getInputSpaceObj() ))
-//		if( ! getInputSpaceObj().isSubspaceOf( src.getSpace() ))
-//		{
-//			System.err.println("WARNING: input point's space does not match transforms space.\n" );
-//		}
-//
-//		final int[] inPermParams = AxisUtils.findPermutation(
-//				src.getSpace().getAxisLabels(), getInputSpaceObj().getAxisLabels() );
-//
-//		final int nd = src.numDimensions(); // should this be a max over src, outputDims ?
-//		final int[] perm = AxisUtils.fillPermutation(inPermParams, nd );
-//
-//		final RealTransformSequence totalTransform = new RealTransformSequence();
-//		final RealComponentMappingTransform pre = new RealComponentMappingTransform( perm.length, perm );
-//		totalTransform.add(pre);
-//		totalTransform.add(t);
-//		totalTransform.apply(src, dst);
-//
-//		// copy coordinate values from src for unaffected dimensions
-//		int j = t.numSourceDimensions();
-//		for( int i = t.numTargetDimensions(); i < dst.numDimensions() && j < src.numDimensions(); i++ )
-//			dst.setPosition( src.getDoublePosition(perm[j++]), i);
-//
-////		Space srcRem = src.getSpace().diff("", getInputSpaceObj());
-////		System.out.println( "srcRem : " + Arrays.toString( srcRem.getAxisLabels() ));
-//
-//		dst.setSpace(
-//				getOutputSpaceObj().union("",
-//						src.getSpace().diff("", getInputSpaceObj())));
-//
-//		return dst;
-//	}
-
-//	public RealCoordinate applyAppend( final RealCoordinate src ) {
-//
-//		final T t = getTransform();
-//
-//		final RealCoordinate dst = new RealCoordinate( t.numTargetDimensions() );
-//		if( src.getSpace().axesEquals( getInputSpaceObj() ))
-//		{
-//			t.apply(src, dst);
-//			dst.setSpace(getOutputSpaceObj());
-//			return src.append(dst);
-//		}
-//
-//		if( ! getInputSpaceObj().isSubspaceOf( src.getSpace() ))
-//		{
-//			System.err.println("WARNING: input point's space does not match transforms space.\n" );
-//		}
-//
-//		final int[] inPermParams = AxisUtils.findPermutation(
-//				src.getSpace().getAxisLabels(), getInputSpaceObj().getAxisLabels() );
-//
-//		final int nd = src.numDimensions(); // should this be a max over src, outputDims ?
-//		final int[] perm = AxisUtils.fillPermutation(inPermParams, nd );
-//
-//		final RealTransformSequence totalTransform = new RealTransformSequence();
-//		final RealComponentMappingTransform pre = new RealComponentMappingTransform( perm.length, perm );
-//		totalTransform.add(pre);
-//		totalTransform.add(t);
-//		totalTransform.apply(src, dst);
-//		dst.setSpace(getOutputSpaceObj());
-//		return src.append(dst);
-//
-////		// copy coordinate values from src for unaffected dimensions
-////		int j = t.numSourceDimensions();
-////		for( int i = t.numTargetDimensions(); i < dst.numDimensions() && j < src.numDimensions(); i++ )
-////			dst.setPosition( src.getDoublePosition(perm[j++]), i);
-////
-//////		Space srcRem = src.getSpace().diff("", getInputSpaceObj());
-//////		System.out.println( "srcRem : " + Arrays.toString( srcRem.getAxisLabels() ));
-////
-////		dst.setSpace(
-////				getOutputSpaceObj().union("",
-////						src.getSpace().diff("", getInputSpaceObj())));
-////
-////		return dst;
-//	}
-
-//	public AxisPoint applyAxes( final AxisPoint src ) {
-//
-//		final T t = getTransform();
-//
-//		// check if this transform's input axes are a subspace
-//		// of the source point
-//		final double[] in = new double[ t.numSourceDimensions() ];  // TODO optimize
-//		final double[] out = new double[ t.numTargetDimensions() ];
-//
-//		if( getInputSpaceObj().isSubspaceOf( src.axisOrder() ))
-//		{
-//			src.localize( in, getInputAxes() );
-//		}
-//		else if( src.numDimensions() >= t.numSourceDimensions() )
-//		{
-//			System.err.println("WARNING: using first N dimensions of source point" );
-//			// if not, default to using the first N dimensions
-//			src.localize( in );
-//		}
-//		else
-//		{
-//			return null;
-//		}
-//
-//		final AxisPoint dst = src;
-//		t.apply( in, out );
-//		dst.setPositions( out, getOutputAxes() );
-//		return dst;
-//
-//	}
 
 }
