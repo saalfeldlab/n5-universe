@@ -146,12 +146,12 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		return output;
 	}
 
-	public void setInput( final CoordinateSystem inputSpace ) {
-		this.inputSpaceObj = inputSpace;
+	public void setInput(final CoordinateSystem inputCoordinateSystem) {
+		this.inputCoordinateSystem = inputCoordinateSystem;
 	}
 
-	public void setOutput( final CoordinateSystem outputSpace ) {
-		this.outputSpaceObj = outputSpace;
+	public void setOutput(final CoordinateSystem outputCoordinateSystem) {
+		this.outputCoordinateSystem = outputCoordinateSystem;
 	}
 
 	public CoordinateSystem getInputSpaceObj()
