@@ -23,6 +23,9 @@ public interface CoordinateTransform<T extends RealTransform> {
 
 	public String getOutput();
 
+	public void setInput(final CoordinateSystem inputCoordinateSystem);
+
+	public void setOutput(final CoordinateSystem outputCoordinateSystem);
 	public String[] getInputAxes();
 
 	public String[] getOutputAxes();
