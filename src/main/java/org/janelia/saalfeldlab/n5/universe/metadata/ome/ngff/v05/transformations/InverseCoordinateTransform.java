@@ -5,18 +5,14 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 
 import net.imglib2.realtransform.InvertibleRealTransform;
 
-public class InvertedCoordinateTransform<T extends InvertibleRealTransform, C extends InvertibleCoordinateTransform<T>> extends AbstractCoordinateTransform<T> 
+public class InverseCoordinateTransform<T extends InvertibleRealTransform, C extends InvertibleCoordinateTransform<T>> extends AbstractCoordinateTransform<T> 
 	implements InvertibleCoordinateTransform<T> {
 
 	public static final String TYPE = "inverted";
 
 	protected C transform;
 
-	protected InvertedCoordinateTransform() {
-		// for serialization
-	}
-
-	public InvertedCoordinateTransform(
+	public InverseCoordinateTransform(
 			final String name,
 			final CoordinateSystem inputSpace, final CoordinateSystem outputSpace,
 			final C transform ) {
@@ -24,13 +20,13 @@ public class InvertedCoordinateTransform<T extends InvertibleRealTransform, C ex
 		this.transform = transform;
 	}
 
-	public InvertedCoordinateTransform(
+	public InverseCoordinateTransform(
 			final CoordinateSystem inputSpace, final CoordinateSystem outputSpace,
 			final C transform ) {
 		this(null, inputSpace, outputSpace, transform);
 	}
 
-	public InvertedCoordinateTransform( final String name, final C ct ) {
+	public InverseCoordinateTransform( final String name, final C ct ) {
 		// input and output spaces / axes must be swapped
 		super(TYPE, name, ct.getOutput(), ct.getInput());
 		super.inputAxes = ct.getOutputAxes();
@@ -38,19 +34,23 @@ public class InvertedCoordinateTransform<T extends InvertibleRealTransform, C ex
 		this.transform = ct;
 	}
 
-	public InvertedCoordinateTransform( final C ct ) {
+	public InverseCoordinateTransform( final C ct ) {
 		// input and output spaces must be swapped
 		this( "inverted-" + ct.getName(), ct );
+	}
+	
+	public C getWrappedCoordinateTransform() {
+		return transform;
 	}
 
 	@Override
 	public T getTransform() {
-		return (T)transform.getTransform().inverse();
+		return (T)getWrappedCoordinateTransform().getTransform().inverse();
 	}
 
 	@Override
 	public T getTransform(final N5Reader n5) {
-		return (T)transform.getTransform(n5).inverse();
+		return (T)getWrappedCoordinateTransform().getTransform(n5).inverse();
 	}
 
 	@Override

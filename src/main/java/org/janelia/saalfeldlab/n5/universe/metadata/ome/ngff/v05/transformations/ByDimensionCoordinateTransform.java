@@ -190,6 +190,24 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 				invTransforms);
 	}
 
+	public boolean isInvertible() {
+		return Arrays.stream(transformations).allMatch(t -> t instanceof InvertibleCoordinateTransform);
+	}
+
+	public ByDimensionCoordinateTransform inverse() {
+		if (!isInvertible())
+			return null;
+
+		final CoordinateTransform<?>[] invTransforms = Arrays.stream(transformations)
+				.map(ct -> new InverseCoordinateTransform((InvertibleCoordinateTransform<?>) ct))
+				.toArray(CoordinateTransform<?>[]::new);
+
+		return new ByDimensionCoordinateTransform(
+				getName() == null ? null : getName() + "-inv",
+				getOutput(), getInput(),
+				invTransforms);
+	}
+
 	public boolean isAffine() {
 
 		return Arrays.stream(transforms)
