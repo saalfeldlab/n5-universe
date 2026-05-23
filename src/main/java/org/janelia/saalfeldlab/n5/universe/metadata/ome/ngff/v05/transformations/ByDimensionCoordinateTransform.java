@@ -16,17 +16,6 @@ import net.imglib2.realtransform.StackedRealTransform;
 
 public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<RealTransform> {
 
-	/**
-	 * To test, run
-	 * 	NgffTransformsConformance
-	 * 		/home/john/dev/ngff/ome_zarr_transformations_conformance/cases/byDimension.ome.zarr
-	 * 		input
-	 * 		output
-	 * 		[[1,2]]
-	 *
-	 * and the output should be [1,20]
-	 */
-
 	public static final String TYPE = "byDimension";
 
 	private final CoordinateTransform<?>[] transformations;
@@ -167,6 +156,24 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 
 	public CoordinateTransform<?>[] getTransformations() {
 		return transformations;
+	}
+
+	public boolean isInvertible() {
+		return Arrays.stream(transformations).allMatch(t -> t instanceof InvertibleCoordinateTransform);
+	}
+
+	public ByDimensionCoordinateTransform inverse() {
+		if (!isInvertible())
+			return null;
+
+		final CoordinateTransform<?>[] invTransforms = Arrays.stream(transformations)
+				.map(ct -> new InverseCoordinateTransform((InvertibleCoordinateTransform<?>) ct))
+				.toArray(CoordinateTransform<?>[]::new);
+
+		return new ByDimensionCoordinateTransform(
+				getName() == null ? null : getName() + "-inv",
+				getOutput(), getInput(),
+				invTransforms);
 	}
 
 	public boolean isAffine() {

@@ -3,17 +3,14 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformation
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 
-import net.imglib2.realtransform.RealTransform;
+import net.imglib2.realtransform.InvertibleRealTransform;
 
-public class InverseCoordinateTransform<T extends RealTransform, C extends CoordinateTransform<T>> extends AbstractCoordinateTransform<T> {
-	
-	public static final String TYPE = "inverseOf";
+public class InverseCoordinateTransform<T extends InvertibleRealTransform, C extends InvertibleCoordinateTransform<T>> extends AbstractCoordinateTransform<T> 
+	implements InvertibleCoordinateTransform<T> {
+
+	public static final String TYPE = "inverted";
 
 	protected C transform;
-
-	protected InverseCoordinateTransform() {
-		// for serialization
-	}
 
 	public InverseCoordinateTransform(
 			final String name,
@@ -39,16 +36,30 @@ public class InverseCoordinateTransform<T extends RealTransform, C extends Coord
 
 	public InverseCoordinateTransform( final C ct ) {
 		// input and output spaces must be swapped
-		this( "inverse_of-" + ct.getName(), ct );
+		this( "inverted-" + ct.getName(), ct );
+	}
+	
+	public C getWrappedCoordinateTransform() {
+		return transform;
 	}
 
 	@Override
 	public T getTransform() {
-		return transform.getTransform();
+		return (T)getWrappedCoordinateTransform().getTransform().inverse();
 	}
-	
+
 	@Override
 	public T getTransform(final N5Reader n5) {
-		return transform.getTransform(n5);
+		return (T)getWrappedCoordinateTransform().getTransform(n5).inverse();
+	}
+
+	@Override
+	public InvertibleRealTransform getInvertibleTransform(N5Reader n5) {
+		return getTransform(n5);
+	}
+
+	@Override
+	public InvertibleRealTransform getInvertibleTransform() {
+		return getTransform();
 	}
 }
