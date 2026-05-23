@@ -250,10 +250,12 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 
 	private static void indexReversal(int max, int[] indexes) {
 
+		int N = indexes.length;
+		int[] tmp = new int[indexes.length];
 		for (int i = 0; i < indexes.length; i++) {
-			indexes[i] = max - indexes[i];
+			tmp[N - i - 1] = max - indexes[i];
 		}
-
+		System.arraycopy(tmp, 0, indexes, 0, N);
 	}	
 
 }
