@@ -22,7 +22,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AffineCoordinateTransformAdapter;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AffineCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransformAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
@@ -434,7 +433,6 @@ public class Common {
 	public static GsonBuilder gsonBuilder() {
 
 		final GsonBuilder gb = new GsonBuilder();
-		gb.registerTypeAdapter(AffineCoordinateTransform.class, new AffineCoordinateTransformAdapter());
 		gb.registerTypeAdapter(CoordinateTransform.class, new CoordinateTransformAdapter());
 		return gb;
 	}

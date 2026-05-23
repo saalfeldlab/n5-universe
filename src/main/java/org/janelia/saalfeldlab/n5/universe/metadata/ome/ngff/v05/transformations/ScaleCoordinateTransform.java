@@ -7,7 +7,7 @@ import net.imglib2.realtransform.Scale2D;
 import net.imglib2.realtransform.Scale3D;
 import net.imglib2.realtransform.ScaleGet;
 
-public class ScaleCoordinateTransform extends AbstractLinearCoordinateTransform<ScaleGet,double[]> implements InvertibleCoordinateTransform<ScaleGet> {
+public class ScaleCoordinateTransform extends AbstractParametrizedTransform<ScaleGet,double[]> implements InvertibleCoordinateTransform<ScaleGet> {
 
 	public static final String TYPE = "scale";
 
