@@ -20,7 +20,7 @@ import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.real.DoubleType;
 
-public class RotationCoordinateTransform extends AbstractLinearCoordinateTransform<AffineGet,double[][]> {
+public class RotationCoordinateTransform extends AbstractParametrizedTransform<AffineGet,double[][]> implements InvertibleCoordinateTransform<AffineGet> {
 
 	public static final String TYPE = "rotation";
 
