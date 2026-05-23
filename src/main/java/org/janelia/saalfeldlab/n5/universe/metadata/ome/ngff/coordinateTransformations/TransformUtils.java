@@ -7,10 +7,11 @@ import java.util.stream.IntStream;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AbstractAffineCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AbstractParametrizedFieldTransform;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AffineCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.InvertibleAffineCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.RotationCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.ScaleCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.SequenceCoordinateTransform;
@@ -309,7 +310,7 @@ public class TransformUtils
 
 	/**
 	 * Interpreting the input 2D array as a transformation matrix in homogeneous coordinates,
-	 * this returns a new matrix with the equivalent behavior o 
+	 * this returns a new matrix with the equivalent behavior. 
 	 * <p> 
 	 * For example, if the input matrix operates on column vectors with coordinates [x,y,z],
 	 * the output matrix operates on column vectors with coordinates [z,y,x].
@@ -323,18 +324,19 @@ public class TransformUtils
 	 */
 	public static double[][] reverseCoordinates( final double[][] arr ) {
 
-		assert arr.length == arr[0].length - 1;
+		final int nr = arr.length;
+		final int nc = arr[0].length;
+		final int nc1 = nc - 1;
 
-		final int nd = arr.length;
-		final double[][] out = new double[nd][nd+1];
+		final double[][] out = new double[nr][nc];
 		// reverse all rows (ignore last column)
-		for (int i = 0; i < nd; i++)
-			for (int j = 0; j < nd; j++)
-				out[i][j] = arr[nd-i-1][nd-j-1];
+		for (int i = 0; i < nr; i++)
+			for (int j = 0; j < nc1; j++)
+				out[i][j] = arr[nr-i-1][nc1-j-1];
 
 		// last column
-		for (int i = 0; i < nd; i++)
-			out[i][nd] = arr[nd-i-1][nd];
+		for (int i = 0; i < nr; i++)
+			out[i][nc1] = arr[nr-i-1][nc1];
 
 		return out;
 	}
@@ -448,7 +450,10 @@ public class TransformUtils
 	}
 
 	public static AffineGet toAffine( CoordinateTransform< ? > transform, int nd ) {
-		
+
+		if (transform instanceof InvertibleAffineCoordinateTransform)
+			return (AffineGet)transform.getTransform();
+
 		switch (transform.getType()) {
 		
 		case IdentityCoordinateTransform.TYPE:
@@ -456,7 +461,6 @@ public class TransformUtils
 		case ScaleCoordinateTransform.TYPE:
 		case TranslationCoordinateTransform.TYPE:
 		case RotationCoordinateTransform.TYPE:
-		case AffineCoordinateTransform.TYPE:
 			return (AffineGet)transform.getTransform();
 		case SequenceCoordinateTransform.TYPE:
 			final SequenceCoordinateTransform seq = (SequenceCoordinateTransform) transform;

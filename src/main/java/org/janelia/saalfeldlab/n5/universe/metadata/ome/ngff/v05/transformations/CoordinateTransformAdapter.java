@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.function.Supplier;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
@@ -192,15 +191,6 @@ public class CoordinateTransformAdapter
 			obj.add("inverse", serialize( inv, itype, context ));
 
 			elem = obj;
-		}
-		else if( src instanceof AbstractLinearCoordinateTransform )
-		{
-			final AbstractLinearCoordinateTransform linCt = (AbstractLinearCoordinateTransform)src;
-			final JsonObject obj =  (JsonObject)context.serialize(linCt);
-			if (linCt.getParameterPath() != null) {
-				obj.add("affine", context.serialize(TransformUtils.affineToMatrix(linCt.getTransform())));
-			}
-			return obj;
 		}
 		else
 		{

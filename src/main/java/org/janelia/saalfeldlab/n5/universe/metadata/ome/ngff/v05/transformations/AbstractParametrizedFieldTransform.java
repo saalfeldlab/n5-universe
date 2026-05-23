@@ -135,10 +135,6 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 			final int nd = fieldRaw.numDimensions();
 			final AffineGet affineTotal = ((SequenceCoordinateTransform) pixelToPhysicalCt).asAffine(nd);
 			affine = Common.removeDimension(vectorAxisIndex, affineTotal);
-		} else if( pixelToPhysicalCt instanceof LinearCoordinateTransform ) {
-			// this can be optimized if necessary
-			AffineGet affineTotal = ((LinearCoordinateTransform)pixelToPhysicalCt).getTransform();
-			affine = Common.removeDimension(vectorAxisIndex, affineTotal);
 		}
 
 		if( affine != null ) {

@@ -15,8 +15,6 @@ public abstract class AbstractParametrizedRealFieldTransform<T extends RealTrans
 
 	protected transient RealRandomAccessible<V>[] fields;
 
-//	protected double[] parameters;
-
 	protected int vectorAxisIndex;
 
 	public AbstractParametrizedRealFieldTransform( final String type, final String name, final String inputSpace, final String outputSpace ) {
