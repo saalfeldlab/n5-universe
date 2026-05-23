@@ -1,21 +1,20 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.SpacesTransforms;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AbstractCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.InverseCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.InvertibleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.ByDimensionCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.SequenceCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.StackedCoordinateTransform;
 
@@ -45,7 +44,6 @@ public class TransformGraph
 		gson = SpacesTransforms.buildGson();
 		this.spaces = spaces;
 		this.transforms = new ArrayList<>();
-//		inferSpacesFromAxes();
 
 		spacesToNodes = new HashMap< CoordinateSystem, CTNode >();
 		for( final CoordinateTransform<?> t : transforms )
@@ -57,19 +55,6 @@ public class TransformGraph
 	public TransformGraph( final List< CoordinateTransform<?> > transforms, final List<CoordinateSystem> spacesIn ) {
 		this( transforms, new CoordinateSystems(spacesIn) );
 	}
-
-//	protected void inferSpacesFromAxes()
-//	{
-//		for( final CoordinateTransform<?> ct : transforms )
-//		{
-//			if( ct instanceof AbstractCoordinateTransform<?> )
-//				if( ! ((AbstractCoordinateTransform<?>)ct).inferSpacesFromAxes(spaces))
-//				{
-//					System.out.println( "uh oh - removing " + ct );
-//					transforms.remove(ct);
-//				}
-//		}
-//	}
 
 	public List<CoordinateTransform<?>> getTransforms() {
 		return transforms;
@@ -137,9 +122,11 @@ public class TransformGraph
 	private CoordinateTransform<?> inverse(CoordinateTransform<?> t) {
 
 		if (t instanceof InvertibleCoordinateTransform)
-			return new InverseCT((InvertibleCoordinateTransform)t);
+			return new InverseCoordinateTransform((InvertibleCoordinateTransform)t);
 		else if (t instanceof SequenceCoordinateTransform)
 			return ((SequenceCoordinateTransform)t).inverse();
+		else if (t instanceof ByDimensionCoordinateTransform)
+			return ((ByDimensionCoordinateTransform)t).inverse();
 
 		return null;
 	}
@@ -285,88 +272,6 @@ public class TransformGraph
 
 			paths.add(p);
 			allPathsHelper(paths, end, p);
-		}
-	}
-
-	public static class InverseCT extends AbstractCoordinateTransform<InvertibleRealTransform>
-		implements InvertibleCoordinateTransform<InvertibleRealTransform> {
-
-		InvertibleCoordinateTransform<?> ict;
-
-		public InverseCT( final InvertibleCoordinateTransform<?> ict ) {
-			super("invWrap", "inv-" + ict.getName(), ict.getOutput(), ict.getInput());
-			this.ict = ict;
-		}
-
-		public InverseCT(final String type, final String name, final String inputSpace, final String outputSpace,
-				final InvertibleCoordinateTransform<?> ict ) {
-			super(type, name, inputSpace, outputSpace);
-			this.ict = ict;
-		}
-		
-		public InvertibleCoordinateTransform<?> getWrappedCoordinateTransform() {
-			return ict;
-		}
-
-		@Override
-		public InvertibleRealTransform getTransform() {
-			return ict.getInvertibleTransform();
-		}
-
-		@Override
-		public InvertibleRealTransform getTransform( final N5Reader n5 ) {
-			return ict.getInvertibleTransform( n5 );
-		}
-
-		@Override
-		public InvertibleRealTransform getInvertibleTransform() {
-			return ict.getTransform();
-		}
-
-		@Override
-		public InvertibleRealTransform getInvertibleTransform( final N5Reader n5 ) {
-			return ict.getTransform( n5 );
-		}
-	}
-
-	public static class InverseCoordinateTransformation extends AbstractCoordinateTransform<InvertibleRealTransform>
-		implements InvertibleCoordinateTransform<InvertibleRealTransform> {
-
-		InvertibleCoordinateTransform<?> ict;
-
-		public InverseCoordinateTransformation( final InvertibleCoordinateTransform<?> ict ) {
-			super("inverse", "inverse-of-" + ict.getName(), ict.getOutput(), ict.getInput());
-			this.ict = ict;
-		}
-
-		public InverseCoordinateTransformation(final String type, final String name, final String inputSpace, final String outputSpace,
-				final InvertibleCoordinateTransform<?> ict ) {
-			super(type, name, inputSpace, outputSpace);
-			this.ict = ict;
-		}
-		
-		public InvertibleCoordinateTransform<?> getWrappedCoordinateTransform() {
-			return ict;
-		}
-
-		@Override
-		public InvertibleRealTransform getTransform() {
-			return ict.getInvertibleTransform().inverse();
-		}
-
-		@Override
-		public InvertibleRealTransform getTransform( final N5Reader n5 ) {
-			return ict.getInvertibleTransform( n5 ).inverse();
-		}
-
-		@Override
-		public InvertibleRealTransform getInvertibleTransform() {
-			return ict.getTransform().inverse();
-		}
-
-		@Override
-		public InvertibleRealTransform getInvertibleTransform( final N5Reader n5 ) {
-			return ict.getTransform( n5 ).inverse();
 		}
 	}
 

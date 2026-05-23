@@ -7,9 +7,9 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.Common;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph.InverseCT;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.InverseCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.SequenceCoordinateTransform;
 
 import net.imglib2.realtransform.AffineTransform3D;
@@ -99,8 +99,8 @@ public class TransformPath {
 				else if( t instanceof IdentityCoordinateTransform) {
 					// no op
 				}
-				else if( t instanceof InverseCT  &&
-						((InverseCT)t).getWrappedCoordinateTransform() instanceof IdentityCoordinateTransform ) {
+				else if( t instanceof InverseCoordinateTransform&&
+						((InverseCoordinateTransform)t).getWrappedCoordinateTransform() instanceof IdentityCoordinateTransform ) {
 					// no op
 				}
 				else {

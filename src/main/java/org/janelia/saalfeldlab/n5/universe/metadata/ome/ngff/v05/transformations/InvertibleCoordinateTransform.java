@@ -7,11 +7,11 @@ import net.imglib2.realtransform.InvertibleRealTransform;
 public interface InvertibleCoordinateTransform<T extends InvertibleRealTransform> extends CoordinateTransform<T> {
 
 	public default InvertibleRealTransform getInvertibleTransform(N5Reader n5) {
-		return getTransform(n5).inverse();
+		return getTransform(n5);
 	}
 
 	public default InvertibleRealTransform getInvertibleTransform() {
-		return getTransform().inverse();
+		return getTransform();
 	}
 
 }

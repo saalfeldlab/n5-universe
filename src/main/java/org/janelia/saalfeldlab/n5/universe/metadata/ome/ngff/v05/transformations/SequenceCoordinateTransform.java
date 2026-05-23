@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph.InverseCT;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph.InverseCoordinateTransformation;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform;
@@ -63,12 +61,9 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 //			System.out.println(String.join(" ", axes ));
 
 		final RealTransformSequence totalTransform = new RealTransformSequence();
-		final CoordinateTransform[] tforms = getTransformations();
+		final CoordinateTransform<?>[] tforms = getTransformations();
 		for( int i = 0; i < tforms.length; i++ )
-		{
-			final CoordinateTransform t = tforms[i];
 			totalTransform.add( tforms[i].getTransform() );
-		}
 
 		return totalTransform;
 	}
@@ -142,6 +137,7 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		});
 	}
 	
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	public SequenceCoordinateTransform inverse() { 
 		
 		if( !isInvertible()) {
@@ -150,8 +146,8 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 
 		final ArrayList<CoordinateTransform<?>> invTransforms = new ArrayList<CoordinateTransform<?>>();
 		for( CoordinateTransform<?> ct : getTransformations()) {
-			InvertibleCoordinateTransform ict = (InvertibleCoordinateTransform)ct;
-			invTransforms.add(new InverseCoordinateTransformation(ict));
+			InvertibleCoordinateTransform<?> ict = (InvertibleCoordinateTransform<?>)ct;
+			invTransforms.add(new InverseCoordinateTransform(ict));
 		}
 
 		// the inverse of a sequence needs to apply the inverse transformations in reverse order
@@ -312,13 +308,13 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 
 	public static ArrayList<HashSet<Integer>> cumNeededAxes( final CoordinateTransform<?>[] tforms )
 	{
-		final ArrayList<CoordinateTransform> tlist = new ArrayList<>();
+		final ArrayList<CoordinateTransform<?>> tlist = new ArrayList<>();
 		Collections.addAll( tlist, tforms );
 		Collections.reverse( tlist );
 
 		final ArrayList<HashSet<Integer>> cAxisList = new ArrayList<>();
 		HashSet<Integer> prev = null;
-		for( final CoordinateTransform t : tlist )
+		for( final CoordinateTransform<?> t : tlist )
 		{
 			final HashSet<Integer> set = new HashSet<>();
 			for (int a : t.getInputAxes()) set.add(a);
@@ -384,14 +380,6 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 	private static List<Integer> boxedList( final int[] arr )
 	{
 		return Arrays.stream(arr).boxed().collect(Collectors.toList());
-	}
-
-	private static boolean isReindexed(final int[] indexes) {
-		for( int i = 0; i < indexes.length; i++ )
-			if( indexes[i] != i )
-				return true;
-
-		return false;
 	}
 
 }
