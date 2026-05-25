@@ -4,6 +4,7 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
 import net.imglib2.img.array.ArrayImg;
@@ -36,6 +37,13 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 	protected AbstractAffineCoordinateTransform(final String name, final String inputSpace,
 			final String outputSpace, final double[][] affine) {
 		super(TYPE, name, inputSpace, outputSpace);
+		this.affine = affine;
+		buildTransform();
+	}
+
+	protected AbstractAffineCoordinateTransform(final String name, final OmeNgffReference inputRef,
+			final OmeNgffReference outputRef, final double[][] affine) {
+		super(TYPE, name, inputRef, outputRef);
 		this.affine = affine;
 		buildTransform();
 	}
@@ -97,8 +105,10 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 		if (n5 == null)
 			return null;
 
+		// TODO JOHN this needs to be transposed!!! 
 		final double[][] affineCOrder = getDoubleArray2(n5, getParameterPath());
-		final double[][] affineFOrder = TransformUtils.reverseCoordinates(affineCOrder);
+		final double[][] affineCOrderT = TransformUtils.transpose(affineCOrder);
+		final double[][] affineFOrder = TransformUtils.reverseCoordinates(affineCOrderT);
 		return affineFOrder;
 	}
 

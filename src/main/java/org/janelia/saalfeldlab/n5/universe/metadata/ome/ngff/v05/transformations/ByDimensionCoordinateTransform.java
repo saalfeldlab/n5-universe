@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.RealComponentMappingTransform;
@@ -18,7 +19,9 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 
 	public static final String TYPE = "byDimension";
 
-	private final CoordinateTransform<?>[] transformations;
+	private TransformWithIndexes[] transformations;
+
+	private transient CoordinateTransform<?>[] transforms;
 
 	private transient RealTransform totalTransform;
 
@@ -33,7 +36,8 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 			final CoordinateSystem inputSpace, final CoordinateSystem outputSpace,
 			final CoordinateTransform<?>... transformations ) {
 		super(TYPE, name, inputSpace, outputSpace);
-		this.transformations = transformations;
+		this.transforms = transformations;
+		setTransformationsForSerialization();
 		validate(transformations, inputSpace.numDimensions(), outputSpace.numDimensions());
 	}
 
@@ -48,7 +52,17 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 			final String inputSpace, final String outputSpace,
 			final CoordinateTransform<?>... transformations ) {
 		super(TYPE, name, inputSpace, outputSpace);
-		this.transformations = transformations;
+		this.transforms = transformations;
+		setTransformationsForSerialization();
+	}
+
+	public ByDimensionCoordinateTransform(
+			final String name,
+			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
+			final CoordinateTransform<?>... transformations ) {
+		super(TYPE, name, inputRef, outputRef);
+		this.transforms = transformations;
+		setTransformationsForSerialization();
 	}
 
 	public RealTransform buildTransform()
@@ -58,7 +72,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 
 	public RealTransform buildTransform( final N5Reader n5 ) {
 
-		final RealTransform[] transformArray = Arrays.stream(transformations)
+		final RealTransform[] transformArray = Arrays.stream(transforms)
 				.map(x -> (RealTransform) x.getTransform(n5))
 				.toArray(RealTransform[]::new);
 
@@ -127,11 +141,11 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 	}
 
 	protected int[] inputAxesFromTransforms() {
-		return Arrays.stream(transformations).flatMapToInt(t -> Arrays.stream(t.getInputAxes())).toArray();
+		return Arrays.stream(transforms).flatMapToInt(t -> Arrays.stream(t.getInputAxes())).toArray();
 	}
 
 	protected int[] outputAxesFromTransforms() {
-		return Arrays.stream(transformations).flatMapToInt(t -> Arrays.stream(t.getOutputAxes())).toArray();
+		return Arrays.stream(transforms).flatMapToInt(t -> Arrays.stream(t.getOutputAxes())).toArray();
 	}
 
 	@Override
@@ -155,7 +169,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 	}
 
 	public CoordinateTransform<?>[] getTransformations() {
-		return transformations;
+		return transforms;
 	}
 
 	public boolean isInvertible() {
@@ -166,7 +180,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		if (!isInvertible())
 			return null;
 
-		final CoordinateTransform<?>[] invTransforms = Arrays.stream(transformations)
+		final CoordinateTransform<?>[] invTransforms = Arrays.stream(transforms)
 				.map(ct -> new InverseCoordinateTransform((InvertibleCoordinateTransform<?>) ct))
 				.toArray(CoordinateTransform<?>[]::new);
 
@@ -178,9 +192,44 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 
 	public boolean isAffine() {
 
-		return Arrays.stream(transformations)
+		return Arrays.stream(transforms)
 				.map(CoordinateTransform::create)
 				.allMatch(x -> x.getTransform() instanceof AffineGet);
+	}
+
+	/**
+	 * Sets this objects CoordinateTransformations from its internal
+	 * deserialized TransformWithIndexes.
+	 * 
+	 * Generally not appropriate to call this manually.
+	 */
+	public void setTransformsAfterDeserialization() {
+
+		transforms = new CoordinateTransform[transformations.length];
+		for (int i = 0; i < transformations.length; i++) {
+
+			TransformWithIndexes ti = transformations[i];
+			CoordinateTransform<?> t = ti.transformation;
+			t.setInputAxes(ti.input_axes);
+			t.setOutputAxes(ti.output_axes);
+			transforms[i] = t;
+		}
+	}
+
+	private void setTransformationsForSerialization() {
+
+		transformations = new TransformWithIndexes[transforms.length];
+		for (int i = 0; i < transforms.length; i++) {
+
+			TransformWithIndexes ti = new TransformWithIndexes();
+			CoordinateTransform<?> t = transforms[i];
+
+			ti.transformation = t;
+			ti.input_axes = t.getInputAxes();
+			ti.output_axes = t.getOutputAxes();
+			transformations[i] = new TransformWithIndexes();
+		}
+
 	}
 
 	private static void validate(final CoordinateTransform<?>[] transforms, final int numInput, final int numOutput) {
@@ -256,6 +305,13 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 			tmp[N - i - 1] = max - indexes[i];
 		}
 		System.arraycopy(tmp, 0, indexes, 0, N);
-	}	
+	}
+	
+	private static class TransformWithIndexes {
+		
+		CoordinateTransform<?> transformation;
+		int[] input_axes;
+		int[] output_axes;
+	}
 
 }

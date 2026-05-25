@@ -294,8 +294,8 @@ public class Common {
 
 		final CoordinateSystem[] coordinateSystems = Arrays.stream(transforms).flatMap(x -> {
 			return Stream.of(
-					new CoordinateSystem(x.getInput(), nd),
-					new CoordinateSystem(x.getOutput(), nd));
+					new CoordinateSystem(x.getInput().getName(), nd),
+					new CoordinateSystem(x.getOutput().getName(), nd));
 		}).toArray(N -> {
 			return new CoordinateSystem[N];
 		});

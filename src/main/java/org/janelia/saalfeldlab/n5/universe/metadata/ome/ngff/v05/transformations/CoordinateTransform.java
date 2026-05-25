@@ -2,6 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformation
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import net.imglib2.realtransform.RealTransform;
 
@@ -26,9 +27,9 @@ public interface CoordinateTransform<T extends RealTransform> {
 
 	public String getType();
 
-	public String getInput();
+	public OmeNgffReference getInput();
 
-	public String getOutput();
+	public OmeNgffReference getOutput();
 
 	public void setInput(final CoordinateSystem inputCoordinateSystem);
 
@@ -37,6 +38,10 @@ public interface CoordinateTransform<T extends RealTransform> {
 	public int[] getInputAxes();
 
 	public int[] getOutputAxes();
+
+	public void setInputAxes(final int[] inputAxes);
+
+	public void setOutputAxes(final int[] outputAxes);
 
 	public static CoordinateTransform<?> create(CoordinateTransform<?> ct) {
 		if (ct instanceof CoordinateTransform) {

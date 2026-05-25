@@ -8,6 +8,7 @@ import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
@@ -34,6 +35,17 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 			final String input, final String output) {
 		super(TYPE, name, null, interpolation, input, output);
 		buildTransform( fields );
+	}
+
+	public DisplacementFieldCoordinateTransform( final String name, final RealRandomAccessible<RealComposite<T>> fields, final String interpolation,
+			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
+		super(TYPE, name, null, interpolation, inputRef, outputRef);
+		buildTransform( fields );
+	}
+
+	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation,
+			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
+		super(TYPE, name, path, interpolation, inputRef, outputRef);
 	}
 
 	public DisplacementFieldCoordinateTransform(final String name, final N5Reader n5, final String path, final String interpolation,

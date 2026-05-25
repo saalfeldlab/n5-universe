@@ -6,10 +6,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.SpacesTransforms;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AbstractCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.InverseCoordinateTransform;
@@ -20,7 +18,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations
 
 import com.google.gson.Gson;
 
-import net.imglib2.realtransform.InvertibleRealTransform;
 
 public class TransformGraph
 {
@@ -73,11 +70,11 @@ public class TransformGraph
 	}
 
 	public CoordinateSystem getInput( final CoordinateTransform<?> t ) {
-		return spaces.getSpace(t.getInput());
+		return spaces.getSpace(t.getInput().getName());
 	}
 
 	public CoordinateSystem getOutput( final CoordinateTransform<?> t ) {
-		return spaces.getSpace(t.getOutput());
+		return spaces.getSpace(t.getOutput().getName());
 	}
 
 	public void addTransform( final CoordinateTransform<?> t ) {
@@ -93,7 +90,7 @@ public class TransformGraph
 		}))
 			return;
 
-		if( spaces.hasSpace(t.getInput()) && spaces.hasSpace(t.getOutput()))
+		if( spaces.hasSpace(t.getInput().getName()) && spaces.hasSpace(t.getOutput().getName()))
 		{
 			final CoordinateSystem src = getInput( t );
 			if( spacesToNodes.containsKey( src ))
