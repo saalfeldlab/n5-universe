@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.function.Supplier;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
@@ -67,6 +68,8 @@ public class CoordinateTransformAdapter
 			break;
 		case("byDimension"):
 			ByDimensionCoordinateTransform bd = context.deserialize(jobj, ByDimensionCoordinateTransform.class);
+			bd.setTransformsAfterDeserialization();
+			bd.buildTransform();
 			ByDimensionCoordinateTransform.reverseParameters(bd.getTransformations());
 			out = bd;
 			break;
@@ -209,7 +212,7 @@ public class CoordinateTransformAdapter
 		return elem;
 	}
 
-	public static JsonElement serializeGeneric( final CoordinateTransform<?> ct ) {
+	public static JsonElement serializeGeneric(final JsonSerializationContext context, final CoordinateTransform<?> ct ) {
 
 		final JsonObject json = new JsonObject();
 		serializeString(json, CoordinateTransform.TYPE_KEY, ct::getType);
@@ -223,10 +226,18 @@ public class CoordinateTransformAdapter
 			serializeIntArray(json, CoordinateTransform.OUTPUT_AXES_KEY, outputAxes);
 		}
 
-		serializeString(json, CoordinateTransform.INPUT_KEY, ct::getInput);
-		serializeString(json, CoordinateTransform.OUTPUT_KEY, ct::getOutput);
+		serializeReference(context, json, CoordinateTransform.INPUT_KEY, ct::getInput);
+		serializeReference(context, json, CoordinateTransform.OUTPUT_KEY, ct::getOutput);
 
 		return json;
+	}
+
+	private static void serializeReference(final JsonSerializationContext context, JsonObject json, final String key, Supplier<OmeNgffReference> getter) {
+
+		final OmeNgffReference val = getter.get();
+		if( val != null ) {
+			json.add(key, context.serialize(val));
+		}
 	}
 	
 	private static void serializeString(JsonObject json, final String key, Supplier<String> getter) {

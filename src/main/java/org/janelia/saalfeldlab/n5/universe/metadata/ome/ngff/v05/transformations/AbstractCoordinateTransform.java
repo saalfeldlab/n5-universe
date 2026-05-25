@@ -1,9 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
-
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import net.imglib2.realtransform.RealTransform;
 
@@ -13,17 +11,13 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 
 	protected String name;
 
-	protected JsonElement input;
+	protected OmeNgffReference input;
 
-	protected JsonElement output;
+	protected OmeNgffReference output;
 
 	protected int[] inputAxes;
 
 	protected int[] outputAxes;
-
-	protected transient String inputCoordinateSystemName;
-
-	protected transient String outputCoordinateSystemName;
 
 	protected transient CoordinateSystem inputCoordinateSystem;
 
@@ -35,25 +29,29 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	protected AbstractCoordinateTransform() {
 		super();
 	}
+	
+	public AbstractCoordinateTransform( final String type, final String name,
+			final OmeNgffReference inputRef, final OmeNgffReference outputRef ) {
+		this.type = type;
+		this.name = name;
+		this.input = inputRef;
+		this.output = outputRef;
+	}
 
-	public AbstractCoordinateTransform( final String type,
-			final String name,
+	public AbstractCoordinateTransform( final String type, final String name,
 			final String inputSpace, final String outputSpace ) {
 		this.type = type;
 		this.name = name;
-		this.inputCoordinateSystemName = inputSpace;
-		this.outputCoordinateSystemName = outputSpace;
-		initialize();
+		this.input = new OmeNgffReference(inputSpace);
+		this.output = new OmeNgffReference(outputSpace);
 	}
 
-	public AbstractCoordinateTransform( final String type,
-			final String name,
+	public AbstractCoordinateTransform( final String type, final String name,
 			final int[] inputAxes, final int[] outputAxes ) {
 		this.type = type;
 		this.name = name;
 		this.inputAxes = inputAxes;
 		this.outputAxes = outputAxes;
-		initialize();
 	}
 	
 	public AbstractCoordinateTransform( final String type,
@@ -62,54 +60,41 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.type = type;
 		this.name = name;
 
+		// Assumes these coordinate systems are in the same group
 		this.inputCoordinateSystem = input;
-		this.inputCoordinateSystemName = inputCoordinateSystem.getName();
+		this.input = new OmeNgffReference(inputCoordinateSystem.getName());
 
 		this.outputCoordinateSystem = output;
-		this.outputCoordinateSystemName = outputCoordinateSystem.getName();
-		initialize();
+		this.output = new OmeNgffReference(outputCoordinateSystem.getName());
 	}
 
 	public AbstractCoordinateTransform( final String type, final String name ) {
 		this.type = type;
 		this.name = name;
-		initialize();
 	}
 
 	public AbstractCoordinateTransform( final String type ) {
 		this.type = type;
-		initialize();
 	}
 
 	public AbstractCoordinateTransform( CoordinateTransform<T> other )
 	{
 		this.name = other.getName();
 		this.type = other.getType();
-		this.inputCoordinateSystemName = other.getInput();
-		this.outputCoordinateSystemName = other.getOutput();
+		this.input = other.getInput();
+		this.input = other.getOutput();
 		this.inputAxes = other.getInputAxes();
 		this.outputAxes = other.getOutputAxes();
-		initialize();
 	}
 
 	public AbstractCoordinateTransform( CoordinateTransform<T> other, int[] inputAxes, int[] outputAxes )
 	{
 		this.name = other.getName();
 		this.type = other.getType();
-		this.inputCoordinateSystemName = other.getInput();
-		this.outputCoordinateSystemName = other.getOutput();
+		this.input = other.getInput();
+		this.output = other.getOutput();
 		this.inputAxes = other.getInputAxes();
 		this.outputAxes = other.getOutputAxes();
-		initialize();
-	}
-
-	protected void initialize() {
-
-		if (this.inputCoordinateSystemName != null)
-			input = new JsonPrimitive(inputCoordinateSystemName);
-
-		if (this.outputCoordinateSystemName != null)
-			output = new JsonPrimitive(outputCoordinateSystemName);
 	}
 
 	@Override
@@ -141,27 +126,14 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	}
 
 	@Override
-	public String getInput() {
-		if( inputCoordinateSystemName != null)
-			return inputCoordinateSystemName;
-		else if( input != null && input.isJsonPrimitive() ) {
-			inputCoordinateSystemName = input.getAsString();
-			return inputCoordinateSystemName;
-		}
-			
-		return null;	
+	public OmeNgffReference getInput() {
+		return input;
+
 	}
 
 	@Override
-	public String getOutput() {
-		if( outputCoordinateSystemName != null ) 
-			return outputCoordinateSystemName;
-		else if( output != null && output.isJsonPrimitive() ) {
-			outputCoordinateSystemName = output.getAsString();
-			return outputCoordinateSystemName;
-		}
-
-		return null;	
+	public OmeNgffReference getOutput() {
+		return output;
 	}
 
 	public void setInput(final CoordinateSystem inputCoordinateSystem) {
@@ -185,8 +157,8 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	public AbstractCoordinateTransform<T> setNameSpaces( final String name, final String in, final String out )
 	{
 		this.name = name;
-		this.inputCoordinateSystemName = in;
-		this.outputCoordinateSystemName = out;
+		this.input = new OmeNgffReference(in);
+		this.output = new OmeNgffReference(out);
 		return this;
 	}
 

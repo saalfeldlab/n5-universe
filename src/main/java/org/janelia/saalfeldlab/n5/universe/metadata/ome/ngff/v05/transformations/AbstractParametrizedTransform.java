@@ -4,6 +4,7 @@ import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 
 import net.imglib2.Cursor;
@@ -42,6 +43,16 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 	public AbstractParametrizedTransform( String type, String name, String parameterPath,
 			String inputSpace, String outputSpace ) {
 		super( type, name, inputSpace, outputSpace );
+		this.path = parameterPath;
+	}
+
+	public AbstractParametrizedTransform( String type, String name, OmeNgffReference inputRef, OmeNgffReference outputRef ) {
+		this( type, name, null, inputRef, outputRef );
+	}
+
+	public AbstractParametrizedTransform( String type, String name, String parameterPath,
+			OmeNgffReference inputRef, OmeNgffReference outputRef ) {
+		super( type, name, inputRef, outputRef );
 		this.path = parameterPath;
 	}
 

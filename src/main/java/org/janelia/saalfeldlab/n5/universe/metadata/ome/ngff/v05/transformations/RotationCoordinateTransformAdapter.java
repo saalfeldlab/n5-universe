@@ -43,7 +43,7 @@ public class RotationCoordinateTransformAdapter implements JsonSerializer< Rotat
 	@Override
 	public JsonElement serialize(RotationCoordinateTransform src, Type typeOfSrc, JsonSerializationContext context) {
 
-		final JsonObject json = CoordinateTransformAdapter.serializeGeneric(src).getAsJsonObject();
+		final JsonObject json = CoordinateTransformAdapter.serializeGeneric(context, src).getAsJsonObject();
 		final double[][] mtx = TransformUtils.affineToRotation(src.getTransform());
 		final double[][] mtxCOrder = TransformUtils.reverseCoordinatesRotation(mtx);
 		json.add(RotationCoordinateTransform.TYPE, context.serialize(mtxCOrder));

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform;
@@ -27,7 +28,7 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 
 	public SequenceCoordinateTransform(
 			final CoordinateTransform<?>[] transformations) {
-		this("", null, null, transformations );
+		this("", OmeNgffReference.DUMMY, OmeNgffReference.DUMMY, transformations);
 	}
 
 	public SequenceCoordinateTransform(
@@ -41,6 +42,22 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 			final CoordinateTransform<?>... transformations) {
 		super(TYPE, name, input, output);
 		this.transformations = transformations;
+	}
+
+	public SequenceCoordinateTransform( final String name,
+			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
+			final CoordinateTransform<?>... transformations) {
+		super(TYPE, name, inputRef, outputRef);
+		this.transformations = transformations;
+	}
+
+	public SequenceCoordinateTransform( final String name,
+			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
+			final List<CoordinateTransform<?>> transformationList ) {
+		super(TYPE, name, inputRef, outputRef);
+		this.transformations = new CoordinateTransform[ transformationList.size() ];
+		for( int i = 0; i < transformationList.size(); i++ )
+			this.transformations[i] = transformationList.get( i );
 	}
 
 	public SequenceCoordinateTransform( final String name,

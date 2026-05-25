@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPositionable;
 import net.imglib2.realtransform.InvertibleRealTransform;
@@ -16,6 +18,10 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 
 	public IdentityCoordinateTransform( final String name, final String input, final String output ) {
 		super(TYPE, name, input, output );
+	}
+
+	public IdentityCoordinateTransform( final String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef ) {
+		super(TYPE, name, inputRef, outputRef);
 	}
 
 	public IdentityCoordinateTransform( final String name, final int[] inputAxes, final int[] outputAxes ) {
