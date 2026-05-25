@@ -368,6 +368,23 @@ public class TransformUtils
 
 		return out;
 	}
+	
+	/**
+	 * Interpret the input double[][] a matrix, and return a transposed copy.
+	 * 
+	 * @param mtx
+	 *            a 2d double array interpreted as a matrix
+	 * @return a transposed copy
+	 */
+	public static double[][] transpose( final double[][] mtx ) {
+		final int nrows = mtx.length;
+		final int ncols = mtx[0].length;
+		final double[][] out = new double[ncols][nrows];
+		for (int i = 0; i < nrows; i++)
+			for (int j = 0; j < ncols; j++)
+				out[j][i] = mtx[i][j];
+		return out;
+	}
 
 	private static double[] rowPackedSubMatrix( AffineGet affine, int[] indexes )
 	{

@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
 
 import net.imglib2.realtransform.RealComponentMappingTransform;
@@ -36,6 +37,23 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 		this( name, inputSpace, outputSpace, Arrays.stream( transforms ).collect( Collectors.toList() ));
 	}
 
+	public StackedCoordinateTransform(
+			final String name,
+			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
+			final List<CoordinateTransform<?>> transforms )
+	{
+		super( "stacked", name, inputRef, outputRef );
+		this.transforms = transforms;
+	}
+
+	public StackedCoordinateTransform(
+			final String name,
+			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
+			final CoordinateTransform<?>[] transforms )
+	{
+		this( name, inputRef, outputRef, Arrays.stream( transforms ).collect( Collectors.toList() ));
+	}
+
 	public void setSpaces( final CoordinateSystems spaces )
 	{
 		this.spaces = spaces;
@@ -61,10 +79,10 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 
 		if( spaces != null )
 		{
-			final int nIn = spaces.getSpace(getInput()).numDimensions();
+			final int nIn = spaces.getSpace(getInput().getName()).numDimensions();
 			final int[] tformInputAxes = inputAxesLabels();
 
-			final int nOut = spaces.getSpace(getOutput()).numDimensions();
+			final int nOut = spaces.getSpace(getOutput().getName()).numDimensions();
 			final int[] tformOutputAxes = outputAxesLabels();
 
 			RealTransform pre = null;

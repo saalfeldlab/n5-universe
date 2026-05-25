@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+
 import jitk.spline.ThinPlateR2LogRSplineKernelTransform;
 import net.imglib2.realtransform.ThinplateSplineTransform;
 
@@ -24,7 +26,8 @@ public class ThinPlateSplineCoordinateTransform extends AbstractCoordinateTransf
 	public ThinPlateSplineCoordinateTransform(
 			final double[][] movingPoints,
 			final double[][] targetPoints) {
-		this("", null, null, movingPoints, targetPoints );
+		this("", OmeNgffReference.DUMMY, OmeNgffReference.DUMMY, 
+				movingPoints, targetPoints );
 	}
 
 	public ThinPlateSplineCoordinateTransform(
@@ -39,6 +42,17 @@ public class ThinPlateSplineCoordinateTransform extends AbstractCoordinateTransf
 			final double[][] movingPoints,
 			final double[][] targetPoints) {
 		super(TYPE, name, input, output);
+		this.movingPoints = movingPoints;
+		this.targetPoints = targetPoints;
+		this.tps = new ThinplateSplineTransform(movingPoints, targetPoints);
+		numDimensions = movingPoints.length;
+	}
+
+	public ThinPlateSplineCoordinateTransform( final String name,
+			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
+			final double[][] movingPoints,
+			final double[][] targetPoints) {
+		super(TYPE, name, inputRef, outputRef);
 		this.movingPoints = movingPoints;
 		this.targetPoints = targetPoints;
 		this.tps = new ThinplateSplineTransform(movingPoints, targetPoints);

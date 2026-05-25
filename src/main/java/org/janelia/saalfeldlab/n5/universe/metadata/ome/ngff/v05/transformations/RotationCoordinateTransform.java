@@ -4,6 +4,7 @@ import org.ejml.data.DMatrixRMaj;
 import org.ejml.dense.row.CommonOps_DDRM;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
@@ -49,6 +50,13 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 	public RotationCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
 			final double[] affine) {
 		super(TYPE, name, inputSpace, outputSpace);
+		this.affineFlat = affine;
+		buildTransform();
+	}
+
+	public RotationCoordinateTransform( final String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef,
+			final double[] affine) {
+		super(TYPE, name, inputRef, outputRef);
 		this.affineFlat = affine;
 		buildTransform();
 	}
@@ -145,7 +153,8 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 			return null;
 
 		final double[][] rotCOrder = getDoubleArray2(n5, getParameterPath());
-		final double[][] rotFOrder = TransformUtils.reverseCoordinatesRotation(rotCOrder);
+		final double[][] rotCOrderT = TransformUtils.transpose(rotCOrder);
+		final double[][] rotFOrder = TransformUtils.reverseCoordinatesRotation(rotCOrderT);
 		return rotFOrder;
 	}
 

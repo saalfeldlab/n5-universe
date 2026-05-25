@@ -7,6 +7,7 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.Common;
 
 import net.imglib2.RandomAccessibleInterval;
@@ -45,6 +46,17 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 	public AbstractParametrizedFieldTransform( final String type, final String name, final String parameterPath, final String interpolation,
 			final String input, final String output) {
 		super( type, name, parameterPath, input, output);
+		this.interpolation = interpolation;
+	}
+
+	public AbstractParametrizedFieldTransform( final String type, final String name,
+			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
+		this( type, name, null, LINEAR_INTERPOLATION, inputRef, outputRef);
+	}
+
+	public AbstractParametrizedFieldTransform( final String type, final String name, final String parameterPath, final String interpolation,
+			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
+		super( type, name, parameterPath, inputRef, outputRef);
 		this.interpolation = interpolation;
 	}
 
@@ -119,9 +131,9 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 				Views.extendBorder(collapsedFirst),
 				new NLinearInterpolatorFactory<>());
 
-		CoordinateTransform<?> pixelToPhysicalCt = findPixelToPhysicalTransformStrict( n5, path, getInput());
+		CoordinateTransform<?> pixelToPhysicalCt = findPixelToPhysicalTransformStrict( n5, path, getInput().getName());
 		if( pixelToPhysicalCt == null ) {
-			pixelToPhysicalCt = findPixelToPhysicalTransformCheckSelfRef( n5, path, getInput());
+			pixelToPhysicalCt = findPixelToPhysicalTransformCheckSelfRef( n5, path, getInput().getName());
 		}
 
 		if( pixelToPhysicalCt == null ) {
@@ -201,7 +213,9 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 			return null;
 
 		for (final CoordinateTransform<?> ct : transforms) {
-			final String nrmInput = N5URI.normalizeGroupPath(ct.getInput());
+
+			// TODO properly handle reference
+			final String nrmInput = N5URI.normalizeGroupPath(ct.getInput().getName());
 			if (nrmInput.equals(normGrp) && ct.getOutput().equals(output) ) {
 				return ct;
 			}
@@ -267,7 +281,8 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 			return null;
 
 		for (final CoordinateTransform<?> ct : transforms) {
-			final String nrmInput = N5URI.normalizeGroupPath(ct.getInput());
+			// TODO properly handle reference
+			final String nrmInput = N5URI.normalizeGroupPath(ct.getInput().getName());
 			if (nrmInput.equals(normGrp) && ct.getOutput().equals(output) ) {
 				return ct.getTransform(n5);
 			}

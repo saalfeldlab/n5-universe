@@ -2,6 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformation
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import net.imglib2.realtransform.ExplicitInvertibleRealTransform;
 
@@ -25,6 +26,13 @@ public class BijectionCoordinateTransform extends AbstractCoordinateTransform<Ex
 			final CoordinateSystem input, final CoordinateSystem output,
 			final CoordinateTransform<?> forward, final CoordinateTransform<?> inverse) {
 		super(TYPE, name, input, output);
+		this.forward = forward;
+		this.inverse = inverse;
+	}
+
+	public BijectionCoordinateTransform(final String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef,
+			final CoordinateTransform<?> forward, final CoordinateTransform<?> inverse) {
+		super(TYPE, name, inputRef, outputRef);
 		this.forward = forward;
 		this.inverse = inverse;
 	}

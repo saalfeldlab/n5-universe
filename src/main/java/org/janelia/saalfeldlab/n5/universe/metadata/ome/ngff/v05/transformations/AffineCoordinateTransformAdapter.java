@@ -19,7 +19,7 @@ public class AffineCoordinateTransformAdapter implements JsonSerializer< Abstrac
 	@Override
 	public JsonElement serialize(AbstractAffineCoordinateTransform src, Type typeOfSrc, JsonSerializationContext context) {
 
-		final JsonObject json = CoordinateTransformAdapter.serializeGeneric(src).getAsJsonObject();
+		final JsonObject json = CoordinateTransformAdapter.serializeGeneric(context, src).getAsJsonObject();
 		final double[][] mtx = src.affine;
 		final double[][] mtxCOrder = TransformUtils.reverseCoordinates(mtx);
 		json.add(AbstractAffineCoordinateTransform.TYPE, context.serialize(mtxCOrder));
@@ -38,23 +38,29 @@ public class AffineCoordinateTransformAdapter implements JsonSerializer< Abstrac
 				jobj.get(AbstractAffineCoordinateTransform.TYPE), double[][].class);
 
 		double[][] affine = null;
-		if( affineCOrder != null )
+		if( affineCOrder != null ) { 
 			affine = TransformUtils.reverseCoordinates(affineCOrder);
-
-		final GeneralAffineCoordinateTransform base = context.deserialize(jobj, GeneralAffineCoordinateTransform.class);
-		final AbstractAffineCoordinateTransform tf;
-		if (affine != null && sourceDimsEqualTargetDims(affine)) {
-			tf = new InvertibleAffineCoordinateTransform(base.getName(), base.getInput(), base.getOutput(), affine);
-			tf.setInputAxes(base.getInputAxes());
-			tf.setOutputAxes(base.getOutputAxes());
+			final GeneralAffineCoordinateTransform base = context.deserialize(jobj, GeneralAffineCoordinateTransform.class);
+			final AbstractAffineCoordinateTransform tf;
+			if (affine != null && sourceDimsEqualTargetDims(affine)) {
+				tf = new InvertibleAffineCoordinateTransform(base.getName(), base.getInput(), base.getOutput(), affine);
+				tf.setInputAxes(base.getInputAxes());
+				tf.setOutputAxes(base.getOutputAxes());
+			} else {
+				tf = new GeneralAffineCoordinateTransform(base.getName(), base.getInput(), base.getOutput(), affine);
+				tf.setInputAxes(base.getInputAxes());
+				tf.setOutputAxes(base.getOutputAxes());
+			}
+			return tf;
 		} else {
-			tf = new GeneralAffineCoordinateTransform(base.getName(), base.getInput(), base.getOutput(), affine);
-			tf.setInputAxes(base.getInputAxes());
-			tf.setOutputAxes(base.getOutputAxes());
-		}
 
-		tf.buildTransform();
-		return tf;
+			if( !jobj.has("path"))
+				return null;
+
+			GeneralAffineCoordinateTransform tf = context.deserialize(jobj, GeneralAffineCoordinateTransform.class);
+			tf.buildTransform();
+			return tf;
+		}
 	}
 	
 	private static void reverseJsonMatrix( JsonArray arr ) { 

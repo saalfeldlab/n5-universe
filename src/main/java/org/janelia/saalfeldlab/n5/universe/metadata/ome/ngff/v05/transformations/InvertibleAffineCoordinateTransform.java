@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
 import net.imglib2.realtransform.AffineGet;
@@ -26,6 +27,11 @@ public class InvertibleAffineCoordinateTransform extends AbstractAffineCoordinat
 	public InvertibleAffineCoordinateTransform(final String name, final String inputSpace,
 			final String outputSpace, final double[][] affine) {
 		super(name, inputSpace, outputSpace, affine);
+	}
+
+	public InvertibleAffineCoordinateTransform(final String name, final OmeNgffReference inputRef,
+			final OmeNgffReference outputRef, final double[][] affine) {
+		super(name, inputRef, outputRef, affine);
 	}
 
 	public InvertibleAffineCoordinateTransform(final String name, final N5Reader n5, final String path,
