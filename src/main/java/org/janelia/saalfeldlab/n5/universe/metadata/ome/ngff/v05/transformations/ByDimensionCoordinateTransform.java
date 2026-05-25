@@ -198,7 +198,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		if (!isInvertible())
 			return null;
 
-		final CoordinateTransform<?>[] invTransforms = Arrays.stream(transformations)
+		final CoordinateTransform<?>[] invTransforms = Arrays.stream(transforms)
 				.map(ct -> new InverseCoordinateTransform((InvertibleCoordinateTransform<?>) ct))
 				.toArray(CoordinateTransform<?>[]::new);
 
