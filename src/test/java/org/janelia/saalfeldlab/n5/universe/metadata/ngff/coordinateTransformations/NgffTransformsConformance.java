@@ -1,13 +1,11 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ngff.coordinateTransformations;
 
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
+import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.AxisAdapter;
@@ -18,8 +16,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
@@ -45,20 +41,25 @@ public class NgffTransformsConformance {
 		final String targetName = args[2];
 		final String coordsJson = args[3];
 
+		N5Reader n5 = new N5Factory()
+				.gsonBuilder(gsonBuilder())
+				.openReader(zarrPath);
+
 		try {
-			final TransformGraph graph = loadTransformGraph(zarrPath);
+
+			final TransformGraph graph = loadTransformGraph(n5);
 			final Optional<TransformPath> pathOpt = graph.path(sourceName, targetName);
 			if (!pathOpt.isPresent()) {
 				exitWithError("No path from '" + sourceName + "' to '" + targetName + "'", 1);
 				return;
 			}
-			
+
 			int ndIn = graph.getCoordinateSystems().getSpace(sourceName).numDimensions();
 			int ndOut = graph.getCoordinateSystems().getSpace(targetName).numDimensions();
 
 			final Gson gson = buildGson();
 			final double[][] inputCoords = gson.fromJson(coordsJson, double[][].class);
-			final RealTransform transform = pathOpt.get().totalTransform(null, graph);
+			final RealTransform transform = pathOpt.get().totalTransform(n5, graph);
 			final double[][] outputCoords = applyTransform(ndIn, ndOut, transform, inputCoords);
 
 			final JsonObject result = new JsonObject();
@@ -66,47 +67,30 @@ public class NgffTransformsConformance {
 			result.addProperty("message", "sucess");
 			System.out.println(gson.toJson(result));
 			System.exit(0);
+
 		} catch (Exception e) {
 			exitWithError(e.getMessage(), 1);
 		}
 	}
 
-	public static TransformGraph loadTransformGraph(final String zarrPath) throws JsonSyntaxException, JsonIOException, FileNotFoundException {
+	public static TransformGraph loadTransformGraph(final N5Reader n5) throws JsonSyntaxException, JsonIOException, FileNotFoundException {
 
-		final Gson gson = buildGson();
-		final JsonObject root = gson.fromJson(
-				new FileReader(Paths.get(zarrPath, "zarr.json").toFile()),
-				JsonObject.class);
+		final CoordinateSystem[] spaces = n5.getAttribute("", "ome/scene/" + CoordinateSystem.KEY, CoordinateSystem[].class);
+		@SuppressWarnings("rawtypes")
+		final CoordinateTransform[] transforms = n5.getAttribute("", "ome/scene/" + CoordinateTransform.KEY, CoordinateTransform[].class);
+		return new TransformGraph(Arrays.asList(transforms), Arrays.asList(spaces));
+	}
 
-		final JsonObject scene = root
-				.getAsJsonObject("attributes")
-				.getAsJsonObject("ome")
-				.getAsJsonObject("scene");
+	private static GsonBuilder gsonBuilder() {
 
-		final CoordinateSystem[] spaces = gson.fromJson(scene.get(CoordinateSystem.KEY), CoordinateSystem[].class);
-		final List<CoordinateTransform<?>> transforms = parseTransforms(gson, scene.get(CoordinateTransform.KEY));
-
-		return new TransformGraph(transforms, Arrays.asList(spaces));
+		return new GsonBuilder()
+				.registerTypeAdapter(CoordinateTransform.class, new CoordinateTransformAdapter(null))
+				.registerTypeAdapter(Axis.class, new AxisAdapter());
 	}
 
 	private static Gson buildGson() {
 
-		return new GsonBuilder()
-				.registerTypeAdapter(CoordinateTransform.class, new CoordinateTransformAdapter(null))
-				.registerTypeAdapter(Axis.class, new AxisAdapter())
-				.create();
-	}
-
-	private static List<CoordinateTransform<?>> parseTransforms(final Gson gson, final JsonElement elem) {
-
-		final JsonArray arr = elem.getAsJsonArray();
-		final CoordinateTransform<?>[] transforms = new CoordinateTransform[arr.size()];
-		for (int i = 0; i < arr.size(); i++)
-			transforms[i] = gson.fromJson(arr.get(i), CoordinateTransform.class);
-
-		return Arrays.stream(transforms)
-				.filter(t -> t != null)
-				.collect(Collectors.toList());
+		return gsonBuilder().create();
 	}
 
 	private static double[][] applyTransform(int ndIn, int ndOut, final RealTransform transform, final double[][] coords) {
@@ -118,23 +102,11 @@ public class NgffTransformsConformance {
 		final double[][] result = new double[coords.length][ndOut];
 		for (int i = 0; i < coords.length; i++) {
 
-//			System.out.println("in  : " + Arrays.toString(coords[i]));
-
 			System.arraycopy(coords[i], 0, p, 0, ndIn);
 			reverse(p);
-			
-//			System.out.println("p   : " + Arrays.toString(p));
-
 			transform.apply(p, q);
-
-
-//			System.out.println("q   : " + Arrays.toString(q));
-
 			reverse(q);
 			System.arraycopy(q, 0, result[i], 0, ndOut);
-
-			System.out.println("res : " + Arrays.toString(result[i]));
-
 		}
 		return result;
 	}
