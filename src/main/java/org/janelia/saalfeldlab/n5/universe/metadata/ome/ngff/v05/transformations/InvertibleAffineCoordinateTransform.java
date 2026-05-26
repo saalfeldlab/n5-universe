@@ -49,6 +49,11 @@ public class InvertibleAffineCoordinateTransform extends AbstractAffineCoordinat
 		super(name, inputSpace, outputSpace, path);
 	}
 
+	public InvertibleAffineCoordinateTransform(final String name,
+			final OmeNgffReference inputSpace, final OmeNgffReference outputSpace, final String path) {
+		super(name, inputSpace, outputSpace, path);
+	}
+
 	@Override
 	protected AffineGet createTransform() {
 

@@ -65,6 +65,11 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 		super(TYPE, name, path, inputSpace, outputSpace);
 	}
 
+	protected AbstractAffineCoordinateTransform(final String name,
+			final OmeNgffReference input, final OmeNgffReference output, final String path) {
+		super(TYPE, name, path, input, output);
+	}
+
 	@Override
 	public T getTransform() {
 		return transform;
