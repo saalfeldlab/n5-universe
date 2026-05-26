@@ -1,9 +1,12 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.realtransform.AffineRealTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
+
+import net.imglib2.realtransform.AffineGet;
 
 public class GeneralAffineCoordinateTransform extends AbstractAffineCoordinateTransform<AffineRealTransform> {
 
@@ -51,11 +54,42 @@ public class GeneralAffineCoordinateTransform extends AbstractAffineCoordinateTr
 	}
 
 	private int numSourceDimensions() {
+
+		if (affine == null)
+			return -1;
+
 		return affine[0].length - 1;
 	}
 
 	private int numTargetDimensions() {
+
+		if (affine == null)
+			return -1;
+
 		return affine.length;
+	}
+
+	/**
+	 * Returns an invertible AffineGet if possible, otherwise throws a Runtime exception.
+	 * 
+	 * @return an invertible affine
+	 */
+	public InverseCoordinateTransform<AffineGet, InvertibleAffineCoordinateTransform> tryInverse() {
+
+		if (numSourceDimensions() != numTargetDimensions())
+			throw new N5Exception(String.format(
+					"Cannot invert affine with different source dimensions (%d) and target dimensions (%d).",
+					numSourceDimensions(), numTargetDimensions()));;
+
+		try {
+			if (affine != null)
+				return new InverseCoordinateTransform(new InvertibleAffineCoordinateTransform(getName(), getInput(), getOutput(), affine));
+			else
+				return new InverseCoordinateTransform(new InvertibleAffineCoordinateTransform(getName(), getInput(), getOutput(), getParameterPath()));
+
+		} catch (RuntimeException e) {
+			throw new N5Exception("Affine not invertible: matrix is singular");
+		}
 	}
 
 }

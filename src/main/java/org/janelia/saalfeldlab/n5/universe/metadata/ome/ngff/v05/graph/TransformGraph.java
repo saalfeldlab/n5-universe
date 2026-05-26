@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.SpacesTransforms;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.GeneralAffineCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.InverseCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.InvertibleCoordinateTransform;
@@ -118,12 +119,16 @@ public class TransformGraph
 
 	private CoordinateTransform<?> inverse(CoordinateTransform<?> t) {
 
-		if (t instanceof InvertibleCoordinateTransform)
-			return new InverseCoordinateTransform((InvertibleCoordinateTransform)t);
-		else if (t instanceof SequenceCoordinateTransform)
-			return ((SequenceCoordinateTransform)t).inverse();
-		else if (t instanceof ByDimensionCoordinateTransform)
-			return ((ByDimensionCoordinateTransform)t).inverse();
+		try {
+			if (t instanceof InvertibleCoordinateTransform)
+				return new InverseCoordinateTransform((InvertibleCoordinateTransform)t);
+			else if ( t instanceof GeneralAffineCoordinateTransform )
+				return ((GeneralAffineCoordinateTransform)t).tryInverse();
+			else if (t instanceof SequenceCoordinateTransform)
+				return ((SequenceCoordinateTransform)t).inverse();
+			else if (t instanceof ByDimensionCoordinateTransform)
+				return ((ByDimensionCoordinateTransform)t).inverse();
+		} catch( Exception e ) {}
 
 		return null;
 	}
