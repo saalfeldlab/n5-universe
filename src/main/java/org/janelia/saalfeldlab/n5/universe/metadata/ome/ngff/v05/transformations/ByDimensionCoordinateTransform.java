@@ -173,7 +173,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 	}
 
 	public boolean isInvertible() {
-		return Arrays.stream(transformations).allMatch(t -> t instanceof InvertibleCoordinateTransform);
+		return Arrays.stream(transforms).allMatch(t -> t instanceof InvertibleCoordinateTransform);
 	}
 
 	public ByDimensionCoordinateTransform inverse() {
