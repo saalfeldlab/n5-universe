@@ -219,12 +219,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-			<version>${commons-io.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>io.findify</groupId>
 			<artifactId>s3mock_2.12</artifactId>
 			<version>${s3mock_2.12.version}</version>
