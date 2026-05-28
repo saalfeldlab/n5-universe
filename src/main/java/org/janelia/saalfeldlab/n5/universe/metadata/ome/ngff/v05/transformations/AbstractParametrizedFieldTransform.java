@@ -8,11 +8,14 @@ import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.Common;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.interpolation.InterpolatorFactory;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
+import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.RealTransform;
 import net.imglib2.realtransform.RealViews;
@@ -81,9 +84,17 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		CoordinateSystem[] spaces;
 		try {
 
-			spaces = n5.getAttribute(getParameterPath(), "ome/" + CoordinateSystem.KEY, CoordinateSystem[].class);
-			if( spaces == null || spaces.length == 0)
-				return -1;
+			CoordinateSystem[] tmpSpaces = n5.getAttribute(getParameterPath(), "ome/" + CoordinateSystem.KEY, CoordinateSystem[].class);
+
+			if( tmpSpaces == null || tmpSpaces.length == 0)
+				throw new N5Exception("No coordinate systems found at: " + getParameterPath());	
+
+			spaces = new CoordinateSystem[tmpSpaces.length];
+			for (int i = 0; i < tmpSpaces.length; i++) {
+				// TODO eventually may not always want to reverse :-/
+				// see MultiscalesAdapter
+				spaces[i] = tmpSpaces[i].reverseAxes();
+			}
 
 			final String vectorAxisType = getVectorAxisType();
 			final CoordinateSystem space = spaces[0];
@@ -101,6 +112,17 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		return field;
 	}
 
+	private InterpolatorFactory getInterpolator() {
+
+		switch(interpolation) {
+		case LINEAR_INTERPOLATION:
+			return new NLinearInterpolatorFactory();
+		case NEAREST_INTERPOLATION:
+			return new NearestNeighborInterpolatorFactory<>();
+		}
+		return new NLinearInterpolatorFactory();
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public RealRandomAccessible<RealComposite<S>> getParameters(final N5Reader n5) {
@@ -109,9 +131,9 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 
 		vectorAxisIndex = parseVectorAxisIndex( n5 );
 
-		// TODO generalize
-		if( vectorAxisIndex != 0 )
-			throw new N5Exception("Vector axis is in index " + vectorAxisIndex + " but only index 0 currently supported" );
+//		// TODO generalize
+//		if( vectorAxisIndex != 0 )
+//			throw new N5Exception("Vector axis is in index " + vectorAxisIndex + " but only index 0 currently supported" );
 
 		final RandomAccessibleInterval<S> fieldRaw;
 		try {
@@ -128,8 +150,7 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 						Views.moveAxis(fieldRev, 0, fieldRev.numDimensions() - 1 ) );
 
 		final RealRandomAccessible<RealComposite<S>> fieldInterp = Views.interpolate(
-				Views.extendBorder(collapsedFirst),
-				new NLinearInterpolatorFactory<>());
+				Views.extendBorder(collapsedFirst), getInterpolator());
 
 		CoordinateTransform<?> pixelToPhysicalCt = findPixelToPhysicalTransformStrict( n5, path, getInput().getName());
 		if( pixelToPhysicalCt == null ) {
@@ -141,23 +162,15 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 			return field;
 		}
 
-		AffineGet affine = null;
-		if( pixelToPhysicalCt.getType().equals( SequenceCoordinateTransform.TYPE ))
-		{
-			final int nd = fieldRaw.numDimensions();
-			final AffineGet affineTotal = ((SequenceCoordinateTransform) pixelToPhysicalCt).asAffine(nd);
-			affine = Common.removeDimension(vectorAxisIndex, affineTotal);
-		}
+		// TODO is this general enough?
+		AffineGet affine = TransformUtils.toAffine(pixelToPhysicalCt, fieldRev.numDimensions());
+		affine = Common.removeDimension(vectorAxisIndex, affine);
+		if( affine != null )
+			return RealViews.affine(fieldInterp, affine);;
 
-		if( affine != null ) {
-			field = RealViews.affine(fieldInterp, affine);
-			return field;
-		}
+		throw new N5Exception("Warning: only invertible affine pixel to physical transforms are currently supported");
 
-		System.err.println("Warning: only affine pixel to physical transforms are currently supported");
-		return null;
-
-		// TODO should eventually support the general case below
+		// TODO should we eventually support the general case below?
 		// but need to handle removing a dimension from an arbitrary transform.
 		// not dealing with it now
 
@@ -207,16 +220,13 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 
 	public static CoordinateTransform<?> findPixelToPhysicalTransformStrict(final N5Reader n5, final String group, final String output ) {
 
-		final String normGrp = N5URI.normalizeGroupPath(group);
 		final CoordinateTransform<?>[] transforms = n5.getAttribute(group, "ome/"+CoordinateTransform.KEY, CoordinateTransform[].class);
 		if (transforms == null)
 			return null;
 
 		for (final CoordinateTransform<?> ct : transforms) {
-
 			// TODO properly handle reference
-			final String nrmInput = N5URI.normalizeGroupPath(ct.getInput().getName());
-			if (nrmInput.equals(normGrp) && ct.getOutput().equals(output) ) {
+			if (ct.getOutput().getName().equals(output) ) {
 				return ct;
 			}
 		}
@@ -232,6 +242,10 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 			final RandomAccessibleInterval<T> dfield) {
 
 		final long numCoordinates = dfield.dimension(0);
+
+		if (numCoordinates == 1)
+			return dfield;
+
 		final int[] reversePermutation = IntStream.iterate((int) numCoordinates - 1, x -> x-1).limit(numCoordinates)
 				.toArray();
 		return Views.permuteCoordinates(dfield, reversePermutation, 0);
