@@ -17,6 +17,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 
 import com.google.common.collect.Streams;
@@ -37,7 +38,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 	public final Axis[] axes;
 	public final OmeNgffDataset[] datasets;
 	public final CoordinateSystem[] coordinateSystems;
-	public final CoordinateTransformation<?>[] coordinateTransformations;
+	public final CoordinateTransform<?>[] coordinateTransformations;
 	public final OmeNgffDownsamplingMetadata metadata;
 
 	public transient DatasetAttributes[] childrenAttributes;
@@ -63,7 +64,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final String type, final String version, final Axis[] axes,
 			final OmeNgffDataset[] datasets, 
 			final CoordinateSystem[] coordinateSystems,
-			final CoordinateTransformation<?>[] coordinateTransformations,
+			final CoordinateTransform<?>[] coordinateTransformations,
 			final DatasetAttributes[] childrenAttributes,
 			final OmeNgffDownsamplingMetadata metadata) {
 
@@ -90,7 +91,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 	public OmeNgffMultiScaleMetadata(final int nd, final String path, final String name,
 			final String type, final String version, final Axis[] axes,
 			final OmeNgffDataset[] datasets, 
-			final CoordinateTransformation<?>[] coordinateTransformations,
+			final CoordinateTransform<?>[] coordinateTransformations,
 			final DatasetAttributes[] childrenAttributes,
 			final OmeNgffDownsamplingMetadata metadata) {
 
@@ -103,7 +104,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final String type, final String version, final Axis[] axes,
 			final OmeNgffDataset[] datasets, 
 			final CoordinateSystem[] coordinateSystems,
-			final CoordinateTransformation<?>[] coordinateTransformations,
+			final CoordinateTransform<?>[] coordinateTransformations,
 			final DatasetAttributes[] childrenAttributes,
 			final OmeNgffDownsamplingMetadata metadata,
 			final NgffSingleScaleAxesMetadata[] childrenMetadata) {
@@ -130,7 +131,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 	public OmeNgffMultiScaleMetadata(final int nd, final String path, final String name,
 			final String type, final String version, final Axis[] axes,
 			final OmeNgffDataset[] datasets, 
-			final CoordinateTransformation<?>[] coordinateTransformations,
+			final CoordinateTransform<?>[] coordinateTransformations,
 			final DatasetAttributes[] childrenAttributes,
 			final OmeNgffDownsamplingMetadata metadata,
 			final NgffSingleScaleAxesMetadata[] childrenMetadata) {
@@ -204,7 +205,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 	public static NgffSingleScaleAxesMetadata[] buildMetadata(
 			final int nd, final String path, final OmeNgffDataset[] datasets,
 			final DatasetAttributes[] childrenAttributes,
-			final CoordinateTransformation<?>[] transforms,
+			final CoordinateTransform<?>[] transforms,
 			final OmeNgffDownsamplingMetadata metadata,
 			final Axis[] axes)
 	{
@@ -220,7 +221,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 	public static NgffSingleScaleAxesMetadata[] buildMetadata(
 			final int nd, final String path, final OmeNgffDataset[] datasets,
 			final DatasetAttributes[] childrenAttributes,
-			final CoordinateTransformation<?>[] transforms,
+			final CoordinateTransform<?>[] transforms,
 			final OmeNgffDownsamplingMetadata metadata,
 			final Axis[] axes, 
 			boolean reverseParameters)
@@ -257,7 +258,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 	public NgffSingleScaleAxesMetadata[] buildChildren( final int nd,
 			final DatasetAttributes[] datasetAttributes,
-			final CoordinateTransformation<?>[] coordinateTransformations,
+			final CoordinateTransform<?>[] coordinateTransformations,
 			final Axis[] axes)
 	{
 		return buildMetadata(nd, getPath(), datasets, datasetAttributes, coordinateTransformations, metadata, axes);
@@ -278,7 +279,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		return coordinateSystems;
 	}
 
-	public CoordinateTransformation<?>[] getCoordinateTransformations() {
+	public CoordinateTransform<?>[] getCoordinateTransformations() {
 		return coordinateTransformations;
 	}
 
@@ -313,7 +314,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 	public static class OmeNgffDataset {
 		public String path;
-		public CoordinateTransformation<?>[] coordinateTransformations;
+		public CoordinateTransform<?>[] coordinateTransformations;
 	}
 
 	public static class OmeNgffDownsamplingMetadata {
@@ -384,9 +385,9 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			scale[i] = affine.get(i, i);
 	}
 	
-	private static AffineGet tranformsToAffine(final OmeNgffDataset dataset, final CoordinateTransformation<?>[] transforms )
+	private static AffineGet tranformsToAffine(final OmeNgffDataset dataset, final CoordinateTransform<?>[] transforms )
 	{
-		Stream<CoordinateTransformation<?>> s = Stream.empty();
+		Stream<CoordinateTransform<?>> s = Stream.empty();
 		if( dataset.coordinateTransformations != null )
 			s = Streams.concat(s, Arrays.stream(dataset.coordinateTransformations));
 

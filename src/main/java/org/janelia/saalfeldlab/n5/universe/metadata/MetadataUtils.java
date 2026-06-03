@@ -16,6 +16,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxes
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.ScaleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.TranslationCoordinateTransform;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -120,6 +123,27 @@ public class MetadataUtils {
 
 		if (translation != null)
 			coordinateTransformations[i++] = new TranslationCoordinateTransformation(translation);
+
+		return coordinateTransformations;
+	}
+	
+	public static CoordinateTransform<?>[] buildScaleTranslationTransformList06(final double[] scale, final double[] translation) {
+
+		int nTforms = 0;
+		if (scale != null)
+			nTforms++;
+
+		if (translation != null)
+			nTforms++;
+
+		final CoordinateTransform<?>[] coordinateTransformations = new CoordinateTransform<?>[nTforms];
+
+		int i = 0;
+		if (scale != null)
+			coordinateTransformations[i++] = new ScaleCoordinateTransform(scale);
+
+		if (translation != null)
+			coordinateTransformations[i++] = new TranslationCoordinateTransform(translation);
 
 		return coordinateTransformations;
 	}

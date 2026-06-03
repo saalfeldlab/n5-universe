@@ -20,6 +20,8 @@ import org.janelia.saalfeldlab.n5.universe.options.*;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
+
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
@@ -193,6 +195,16 @@ public class N5Factory implements Serializable {
 	public N5Factory googleCloudConfiguration(final Consumer<StorageOptions.Builder> builderConfig) {
 
 		this.gcsBuilderConfig = builderConfig;
+		return this;
+	}
+
+	@Deprecated
+	public N5Factory s3UseCredentials() {
+
+		this.s3Configuration(builder -> {
+			builder.credentialsProvider(DefaultCredentialsProvider.create());
+		});
+
 		return this;
 	}
 

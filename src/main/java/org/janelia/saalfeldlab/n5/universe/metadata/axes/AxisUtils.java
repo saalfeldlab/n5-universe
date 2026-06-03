@@ -245,6 +245,25 @@ public class AxisUtils {
 
 		return true;
 	}
+	
+	
+	public static <T, M extends AxisMetadata & N5Metadata> RandomAccessibleInterval<T> permuteForImagePlus(
+			final RandomAccessibleInterval<T> img,
+			final Axis[] axes) {
+
+		final int[] p = findImagePlusPermutation( Arrays.stream(axes).map( x -> x.getName()).toArray( n -> new String[n]) );
+		fillPermutation( p );
+
+		// TODO under what conditions can I return the image directly?
+		RandomAccessibleInterval<T> imgTmp = img;
+		while( imgTmp.numDimensions() < 5 )
+			imgTmp = Views.addDimension(imgTmp, 0, 0 );
+
+		if( isIdentityPermutation( p ))
+			return imgTmp;
+
+		return permute(imgTmp, invertPermutation(p));
+	}
 
 	public static <T, M extends AxisMetadata & N5Metadata> RandomAccessibleInterval<T> permuteForImagePlus(
 			final RandomAccessibleInterval<T> img,

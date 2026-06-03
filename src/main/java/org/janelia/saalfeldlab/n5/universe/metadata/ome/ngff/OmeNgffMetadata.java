@@ -5,9 +5,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.ScaleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.TranslationCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 
 import net.imglib2.RandomAccessibleInterval;
@@ -60,19 +60,19 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 		final OmeNgffDataset[] datasets = new OmeNgffDataset[numScales];
 		for( int i = 0; i < numScales; i++ ) {
 
-			final ScaleCoordinateTransformation s = new ScaleCoordinateTransformation(scales[i]);
-			TranslationCoordinateTransformation t = null;
+			final ScaleCoordinateTransform s = new ScaleCoordinateTransform(scales[i]);
+			TranslationCoordinateTransform t = null;
 			if( translations != null && translations[i] != null )
-				t = new TranslationCoordinateTransformation(translations[i]);
+				t = new TranslationCoordinateTransform(translations[i]);
 
 			datasets[i] = new OmeNgffDataset();
 			datasets[i].path = scalePaths[i];
 			datasets[i].coordinateTransformations = t == null ?
-					new CoordinateTransformation[]{ s } :
-					new CoordinateTransformation[]{ s, t };
+					new CoordinateTransform[]{ s } :
+					new CoordinateTransform[]{ s, t };
 		}
 
-		final CoordinateTransformation<?>[] cts = null;
+		final CoordinateTransform<?>[] cts = null;
 		final OmeNgffMultiScaleMetadata ms = new OmeNgffMultiScaleMetadata(numDimensions,
 				"", name, type, version,
 				axes, datasets, cts, null, null);
