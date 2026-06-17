@@ -20,6 +20,7 @@ import java.net.URISyntaxException;
 import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempBucketName;
 import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempContainerPath;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 @Category({AmazonTest.class})
 public abstract class Zarr3AmazonS3FactoryTest extends ZarrStorageTests.Zarr3FactoryTest {
@@ -35,6 +36,13 @@ public abstract class Zarr3AmazonS3FactoryTest extends ZarrStorageTests.Zarr3Fac
 			return s3 != null ? s3 : (s3 = super.createS3(uri));
 		}
 	};
+	
+	@BeforeClass
+	public static void before() {
+
+		MockS3Factory.getOrCreateS3();
+		assumeTrue("mock s3 server not running", MockS3Factory.isMinioServerRunning());
+	}
 
 	@Override public Class<?> getBackendTargetClass() {
 
