@@ -19,6 +19,7 @@ import java.net.URISyntaxException;
 import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempBucketName;
 import static org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests.tempContainerPath;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 @Category({AmazonTest.class})
 public abstract class N5AmazonS3FactoryTest extends N5StorageTests.N5FactoryTest {
@@ -38,6 +39,14 @@ public abstract class N5AmazonS3FactoryTest extends N5StorageTests.N5FactoryTest
 
 		return AmazonS3KeyValueAccess.class;
 	}
+	
+	@BeforeClass
+	public static void before() {
+
+		MockS3Factory.getOrCreateS3();
+		assumeTrue("mock s3 server not running", MockS3Factory.isMinioServerRunning());
+	}
+
 
 	@AfterClass
 	public static void removeTestBucket() {
