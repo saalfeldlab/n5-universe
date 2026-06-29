@@ -1,5 +1,9 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations;
 
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+
 import net.imglib2.realtransform.AffineGet;
 
 /**
@@ -9,7 +13,7 @@ import net.imglib2.realtransform.AffineGet;
  *
  * @param <T> The transform type 
  */
-public interface CoordinateTransformation<T extends AffineGet>
+public interface CoordinateTransformation<T extends AffineGet> extends CoordinateTransform<T>
 {
 	public T getTransform();
 
@@ -31,4 +35,49 @@ public interface CoordinateTransformation<T extends AffineGet>
 		}
 		return null;
 	}
+
+	default String getName() {
+		return "";
+	}
+
+	@Override
+	default OmeNgffReference getInput() {
+		return null;
+	}
+
+	@Override
+	default OmeNgffReference getOutput() {
+		return null;
+	}
+
+	@Override
+	default int[] getInputAxes() {
+		return null;
+	}
+
+	@Override
+	default int[] getOutputAxes() {
+		return null;
+	}
+
+	@Override
+	default void setInput(CoordinateSystem inputCoordinateSystem) {
+		// no op
+	}
+
+	@Override
+	default void setOutput(CoordinateSystem outputCoordinateSystem) {
+		// no op
+	}
+
+	@Override
+	default void setInputAxes(int[] inputAxes) {
+		// no op
+	}
+
+	@Override
+	default void setOutputAxes(int[] outputAxes) {
+		// no op
+	}
+
 }
