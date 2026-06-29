@@ -23,16 +23,23 @@ public class CoordinateTransformAdapter
 
 	final N5Reader n5;
 
+	private boolean reverse;
+
 	public static final String[] FIELD_TO_NULL_CHECK = new String[]{
-		"path", "name", "input", "output"
+		"path", "name", "input", "output" 
 	};
 
 	public CoordinateTransformAdapter() {
-		this(null);
+		this(null, true);
 	}
 
 	public CoordinateTransformAdapter( final N5Reader n5 ) {
+		this(n5, true);
+	}
+
+	public CoordinateTransformAdapter( final N5Reader n5, final boolean reverse ) {
 		this.n5 = n5;
+		this.reverse = reverse;
 	}
 
 	@Override
@@ -56,11 +63,11 @@ public class CoordinateTransformAdapter
 			out = context.deserialize( jobj, ReferencedCoordinateTransform.class );
 			break;
 		case("scale"):
-			reverseParameters(jobj, "scale");
+			if (reverse) reverseParameters(jobj, "scale");
 			out = context.deserialize( jobj, ScaleCoordinateTransform.class );
 			break;
 		case("translation"):
-			reverseParameters(jobj, "translation");
+			if (reverse) reverseParameters(jobj, "translation");
 			out = context.deserialize( jobj, TranslationCoordinateTransform.class );
 			break;
 		case("mapAxis"):
@@ -70,7 +77,7 @@ public class CoordinateTransformAdapter
 			ByDimensionCoordinateTransform bd = context.deserialize(jobj, ByDimensionCoordinateTransform.class);
 			bd.setTransformsAfterDeserialization();
 			bd.buildTransform();
-			ByDimensionCoordinateTransform.reverseParameters(bd.getTransformations());
+			if (reverse) ByDimensionCoordinateTransform.reverseParameters(bd.getTransformations());
 			out = bd;
 			break;
 		case("affine"):
