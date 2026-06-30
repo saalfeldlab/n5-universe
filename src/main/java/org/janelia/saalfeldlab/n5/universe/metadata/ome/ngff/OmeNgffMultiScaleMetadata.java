@@ -17,8 +17,10 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
 import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Streams;
 import com.google.gson.JsonObject;
 
@@ -68,7 +70,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final OmeNgffDownsamplingMetadata metadata) {
 
 		super( MetadataUtils.normalizeGroupPath(path), 
-				buildMetadata(nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes));
+				buildMetadata(nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, pickAxes( axes, coordinateSystems)));
 		
 		if (datasets != null) {
 			this.datasets = relativizeDatasets(path, datasets);
@@ -138,6 +140,19 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		this( nd, path, name, type, version, axes,
 				datasets, null, coordinateTransformations, childrenAttributes, metadata,
 				childrenMetadata);
+	}
+
+	private static Axis[] pickAxes(Axis[] axes, CoordinateSystem[] css) {
+
+		return axes != null ? axes : coordinateSystemAxes(css);
+	}
+
+	private static Axis[] coordinateSystemAxes(CoordinateSystem[] css) {
+
+		if (css != null && css.length > 0)
+			return css[0].getAxes();
+		else
+			return null;
 	}
 	
 	private OmeNgffDataset[] relativizeDatasets(final String path, OmeNgffDataset[] datasets) {
