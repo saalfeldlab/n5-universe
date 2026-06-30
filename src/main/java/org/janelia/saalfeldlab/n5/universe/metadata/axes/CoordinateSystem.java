@@ -1,12 +1,8 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.axes;
 
 import java.util.Arrays;
-import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
 public class CoordinateSystem
 {
