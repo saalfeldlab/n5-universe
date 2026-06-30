@@ -5,6 +5,7 @@ import java.lang.reflect.Type;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
@@ -39,8 +40,9 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 
 	protected Axis[] deserializeAxes( final JsonObject jobj, final JsonDeserializationContext context ) throws JsonParseException
 	{
+		// axes may not be present directly under multiscales for OME-Zarr >= 0.6
 		final JsonElement elem = jobj.get("axes");
-		if( !elem.isJsonArray())
+		if( elem == null || !elem.isJsonArray())
 			return null;
 
 		final JsonArray arr = elem.getAsJsonArray();
@@ -71,7 +73,7 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 			return null;
 
 		final JsonObject jobj = json.getAsJsonObject();
-		if (!jobj.has("axes") && !jobj.has("datasets"))
+		if (!jobj.has("axes") && !jobj.has("coordinateSystems") && !jobj.has("datasets"))
 			return null;
 
 		// name and type may be null
@@ -85,7 +87,17 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 			version = "";
 
 		final Axis[] axes = deserializeAxes(jobj, context);
-		final int nd = axes.length;
+		final CoordinateSystem[] coordinateSystems = context.deserialize(
+				jobj.get("coordinateSystems"), CoordinateSystem[].class);
+
+		final int nd;
+		if (axes != null)
+			nd = axes.length;
+		else if (coordinateSystems != null && coordinateSystems.length > 0)
+			nd = coordinateSystems[0].getAxes().length;
+		else
+			nd = 0;
+
 		final OmeNgffDataset[] datasets = deserializeDatasets(jobj, context);
 
 		final CoordinateTransformation<?>[] coordinateTransformations = context
@@ -94,9 +106,9 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 		final OmeNgffDownsamplingMetadata metadata = context.deserialize(jobj.get("metadata"),
 				OmeNgffDownsamplingMetadata.class);
 
-		return new OmeNgffMultiScaleMetadata(nd, "", 
+		return new OmeNgffMultiScaleMetadata(nd, "",
 				name, type, version, axes, datasets,
-				coordinateTransformations, null, metadata);
+				coordinateSystems, coordinateTransformations, null, metadata);
 	}
 
 	@Override
