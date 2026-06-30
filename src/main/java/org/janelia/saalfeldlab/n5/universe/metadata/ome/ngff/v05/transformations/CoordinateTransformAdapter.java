@@ -33,6 +33,10 @@ public class CoordinateTransformAdapter
 		this(null, true);
 	}
 
+	public CoordinateTransformAdapter(boolean reverse) {
+		this(null, reverse);
+	}
+
 	public CoordinateTransformAdapter( final N5Reader n5 ) {
 		this(n5, true);
 	}
