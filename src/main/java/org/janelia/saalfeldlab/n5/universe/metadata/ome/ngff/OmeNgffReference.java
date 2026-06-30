@@ -26,4 +26,8 @@ public class OmeNgffReference {
 
 	public final static OmeNgffReference DUMMY = new OmeNgffReference("", "");
 
+	public String toString() {
+		return path == null ? name : path + "/" + name;
+	}
+
 }
