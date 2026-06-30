@@ -1,7 +1,17 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.scene;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+
+import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 
 /**
  * Represents a "scene" that represents multiple images or other objects in a
@@ -9,9 +19,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransform
  */
 public class NgffScene {
 	
-	public static final String SCENE_KEY = "scene";
+	public static final String SCENE_KEY = "ome/scene";
 
-	private final CoordinateTransformation[] coordinateTransformations;
+	private final CoordinateTransform[] coordinateTransformations;
 
 	private final CoordinateSystem[] coordinateSystems;
 
@@ -19,24 +29,77 @@ public class NgffScene {
 		this(null, null);
 	}
 
-	public NgffScene(final CoordinateTransformation[] coordinateTransformations) {
+	public NgffScene(final CoordinateTransform[] coordinateTransformations) {
 		this(coordinateTransformations, null);
 	}
 
 	public NgffScene(
-			final CoordinateTransformation[] coordinateTransformations,
+			final CoordinateTransform[] coordinateTransformations,
 			final CoordinateSystem[] coordinateSystems) {
 
 		this.coordinateTransformations = coordinateTransformations;
 		this.coordinateSystems = coordinateSystems;
 	}
 
-	public CoordinateTransformation[] getCoordinateTransformations() {
+	public CoordinateTransform[] getCoordinateTransformations() {
 		return coordinateTransformations;
 	}
 
 	public CoordinateSystem[] getCoordinateSystems() {
 		return coordinateSystems;
+	}
+
+	public TransformGraph getGraph(N5Reader n5, String basePath) {
+
+		final ArrayList<CoordinateSystem> allCs = new ArrayList<>();
+		if (coordinateSystems != null)
+			allCs.addAll(Arrays.asList(coordinateSystems));
+
+		if (coordinateTransformations != null) {
+			final LinkedHashSet<String> externalPaths = new LinkedHashSet<>();
+			for (final CoordinateTransform<?> ct : coordinateTransformations) {
+				final OmeNgffReference input = ct.getInput();
+				final OmeNgffReference output = ct.getOutput();
+				if (isExternalPath(input)) externalPaths.add(input.getPath());
+				if (isExternalPath(output)) externalPaths.add(output.getPath());
+			}
+
+			for (final String extPath : externalPaths) {
+				final String resolvedPath = (basePath == null || basePath.isEmpty())
+						? extPath : basePath + "/" + extPath;
+				final List<CoordinateSystem> extCs = readCoordinateSystems(n5, resolvedPath);
+				allCs.addAll(extCs);
+			}
+		}
+
+		return new TransformGraph(
+				Arrays.asList(coordinateTransformations),
+				new CoordinateSystems(allCs));
+	}
+
+	private static boolean isExternalPath(final OmeNgffReference ref) {
+		if (ref == null) return false;
+		final String p = ref.getPath();
+		return p != null && !p.isEmpty() && !p.equals(".");
+	}
+
+	private static List<CoordinateSystem> readCoordinateSystems(final N5Reader n5, final String path) {
+		
+		final ArrayList<CoordinateSystem> result = new ArrayList<>();
+		final OmeNgffMultiScaleMetadata[] mss = n5.getAttribute(path, "ome/multiscales", OmeNgffMultiScaleMetadata[].class);
+		if (mss != null)
+			for( OmeNgffMultiScaleMetadata ms : mss) {
+				result.addAll(prependPath(ms.getCoordinateSystems(), path));
+			}
+
+		return result;
+	}
+
+	private static List<CoordinateSystem> prependPath(CoordinateSystem[] css, String path) {
+		final ArrayList<CoordinateSystem> result = new ArrayList<>();
+		for (final CoordinateSystem cs : css)
+			result.add(new CoordinateSystem(path + "/" + cs.getName(), cs.getAxes()));
+		return result;
 	}
 
 }
