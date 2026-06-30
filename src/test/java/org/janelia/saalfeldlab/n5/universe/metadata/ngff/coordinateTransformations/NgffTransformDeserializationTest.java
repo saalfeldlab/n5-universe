@@ -22,7 +22,7 @@ public class NgffTransformDeserializationTest {
 	}
 
 	@Test
-	public void testSubTransformAxesDeserialization() {
+	public void testByDimensionSubAxesDeserialization() {
 
 		final String json = "{"
 				+ "\"type\": \"byDimension\","
@@ -34,8 +34,6 @@ public class NgffTransformDeserializationTest {
 				+ "  {\"transformation\": {\"type\": \"scale\", \"scale\": [10.0]}, \"input_axes\": [1], \"output_axes\": [1]}"
 				+ "]"
 				+ "}";
-		
-		System.out.println(json);
 
 		final Gson gson = buildGson();
 		final CoordinateTransform<?> ct = gson.fromJson(json, CoordinateTransform.class);
