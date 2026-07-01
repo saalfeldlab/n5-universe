@@ -16,9 +16,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.ScaleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.TranslationCoordinateTransform;
 import org.junit.Test;
 
 import net.imglib2.realtransform.AffineTransform3D;
@@ -137,14 +137,14 @@ public class NgffAxisTests {
 		final String[] names = Arrays.stream(axes).map(a -> a.getName()).toArray(N -> new String[N]);
 		assertArrayEquals("names don't match", expectedNames, names);
 
-		final CoordinateTransformation<?>[] cts = meta.multiscales[0].datasets[0].coordinateTransformations;
-		assertTrue("first coordinate transform not scale", cts[0] instanceof ScaleCoordinateTransformation);
-		final ScaleCoordinateTransformation ct0 = (ScaleCoordinateTransformation)cts[0];
-		assertArrayEquals("scales don't match", expectedScales, ct0.getScale(), EPS);
+		final CoordinateTransform<?>[] cts = meta.multiscales[0].datasets[0].coordinateTransformations;
+		assertTrue("first coordinate transform not scale", cts[0] instanceof ScaleCoordinateTransform);
+		final ScaleCoordinateTransform ct0 = (ScaleCoordinateTransform)cts[0];
+		assertArrayEquals("scales don't match", expectedScales, ct0.scale, EPS);
 
-		assertTrue("second coordinate transform not translation", cts[1] instanceof TranslationCoordinateTransformation);
-		final TranslationCoordinateTransformation ct1 = (TranslationCoordinateTransformation)cts[1];
-		assertArrayEquals("translations don't match", expectedTranslations, ct1.getTranslation(), EPS);
+		assertTrue("second coordinate transform not translation", cts[1] instanceof TranslationCoordinateTransform);
+		final TranslationCoordinateTransform ct1 = (TranslationCoordinateTransform)cts[1];
+		assertArrayEquals("translations don't match", expectedTranslations, ct1.translation, EPS);
 	}
 
 }

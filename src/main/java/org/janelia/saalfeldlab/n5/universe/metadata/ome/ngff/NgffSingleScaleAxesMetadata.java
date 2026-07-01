@@ -10,7 +10,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.SpatialModifiable;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform;
@@ -27,7 +27,7 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 
 	private final Axis[] axes;
 
-	private final CoordinateTransformation<?>[] coordinateTransformations;
+	private final CoordinateTransform<?>[] coordinateTransformations;
 
 	private transient final DatasetAttributes datasetAttributes;
 
@@ -84,7 +84,7 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 		return axes;
 	}
 
-	public CoordinateTransformation<?>[] getCoordinateTransformations() {
+	public CoordinateTransform<?>[] getCoordinateTransformations() {
 
 		return coordinateTransformations;
 	}

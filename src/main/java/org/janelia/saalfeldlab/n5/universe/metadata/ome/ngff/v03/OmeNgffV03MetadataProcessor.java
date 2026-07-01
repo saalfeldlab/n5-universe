@@ -4,8 +4,8 @@ import java.util.Arrays;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.ScaleCoordinateTransform;
 
 public class OmeNgffV03MetadataProcessor {
 
@@ -21,20 +21,20 @@ public class OmeNgffV03MetadataProcessor {
 		final int nd = attributes[0].getNumDimensions();
 		final double[] unitRes = new double[nd];
 		Arrays.fill(unitRes, 1);
-		datasets[0].coordinateTransformations = new CoordinateTransformation[]{new ScaleCoordinateTransformation(unitRes)};
+		datasets[0].coordinateTransformations = new CoordinateTransform[]{new ScaleCoordinateTransform(unitRes)};
 
 		for (int i = 1; i < datasets.length; i++) {
 			datasets[i].coordinateTransformations = inferRelativeResolution(attributes[0], attributes[i]);
 		}
 	}
 
-	private static CoordinateTransformation[] inferRelativeResolution(final DatasetAttributes base, final DatasetAttributes downsampled) {
+	private static CoordinateTransform[] inferRelativeResolution(final DatasetAttributes base, final DatasetAttributes downsampled) {
 		final int nd = base.getDimensions().length;
 		final double[] res = new double[nd];
 		for (int i = 0; i < nd; i++) {
 			res[i] = (double)base.getDimensions()[i] / downsampled.getDimensions()[i];
 		}
-		return new CoordinateTransformation[]{new ScaleCoordinateTransformation(res)};
+		return new CoordinateTransform[]{new ScaleCoordinateTransform(res)};
 	}
 
 }
