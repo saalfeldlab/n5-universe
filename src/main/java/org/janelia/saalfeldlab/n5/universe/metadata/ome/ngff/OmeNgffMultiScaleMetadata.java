@@ -82,7 +82,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		this.name = name;
 		this.type = type;
 		this.version = version;
-		this.axes = axes;
+		this.axes = pickAxes(axes, coordinateSystems);
 		this.coordinateSystems = coordinateSystems;
 		this.coordinateTransformations = coordinateTransformations;
 		this.metadata = metadata;
@@ -122,7 +122,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		this.name = name;
 		this.type = type;
 		this.version = version;
-		this.axes = axes;
+		this.axes = pickAxes(axes, coordinateSystems);
 		this.coordinateSystems = coordinateSystems;
 		this.coordinateTransformations = coordinateTransformations;
 		this.metadata = metadata;
