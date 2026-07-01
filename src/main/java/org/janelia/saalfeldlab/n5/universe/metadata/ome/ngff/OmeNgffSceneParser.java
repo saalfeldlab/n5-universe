@@ -11,6 +11,8 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransform
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformationAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.scene.NgffScene;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.scene.NgffSceneMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransformAdapter;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -36,6 +38,7 @@ public class OmeNgffSceneParser implements N5MetadataParser<NgffSceneMetadata> {
 
 	public GsonBuilder gsonBuilder() {
 		return new GsonBuilder()
+				.registerTypeAdapter(CoordinateTransform.class, new CoordinateTransformAdapter(reverse))
 				.registerTypeAdapter(CoordinateTransformation.class, new CoordinateTransformationAdapter(reverse))
 				.registerTypeAdapter(Axis.class, new AxisAdapter());
 	}
