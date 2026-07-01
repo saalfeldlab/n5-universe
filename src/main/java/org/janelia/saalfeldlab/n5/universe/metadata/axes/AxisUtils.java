@@ -159,6 +159,18 @@ public class AxisUtils {
 	/**
 	 * Finds and returns a permutation p such that source[p[i]] equals xyczt
 	 *
+	 * @param axes the axes
+	 * @return the permutation array
+	 */
+	public static int[] findImagePlusPermutation(final Axis[] axes) {
+
+		final String[] axisLabels = Arrays.stream(axes).map(Axis::getName).toArray(String[]::new);
+		return findImagePlusPermutation(axisLabels);
+	}
+
+	/**
+	 * Finds and returns a permutation p such that source[p[i]] equals xyczt
+	 *
 	 * @param axisLabels the axis labels
 	 * @return the permutation array
 	 */
@@ -251,6 +263,24 @@ public class AxisUtils {
 			final M meta) {
 
 		final int[] p = findImagePlusPermutation( meta );
+		fillPermutation( p );
+
+		// TODO under what conditions can I return the image directly?
+		RandomAccessibleInterval<T> imgTmp = img;
+		while( imgTmp.numDimensions() < 5 )
+			imgTmp = Views.addDimension(imgTmp, 0, 0 );
+
+		if( isIdentityPermutation( p ))
+			return imgTmp;
+
+		return permute(imgTmp, invertPermutation(p));
+	}
+
+	public static <T> RandomAccessibleInterval<T> permuteForImagePlus(
+			final RandomAccessibleInterval<T> img,
+			final Axis[] axes) {
+
+		final int[] p = findImagePlusPermutation( axes );
 		fillPermutation( p );
 
 		// TODO under what conditions can I return the image directly?
