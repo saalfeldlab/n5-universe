@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -24,11 +25,14 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransform
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.scene.NgffScene;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.scene.NgffSceneMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformPath;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransformAdapter;
 import org.junit.Test;
 
 import com.google.gson.GsonBuilder;
+
+import net.imglib2.realtransform.AffineTransform3D;
 
 public class SceneParsingTest {
 
@@ -120,11 +124,12 @@ public class SceneParsingTest {
 
 			final TransformGraph graph = scene.getGraph(zarr, dset);
 
-			// each dataset's local "physical" space should be connected to "world"
-			// via the scene-level coordinate transformations, but the path-qualified
-			// name used to register graph nodes ("CBCT/physical") does not match the
-			// unqualified name used by the transform's OmeNgffReference ("physical"),
-			// so no path is currently found.
+			// each dataset's local "physical" space is connected to "world" via
+			// the scene-level coordinate transformations, using the path-qualified
+			// node name ("CBCT/physical") to look it up in the graph -- this
+			// requires OmeNgffReference.getQualifiedName() to be used consistently
+			// in TransformGraph/CoordinateSystems (see TransformGraph.addTransform,
+			// getInput/getOutput).
 			assertTrue("expected a path from CBCT/physical to world",
 					graph.path("CBCT/physical", "world").isPresent());
 			assertTrue("expected a path from Dose/physical to world",
@@ -132,6 +137,64 @@ public class SceneParsingTest {
 			assertTrue("expected a path from LET/physical to world",
 					graph.path("LET/physical", "world").isPresent());
 		}
+	}
+
+	/**
+	 * Checks the actual {@link AffineTransform3D} produced by resolving a
+	 * {@link TransformPath} through the graph against the values expected
+	 * from the raw {@code coordinateTransformations} in
+	 * {@code scene.ome.zarr}'s {@code zarr.json}:
+	 * <pre>
+	 * CBCT_to_world: translation [0, 0, 0]
+	 * Dose_to_world: translation [4400, 0, 0]
+	 * LET_to_world:  translation [4400, 0, 0]
+	 * </pre>
+	 * The JSON translation components are ordered to match the "world"/
+	 * "physical" axes (z, y, x), but {@code gsonBuilder(true)} (reverse=true,
+	 * as used elsewhere in this test class) reverses parsed arrays to the
+	 * imglib2 (x, y, z) convention, so the 4400 ends up in the *last*
+	 * component of the resulting {@link AffineTransform3D}'s translation.
+	 */
+	@Test
+	public void testGraphTransformValues() {
+
+		final String root = "src/test/resources/transforms/scene.ome.zarr";
+		final String dset = "";
+
+		try( final N5Reader zarr = new N5Factory()
+				.options( opts -> { opts.gsonBuilder(gsonBuilder(true)); })
+				.openReader(StorageFormat.ZARR3, root) ) {
+
+			final NgffScene scene = zarr.getAttribute(dset, NgffScene.SCENE_KEY, NgffScene.class);
+			assertNotNull(scene);
+
+			final TransformGraph graph = scene.getGraph(zarr, dset);
+
+			final AffineTransform3D identity = new AffineTransform3D();
+			assertAffineEquals(identity,
+					graph.path("CBCT/physical", "world").get().totalAffine3D(zarr));
+
+			final AffineTransform3D doseToWorld = new AffineTransform3D();
+			doseToWorld.translate(0, 0, 4400);
+			assertAffineEquals(doseToWorld,
+					graph.path("Dose/physical", "world").get().totalAffine3D(zarr));
+
+			final AffineTransform3D letToWorld = new AffineTransform3D();
+			letToWorld.translate(0, 0, 4400);
+			assertAffineEquals(letToWorld,
+					graph.path("LET/physical", "world").get().totalAffine3D(zarr));
+
+			// the inverse edges added automatically by TransformGraph should
+			// also resolve, with the inverse translation
+			final AffineTransform3D worldToDose = new AffineTransform3D();
+			worldToDose.translate(0, 0, -4400);
+			assertAffineEquals(worldToDose,
+					graph.path("world", "Dose/physical").get().totalAffine3D(zarr));
+		}
+	}
+
+	private static void assertAffineEquals(final AffineTransform3D expected, final AffineTransform3D actual) {
+		assertArrayEquals(expected.getRowPackedCopy(), actual.getRowPackedCopy(), 1e-9);
 	}
 
 	private static GsonBuilder gsonBuilder(boolean reverse) {
