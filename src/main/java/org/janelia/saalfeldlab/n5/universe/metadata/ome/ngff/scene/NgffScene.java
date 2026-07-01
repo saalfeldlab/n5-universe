@@ -70,37 +70,6 @@ public class NgffScene {
 	}
 
 	/**
-	 * Returns the distinct external paths referenced by coordinate transformations
-	 * whose input or output is the named coordinate system.
-	 *
-	 * @param coordinateSystemName
-	 *            the name of the coordinate system
-	 * @return the referenced paths
-	 */
-	public String[] getPaths(final String coordinateSystemName) {
-
-		if (coordinateTransformations == null || coordinateSystemName == null)
-			return new String[0];
-
-		final LinkedHashSet<String> paths = new LinkedHashSet<>();
-		for (final CoordinateTransform<?> ct : coordinateTransformations) {
-			final OmeNgffReference input = ct.getInput();
-			final OmeNgffReference output = ct.getOutput();
-
-			final boolean referencesCoordinateSystem =
-					(input != null && coordinateSystemName.equals(input.getName())) ||
-					(output != null && coordinateSystemName.equals(output.getName()));
-
-			if (!referencesCoordinateSystem)
-				continue;
-
-			if (isExternalPath(input)) paths.add(input.getPath());
-			if (isExternalPath(output)) paths.add(output.getPath());
-		}
-		return paths.toArray(new String[0]);
-	}
-
-	/**
 	 * Returns the name of the first coordinate system in this scene, or
 	 * {@code null} if this scene has no coordinate systems.
 	 *
