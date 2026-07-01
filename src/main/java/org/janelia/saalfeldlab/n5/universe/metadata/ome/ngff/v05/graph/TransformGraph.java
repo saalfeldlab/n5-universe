@@ -71,11 +71,11 @@ public class TransformGraph
 	}
 
 	public CoordinateSystem getInput( final CoordinateTransform<?> t ) {
-		return spaces.getSpace(t.getInput().getName());
+		return spaces.getSpace(t.getInput().getQualifiedName());
 	}
 
 	public CoordinateSystem getOutput( final CoordinateTransform<?> t ) {
-		return spaces.getSpace(t.getOutput().getName());
+		return spaces.getSpace(t.getOutput().getQualifiedName());
 	}
 
 	public void addTransform( final CoordinateTransform<?> t ) {
@@ -91,7 +91,7 @@ public class TransformGraph
 		}))
 			return;
 
-		if( spaces.hasSpace(t.getInput().getName()) && spaces.hasSpace(t.getOutput().getName()))
+		if( spaces.hasSpace(t.getInput().getQualifiedName()) && spaces.hasSpace(t.getOutput().getQualifiedName()))
 		{
 			final CoordinateSystem src = getInput( t );
 			if( spacesToNodes.containsKey( src ))

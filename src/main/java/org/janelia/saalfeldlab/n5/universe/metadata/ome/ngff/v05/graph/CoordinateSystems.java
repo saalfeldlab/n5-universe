@@ -266,30 +266,30 @@ public class CoordinateSystems {
 	}
 
 	public boolean inputIsSubspace( final CoordinateTransform<?>  t, final CoordinateSystem s ) {
-		return s.isSubspaceOf( getSpace(t.getInput().getName()));
+		return s.isSubspaceOf( getSpace(t.getInput().getQualifiedName()));
 	}
 
 	public boolean inputHasAxis( final CoordinateTransform<?>  t, final String axisLabel ) {
-		return getSpace(t.getInput().getName()).hasAxis(axisLabel);
+		return getSpace(t.getInput().getQualifiedName()).hasAxis(axisLabel);
 	}
 
 	public boolean outputIsSubspace( final CoordinateTransform<?>  t, final CoordinateSystem s ) {
 		if( t.getOutput() != null )
-			return s.isSubspaceOf( getSpace(t.getOutput().getName()));
+			return s.isSubspaceOf( getSpace(t.getOutput().getQualifiedName()));
 		else
 			return false;
 	}
 
 	public boolean outputIsSuperspace( final CoordinateTransform<?>  t, final CoordinateSystem s ) {
 		if( t.getOutput() != null )
-			return s.isSuperspaceOf( getSpace(t.getOutput().getName()));
+			return s.isSuperspaceOf( getSpace(t.getOutput().getQualifiedName()));
 		else
 			return false;
 	}
 
 	public boolean outputHasAxis( final CoordinateTransform<?>  t, final String axisLabel ) {
 		if( t.getOutput() != null )
-			return getSpace(t.getOutput().getName()).hasAxis(axisLabel);
+			return getSpace(t.getOutput().getQualifiedName()).hasAxis(axisLabel);
 		else
 			return false;
 	}
@@ -298,7 +298,7 @@ public class CoordinateSystems {
 		if( t.getOutput() == null )
 			return false;
 
-		for( final String axisLabel : getSpace(t.getOutput().getName()).getAxisNames() )
+		for( final String axisLabel : getSpace(t.getOutput().getQualifiedName()).getAxisNames() )
 			if( axisLabels.contains(axisLabel) )
 				return true;
 
@@ -309,7 +309,7 @@ public class CoordinateSystems {
 		if( t.getOutput() == null )
 			return false;
 
-		for( final String axisLabel : getSpace(t.getOutput().getName()).getAxisNames() )
+		for( final String axisLabel : getSpace(t.getOutput().getQualifiedName()).getAxisNames() )
 			if( Arrays.stream( axisLabels ).anyMatch( x -> x.equals(axisLabel) ) )
 				return true;
 
@@ -336,10 +336,10 @@ public class CoordinateSystems {
 	public < T extends AbstractCoordinateTransform< ? > > void updateTransform( final T t )
 	{
 		if ( t.getInput() != null )
-			t.setInput( nameToSpace.get( t.getInput().getName() ));
+			t.setInput( nameToSpace.get( t.getInput().getQualifiedName() ));
 
 		if ( t.getOutput() != null )
-			t.setOutput( nameToSpace.get( t.getOutput().getName() ));
+			t.setOutput( nameToSpace.get( t.getOutput().getQualifiedName() ));
 	}
 
 }
