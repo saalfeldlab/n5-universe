@@ -28,9 +28,9 @@ public class TransformPath {
 
 	public TransformPath( final CoordinateTransform<?> transform ) {
 
-		this.start = transform.getInput().getName();
+		this.start = transform.getInput().getQualifiedName();
 		this.transform = transform;
-		this.end = transform.getOutput().getName();
+		this.end = transform.getOutput().getQualifiedName();
 		this.parentPath = null;
 	}
 
@@ -39,7 +39,7 @@ public class TransformPath {
 		this.start = parentPath.getStart();
 		this.parentPath = parentPath;
 		this.transform = transform;
-		this.end = transform.getOutput().getName();
+		this.end = transform.getOutput().getQualifiedName();
 	}
 
 	public String getStart()
