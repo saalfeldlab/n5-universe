@@ -48,6 +48,71 @@ public class NgffScene {
 	public CoordinateSystem[] getCoordinateSystems() {
 		return coordinateSystems;
 	}
+	
+	/**
+	 * Returns the distinct external paths referenced by coordinate transformations.
+	 *
+	 * @return the referenced paths
+	 */
+	public String[] getPaths() {
+
+		if (coordinateTransformations == null)
+			return new String[0];
+
+		final LinkedHashSet<String> paths = new LinkedHashSet<>();
+		for (final CoordinateTransform<?> ct : coordinateTransformations) {
+			final OmeNgffReference input = ct.getInput();
+			final OmeNgffReference output = ct.getOutput();
+			if (isExternalPath(input)) paths.add(input.getPath());
+			if (isExternalPath(output)) paths.add(output.getPath());
+		}
+		return paths.toArray(new String[0]);
+	}
+
+	/**
+	 * Returns the distinct external paths referenced by coordinate transformations
+	 * whose input or output is the named coordinate system.
+	 *
+	 * @param coordinateSystemName
+	 *            the name of the coordinate system
+	 * @return the referenced paths
+	 */
+	public String[] getPaths(final String coordinateSystemName) {
+
+		if (coordinateTransformations == null || coordinateSystemName == null)
+			return new String[0];
+
+		final LinkedHashSet<String> paths = new LinkedHashSet<>();
+		for (final CoordinateTransform<?> ct : coordinateTransformations) {
+			final OmeNgffReference input = ct.getInput();
+			final OmeNgffReference output = ct.getOutput();
+
+			final boolean referencesCoordinateSystem =
+					(input != null && coordinateSystemName.equals(input.getName())) ||
+					(output != null && coordinateSystemName.equals(output.getName()));
+
+			if (!referencesCoordinateSystem)
+				continue;
+
+			if (isExternalPath(input)) paths.add(input.getPath());
+			if (isExternalPath(output)) paths.add(output.getPath());
+		}
+		return paths.toArray(new String[0]);
+	}
+
+	/**
+	 * Returns the name of the first coordinate system in this scene, or
+	 * {@code null} if this scene has no coordinate systems.
+	 *
+	 * @return the default coordinate system name
+	 */
+	public String getDefaultCoordinateSystemName() {
+
+		if (coordinateSystems == null || coordinateSystems.length == 0)
+			return null;
+
+		return coordinateSystems[0].getName();
+	}
 
 	public TransformGraph getGraph(N5Reader n5, String basePath) {
 
@@ -55,21 +120,11 @@ public class NgffScene {
 		if (coordinateSystems != null)
 			allCs.addAll(Arrays.asList(coordinateSystems));
 
-		if (coordinateTransformations != null) {
-			final LinkedHashSet<String> externalPaths = new LinkedHashSet<>();
-			for (final CoordinateTransform<?> ct : coordinateTransformations) {
-				final OmeNgffReference input = ct.getInput();
-				final OmeNgffReference output = ct.getOutput();
-				if (isExternalPath(input)) externalPaths.add(input.getPath());
-				if (isExternalPath(output)) externalPaths.add(output.getPath());
-			}
-
-			for (final String extPath : externalPaths) {
-				final String resolvedPath = (basePath == null || basePath.isEmpty())
-						? extPath : basePath + "/" + extPath;
-				final List<CoordinateSystem> extCs = readCoordinateSystems(n5, resolvedPath);
-				allCs.addAll(extCs);
-			}
+		for (final String extPath : getPaths()) {
+			final String resolvedPath = (basePath == null || basePath.isEmpty())
+					? extPath : basePath + "/" + extPath;
+			final List<CoordinateSystem> extCs = readCoordinateSystems(n5, resolvedPath);
+			allCs.addAll(extCs);
 		}
 
 		return new TransformGraph(
