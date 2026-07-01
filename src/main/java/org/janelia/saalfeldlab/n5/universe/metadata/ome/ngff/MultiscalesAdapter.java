@@ -8,7 +8,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDownsamplingMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
@@ -100,8 +100,8 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 
 		final OmeNgffDataset[] datasets = deserializeDatasets(jobj, context);
 
-		final CoordinateTransformation<?>[] coordinateTransformations = context
-				.deserialize(jobj.get("coordinateTransformations"), CoordinateTransformation[].class);
+		final CoordinateTransform<?>[] coordinateTransformations = context
+				.deserialize(jobj.get("coordinateTransformations"), CoordinateTransform[].class);
 
 		final OmeNgffDownsamplingMetadata metadata = context.deserialize(jobj.get("metadata"),
 				OmeNgffDownsamplingMetadata.class);
@@ -134,7 +134,7 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 		obj.add("axes", serializedAxes);
 		obj.add("datasets", context.serialize(src.getDatasets()));
 
-		CoordinateTransformation<?>[] cts = src.getCoordinateTransformations();
+		CoordinateTransform<?>[] cts = src.getCoordinateTransformations();
 		if( cts != null )
 			if( cts.length == 0 )
 				obj.add("coordinateTransformations", context.serialize(new JsonArray())); // empty array

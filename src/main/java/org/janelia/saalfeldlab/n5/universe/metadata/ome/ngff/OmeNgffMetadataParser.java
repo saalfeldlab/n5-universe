@@ -18,9 +18,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.AxisAdapter;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformationAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v03.OmeNgffV03MetadataProcessor;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransformAdapter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
@@ -63,7 +63,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 	public GsonBuilder gsonBuilder() {
 
 		return new GsonBuilder()
-				.registerTypeAdapter(CoordinateTransformation.class, new CoordinateTransformationAdapter(reverse))
+				.registerTypeAdapter(CoordinateTransform.class, new CoordinateTransformAdapter(reverse))
 				.registerTypeAdapter(Axis.class, new AxisAdapter())
 				.registerTypeAdapter(OmeNgffMultiScaleMetadata.class, new MultiscalesAdapter(reverse));
 	}

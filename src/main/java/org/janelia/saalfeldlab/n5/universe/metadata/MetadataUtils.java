@@ -13,9 +13,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadata.CosemTransfo
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.ScaleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.TranslationCoordinateTransform;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -103,7 +103,7 @@ public class MetadataUtils {
 		return factors;
 	}
 
-	public static CoordinateTransformation<?>[] buildScaleTranslationTransformList(final double[] scale, final double[] translation) {
+	public static CoordinateTransform<?>[] buildScaleTranslationTransformList(final double[] scale, final double[] translation) {
 
 		int nTforms = 0;
 		if (scale != null)
@@ -112,19 +112,19 @@ public class MetadataUtils {
 		if (translation != null)
 			nTforms++;
 
-		final CoordinateTransformation<?>[] coordinateTransformations = new CoordinateTransformation<?>[nTforms];
+		final CoordinateTransform<?>[] coordinateTransformations = new CoordinateTransform<?>[nTforms];
 
 		int i = 0;
 		if (scale != null)
-			coordinateTransformations[i++] = new ScaleCoordinateTransformation(scale);
+			coordinateTransformations[i++] = new ScaleCoordinateTransform(scale);
 
 		if (translation != null)
-			coordinateTransformations[i++] = new TranslationCoordinateTransformation(translation);
+			coordinateTransformations[i++] = new TranslationCoordinateTransform(translation);
 
 		return coordinateTransformations;
 	}
 
-	public static ScaleAndTranslation scaleTranslationFromCoordinateTransformations(final CoordinateTransformation<?>[] cts) {
+	public static ScaleAndTranslation scaleTranslationFromCoordinateTransformations(final CoordinateTransform<?>[] cts) {
 
 		if (cts == null || cts.length == 0)
 			return null;
@@ -136,13 +136,13 @@ public class MetadataUtils {
 		return out;
 	}
 
-	public static ScaleAndTranslation coordinateTransformToScaleAndTranslation(CoordinateTransformation<?> ct) {
+	public static ScaleAndTranslation coordinateTransformToScaleAndTranslation(CoordinateTransform<?> ct) {
 
-		if (ct.getType().equals(ScaleCoordinateTransformation.TYPE)) {
-			final double[] s = ((ScaleCoordinateTransformation)ct).getScale();
+		if (ct.getType().equals(ScaleCoordinateTransform.TYPE)) {
+			final double[] s = ((ScaleCoordinateTransform)ct).scale;
 			return new ScaleAndTranslation(s, new double[s.length]);
-		} else if (ct.getType().equals(TranslationCoordinateTransformation.TYPE)) {
-			final double[] t = ((TranslationCoordinateTransformation)ct).getTranslation();
+		} else if (ct.getType().equals(TranslationCoordinateTransform.TYPE)) {
+			final double[] t = ((TranslationCoordinateTransform)ct).translation;
 			final double[] s = new double[t.length];
 			Arrays.fill(s, 1.0);
 			return new ScaleAndTranslation(s, t);

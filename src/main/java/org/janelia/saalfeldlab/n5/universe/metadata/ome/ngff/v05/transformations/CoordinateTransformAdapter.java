@@ -219,8 +219,23 @@ public class CoordinateTransformAdapter
 			{
 				obj.remove(f);
 			}
+
+			if( reverse )
+				reverseParametersOnWrite(obj);
 		}
 		return elem;
+	}
+
+	private static void reverseParametersOnWrite(final JsonObject obj) {
+
+		if( !obj.has("type") )
+			return;
+
+		final String type = obj.get("type").getAsString();
+		if( ScaleCoordinateTransform.TYPE.equals(type) && obj.has("scale") )
+			Collections.reverse(obj.get("scale").getAsJsonArray().asList());
+		else if( TranslationCoordinateTransform.TYPE.equals(type) && obj.has("translation") )
+			Collections.reverse(obj.get("translation").getAsJsonArray().asList());
 	}
 
 	public static JsonElement serializeGeneric(final JsonSerializationContext context, final CoordinateTransform<?> ct ) {
