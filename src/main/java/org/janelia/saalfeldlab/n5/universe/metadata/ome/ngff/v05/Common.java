@@ -8,7 +8,6 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import org.janelia.saalfeldlab.n5.N5Exception;
@@ -17,11 +16,9 @@ import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
-import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AffineCoordinateTransformAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransformAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.IdentityCoordinateTransform;
@@ -135,13 +132,93 @@ public class Common {
 				if( t instanceof AffineGet )
 				{
 					preConcatenate( total, (AffineGet) t  );
-	//				total.preConcatenate((AffineGet) t );
 				}
 				else
 					return null;
 			}
 		}
 		return total;
+	}
+
+	/**
+	 * Like {@link #toAffine3D(N5Reader, Collection)}, but for
+	 * {@code transforms} whose axes aren't necessarily (only) the 3 spatial
+	 * ones expected by {@link AffineTransform3D}. {@code axes} identifies
+	 * which of the shared axis space's axes are spatial, and is used (via
+	 * {@link #preConcatenate(AffineTransform3D, AffineGet, Axis[])}) to
+	 * select/project down to exactly the 3 spatial axes at every step, rather
+	 * than naively assuming they're axes 0,1,2. {@code axes} is assumed to be
+	 * the same for every transform in {@code transforms} and for the nested
+	 * sub-transforms of any {@link SequenceCoordinateTransform}.
+	 *
+	 * @param n5 the reader
+	 * @param transforms the transforms to compose
+	 * @param axes the (shared) axes of {@code transforms}' coordinate systems
+	 * @return the composed, spatial-axes-only 3D affine
+	 */
+	public static AffineTransform3D toAffine3D( final N5Reader n5, final Collection<CoordinateTransform<?>> transforms, final Axis[] axes )
+	{
+		final AffineTransform3D total = new AffineTransform3D();
+		for( final CoordinateTransform<?> ct : transforms )
+		{
+			if( ct instanceof IdentityCoordinateTransform )
+				continue;
+			else if( ct instanceof SequenceCoordinateTransform )
+			{
+				final AffineTransform3D t = toAffine3D( n5, Arrays.asList( ((SequenceCoordinateTransform)ct).getTransformations() ), axes );
+				if( t == null )
+					return null;
+				else
+					// t is already a reduced 3D affine (axis selection happened
+					// in the recursion above); concatenate it directly rather
+					// than re-projecting it through spatialTransform3D(.., axes),
+					// which would index axes[i] for i up to t's 3 dims and throw
+					// when axes has fewer than 3 entries (e.g. a 2D dataset)
+					total.preConcatenate( t );
+			}
+			else {
+				final Object t = ct.getTransform(n5);
+				if( t instanceof AffineGet )
+					preConcatenate( total, (AffineGet) t, axes );
+				else
+					return null;
+			}
+		}
+		return total;
+	}
+
+	/**
+	 * Like {@link #toAffine3D(N5Reader, Collection, Axis[])}, but resolves
+	 * {@code axes} automatically from {@code g}, using the input
+	 * {@link CoordinateSystem} of the first of {@code transforms} whose input
+	 * space is registered in {@code g} (see the class-level note on
+	 * {@link #toAffine3D(N5Reader, Collection, Axis[])} about why a single
+	 * shared {@code axes} suffices). Falls back to
+	 * {@link #toAffine3D(N5Reader, Collection)} (the pre-existing,
+	 * axis-selection-unaware behavior) if no axes can be resolved this way.
+	 *
+	 * @param n5 the reader
+	 * @param g the graph {@code transforms} were resolved from
+	 * @param transforms the transforms to compose
+	 * @return the composed, spatial-axes-only 3D affine
+	 */
+	public static AffineTransform3D toAffine3D( final N5Reader n5, final TransformGraph g, final Collection<CoordinateTransform<?>> transforms )
+	{
+		Axis[] axes = null;
+		for( final CoordinateTransform<?> ct : transforms )
+		{
+			final CoordinateSystem cs = g.getInput( ct );
+			if( cs != null )
+			{
+				axes = cs.getAxes();
+				break;
+			}
+		}
+
+		if( axes == null )
+			return toAffine3D( n5, transforms );
+
+		return toAffine3D( n5, transforms, axes );
 	}
 
 	public static void preConcatenate( final AffineTransform3D tgt, final AffineGet concatenate )
@@ -165,6 +242,24 @@ public class Common {
 					new double[]{ 0, 0, 0});
 			tgt.preConcatenate(c);
 		}
+	}
+
+	/**
+	 * Like {@link #preConcatenate(AffineTransform3D, AffineGet)}, but for
+	 * {@code concatenate}s whose axes aren't necessarily (only) the 3 spatial
+	 * ones expected by {@link AffineTransform3D}. {@code axes} identifies, for each of
+	 * {@code concatenate}'s own axes, whether it is spatial
+	 * ({@link Axis#SPACE}) via {@link TransformUtils#spatialTransform3D(AffineGet, Axis[])},
+	 * which is used to select/project down to exactly the 3 spatial axes
+	 * before concatenating.
+	 *
+	 * @param tgt the affine to concatenate onto
+	 * @param concatenate the (possibly non-3-spatial-dimensional) transform to concatenate
+	 * @param axes {@code concatenate}'s own axes (same length as {@code concatenate.numTargetDimensions()})
+	 */
+	public static void preConcatenate( final AffineTransform3D tgt, final AffineGet concatenate, final Axis[] axes )
+	{
+		tgt.preConcatenate( TransformUtils.spatialTransform3D( concatenate, axes ) );
 	}
 
 	public static CoordinateSystem makeSpace( final String name, final String type, final String unit, final String... labels)
