@@ -83,12 +83,7 @@ public class TransformGraph
 	}
 
 	private void addTransform( final CoordinateTransform<?> t, final boolean addInverse ) {
-		if( transforms.stream().anyMatch( x -> {
-			if( x != null && x.getName() != null )
-				return x.getName().equals(t.getName());
-			else
-				return false;
-		}))
+		if( transforms.stream().anyMatch( x -> x != null && x.sameEdge(t) ))
 			return;
 
 		if( spaces.hasSpace(t.getInput().getQualifiedName()) && spaces.hasSpace(t.getOutput().getQualifiedName()))
