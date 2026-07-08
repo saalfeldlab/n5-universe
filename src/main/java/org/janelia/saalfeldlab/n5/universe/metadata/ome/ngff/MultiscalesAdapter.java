@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
 import java.lang.reflect.Type;
+import java.util.Arrays;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
@@ -19,6 +20,11 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
+/**
+ * When {@code reverse} is {@code true} axes are reversed wherever present. They
+ * could be present in a top-level {@code "axes"} array, or inside a
+ * {@code coordinateSystem}.
+ */
 public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMetadata >, JsonSerializer< OmeNgffMultiScaleMetadata >
 {
 	private boolean reverse;
@@ -58,14 +64,37 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 			axes = context.deserialize(jobj.get("axes"), Axis[].class);
 		}
 
+		return reverseAxes(axes);
+	}
+
+	/**
+	 * Deserializes the {@code coordinateSystems} field, if present.
+	 *
+	 * @param jobj the json object
+	 * @param context the deserialization context
+	 * @return the coordinate systems, or {@code null} if not present
+	 */
+	protected CoordinateSystem[] deserializeCoordinateSystems( final JsonObject jobj, final JsonDeserializationContext context ) throws JsonParseException
+	{
+		final CoordinateSystem[] coordinateSystems = context.deserialize(jobj.get("coordinateSystems"), CoordinateSystem[].class);
+		if (coordinateSystems == null || !reverse)
+			return coordinateSystems;
+
+		return Arrays.stream(coordinateSystems)
+				.map(CoordinateSystem::reverseAxes)
+				.toArray(CoordinateSystem[]::new);
+	}
+
+	protected Axis[] reverseAxes( final Axis[] axes )
+	{
 		return reverse ? MetadataUtils.reversedCopy( axes ) : axes;
 	}
-	
+
 	protected OmeNgffDataset[] deserializeDatasets( final JsonObject jobj, final JsonDeserializationContext context ) throws JsonParseException
 	{
-		return context.deserialize(jobj.get("datasets"), OmeNgffDataset[].class);	
+		return context.deserialize(jobj.get("datasets"), OmeNgffDataset[].class);
 	}
-	
+
 	@Override
 	public OmeNgffMultiScaleMetadata deserialize( final JsonElement json, final Type typeOfT, final JsonDeserializationContext context ) throws JsonParseException
 	{
@@ -86,17 +115,20 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 		else
 			version = "";
 
-		final Axis[] axes = deserializeAxes(jobj, context);
-		final CoordinateSystem[] coordinateSystems = context.deserialize(
-				jobj.get("coordinateSystems"), CoordinateSystem[].class);
+		final Axis[] declaredAxes = deserializeAxes(jobj, context);
+		final CoordinateSystem[] coordinateSystems = deserializeCoordinateSystems(jobj, context);
 
-		final int nd;
-		if (axes != null)
-			nd = axes.length;
+		// axes may not be declared directly (OME-Zarr >= 0.5) -- fall back to
+		// the first coordinateSystem's (already-reversed) axes
+		final Axis[] axes;
+		if (declaredAxes != null)
+			axes = declaredAxes;
 		else if (coordinateSystems != null && coordinateSystems.length > 0)
-			nd = coordinateSystems[0].getAxes().length;
+			axes = coordinateSystems[0].getAxes();
 		else
-			nd = 0;
+			axes = null;
+
+		final int nd = axes != null ? axes.length : 0;
 
 		final OmeNgffDataset[] datasets = deserializeDatasets(jobj, context);
 
