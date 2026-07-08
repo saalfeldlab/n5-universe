@@ -11,6 +11,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMe
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AbstractCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 
 /**
@@ -70,6 +71,30 @@ public class NgffScene {
 	}
 
 	/**
+	 * Returns the qualified names (see {@link OmeNgffReference#getQualifiedName()})
+	 * of the coordinate system(s) that this scene's coordinate transformations
+	 * associate with the given (scene-relative) dataset {@code path}.
+	 *
+	 * @param path
+	 *            the (scene-relative) dataset path
+	 * @return the local coordinate system names for {@code path}
+	 */
+	public List<String> localSpaceNames(final String path) {
+
+		final List<String> names = new ArrayList<>();
+		if (coordinateTransformations == null)
+			return names;
+
+		for (final CoordinateTransform<?> ct : coordinateTransformations) {
+			if (path.equals(ct.getInput().getPath()))
+				names.add(ct.getInput().getQualifiedName());
+			if (path.equals(ct.getOutput().getPath()))
+				names.add(ct.getOutput().getQualifiedName());
+		}
+		return names;
+	}
+
+	/**
 	 * Returns the name of the first coordinate system in this scene, or
 	 * {@code null} if this scene has no coordinate systems.
 	 *
@@ -89,16 +114,22 @@ public class NgffScene {
 		if (coordinateSystems != null)
 			allCs.addAll(Arrays.asList(coordinateSystems));
 
+		final ArrayList<CoordinateTransform<?>> allCts = new ArrayList<>();
+		if (coordinateTransformations != null)
+			for (final CoordinateTransform<?> ct : coordinateTransformations)
+				allCts.add(ct);
+
 		for (final String extPath : getPaths()) {
 			final String resolvedPath = (basePath == null || basePath.isEmpty())
 					? extPath : basePath + "/" + extPath;
 			final List<CoordinateSystem> extCs = readCoordinateSystems(n5, resolvedPath);
 			allCs.addAll(extCs);
+
+			final List<CoordinateTransform<?>> extCts = readCoordinateTransformations(n5, resolvedPath);
+			allCts.addAll(extCts);
 		}
 
-		return new TransformGraph(
-				Arrays.asList(coordinateTransformations),
-				new CoordinateSystems(allCs));
+		return new TransformGraph(allCts, new CoordinateSystems(allCs));
 	}
 
 	private static boolean isExternalPath(final OmeNgffReference ref) {
@@ -124,6 +155,49 @@ public class NgffScene {
 		for (final CoordinateSystem cs : css)
 			result.add(new CoordinateSystem(path + "/" + cs.getName(), cs.getAxes()));
 		return result;
+	}
+
+	/**
+	 * Returns the multiscale-level {@code coordinateTransformations} declared
+	 * at the given external dataset {@code path}.
+	 * <p>
+	 * The input/output references of the transformations are
+	 * qualified names (see {@link OmeNgffReference#getQualifiedName()})
+	 *
+	 * @param n5 the reader
+	 * @param path the (already basePath-resolved) external dataset path
+	 * @return the path-qualified multiscale-level transforms
+	 */
+	private static List<CoordinateTransform<?>> readCoordinateTransformations(final N5Reader n5, final String path) {
+
+		final ArrayList<CoordinateTransform<?>> result = new ArrayList<>();
+		final OmeNgffMultiScaleMetadata[] mss = n5.getAttribute(path, "ome/multiscales", OmeNgffMultiScaleMetadata[].class);
+		if (mss != null)
+			for (final OmeNgffMultiScaleMetadata ms : mss) {
+				final CoordinateTransform<?>[] cts = ms.getCoordinateTransformations();
+				if (cts != null)
+					for (final CoordinateTransform<?> ct : cts)
+						result.add(qualify(ct, path));
+			}
+
+		return result;
+	}
+
+	private static CoordinateTransform<?> qualify(final CoordinateTransform<?> ct, final String path) {
+
+		if (!(ct instanceof AbstractCoordinateTransform))
+			return ct;
+
+		final AbstractCoordinateTransform<?> act = (AbstractCoordinateTransform<?>)ct;
+		act.setNameSpaces(act.getName(), qualifyReference(act.getInput(), path), qualifyReference(act.getOutput(), path));
+		return act;
+	}
+
+	private static String qualifyReference(final OmeNgffReference ref, final String path) {
+
+		if (ref == null)
+			return null;
+		return isExternalPath(ref) ? ref.getQualifiedName() : path + "/" + ref.getName();
 	}
 
 }
