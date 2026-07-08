@@ -3,6 +3,8 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
@@ -16,6 +18,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 
@@ -293,6 +296,15 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 	public CoordinateTransform<?>[] getCoordinateTransformations() {
 		return coordinateTransformations;
+	}
+
+	public TransformGraph getGraph() {
+
+		final List<CoordinateTransform<?>> cts = coordinateTransformations == null
+				? Collections.emptyList() : Arrays.asList(coordinateTransformations);
+		final List<CoordinateSystem> css = coordinateSystems == null
+				? Collections.emptyList() : Arrays.asList(coordinateSystems);
+		return new TransformGraph(cts, css);
 	}
 
 	public String[] getCanonicalPaths() {
