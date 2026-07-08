@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import java.util.Objects;
+
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
@@ -42,6 +44,36 @@ public interface CoordinateTransform<T extends RealTransform> {
 	public void setInputAxes(final int[] inputAxes);
 
 	public void setOutputAxes(final int[] outputAxes);
+
+	/**
+	 * Is the other {@code other} the same graph edge as this transform.
+	 * <p>
+	 * Two transform are the same if they have identical same {@code type},
+	 * {@code name}, and (qualified) {@code input}/{@code output}. This
+	 * method returns true even if they have different parameters.
+	 *
+	 * @param other
+	 *            the transform to compare against
+	 * @return whether {@code other} declares the same edge as this transform
+	 */
+	public default boolean sameEdge(final CoordinateTransform<?> other) {
+
+		if (other == null)
+			return false;
+		if (!Objects.equals(getType(), other.getType()))
+			return false;
+		if (!Objects.equals(getName(), other.getName()))
+			return false;
+
+		final String in = getInput() == null ? null : getInput().getQualifiedName();
+		final String otherIn = other.getInput() == null ? null : other.getInput().getQualifiedName();
+		if (!Objects.equals(in, otherIn))
+			return false;
+
+		final String out = getOutput() == null ? null : getOutput().getQualifiedName();
+		final String otherOut = other.getOutput() == null ? null : other.getOutput().getQualifiedName();
+		return Objects.equals(out, otherOut);
+	}
 
 	public static CoordinateTransform<?> create(CoordinateTransform<?> ct) {
 		if (ct instanceof CoordinateTransform) {
