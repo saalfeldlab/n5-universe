@@ -140,6 +140,51 @@ public class SceneParsingTest {
 	}
 
 	/**
+	 * {@link NgffScene#getGraph(N5Reader, String)} must not depend on how the
+	 * caller constructed the reader. Every other test here registers the ome-ngff
+	 * type adapters on the reader's gson; this one deliberately does not, as
+	 * {@code N5Viewer.show(uri)} does not either. Without them the reader cannot
+	 * deserialize {@link CoordinateTransform}, which is an interface, so
+	 * {@code getGraph} must deserialize the referenced datasets itself.
+	 * <p>
+	 * The scene is read with {@link OmeNgffSceneParser} rather than
+	 * {@code getAttribute(.., NgffScene.class)} for the same reason: the latter
+	 * would go through the reader's gson and fail before {@code getGraph} was even
+	 * reached.
+	 */
+	@Test
+	public void testGraphWithDefaultReader() {
+
+		final String root = "src/test/resources/transforms/scene.ome.zarr";
+		final String dset = "";
+
+		try (final N5Reader zarr = new N5Factory().openReader(StorageFormat.ZARR3, root)) {
+
+			final NgffScene scene = new OmeNgffSceneParser(zarr)
+					.parseMetadata(zarr, dset)
+					.map(NgffSceneMetadata::getScene)
+					.orElse(null);
+			assertNotNull("scene parsed with a default reader", scene);
+
+			final TransformGraph graph = scene.getGraph(zarr, dset);
+
+			final Set<String> graphSet = graph.getCoordinateSystems().coordinateSystems()
+					.map(CoordinateSystem::getName)
+					.collect(Collectors.toSet());
+
+			assertEquals("graph nodes, default reader", coordSystemSet, graphSet);
+			assertEquals("graph edges, default reader", 6, graph.getTransforms().size());
+
+			assertTrue("expected a path from CBCT/physical to world",
+					graph.path("CBCT/physical", "world").isPresent());
+			assertTrue("expected a path from Dose/physical to world",
+					graph.path("Dose/physical", "world").isPresent());
+			assertTrue("expected a path from LET/physical to world",
+					graph.path("LET/physical", "world").isPresent());
+		}
+	}
+
+	/**
 	 * Checks the actual {@link AffineTransform3D} produced by resolving a
 	 * {@link TransformPath} through the graph against the values expected
 	 * from the raw {@code coordinateTransformations} in
@@ -190,6 +235,41 @@ public class SceneParsingTest {
 			worldToDose.translate(0, 0, -4400);
 			assertAffineEquals(worldToDose,
 					graph.path("world", "Dose/physical").get().totalAffine3D(zarr));
+		}
+	}
+
+	/**
+	 * {@link NgffScene#localSpaceNames(String)} should return the path-qualified
+	 * name(s) of the coordinate system(s) each dataset path is bound to by the
+	 * scene-level coordinate transformations. In {@code scene.ome.zarr} each of
+	 * {@code CBCT}/{@code Dose}/{@code LET} is the input path of a single
+	 * {@code *_to_world} transform whose input reference is
+	 * {@code {name: physical, path: <dataset>}}, so each resolves to a singleton
+	 * {@code "<dataset>/physical"}; the shared output {@code {name: world}} has
+	 * no path and so is never attributed to a dataset.
+	 */
+	@Test
+	public void testLocalSpaceNames() {
+
+		final String root = "src/test/resources/transforms/scene.ome.zarr";
+		final String dset = "";
+
+		try( final N5Reader zarr = new N5Factory()
+				.options( opts -> { opts.gsonBuilder(gsonBuilder(true)); })
+				.openReader(StorageFormat.ZARR3, root) ) {
+
+			final NgffScene scene = zarr.getAttribute(dset, NgffScene.SCENE_KEY, NgffScene.class);
+			assertNotNull(scene);
+
+			assertEquals(Arrays.asList("CBCT/physical"), scene.localSpaceNames("CBCT"));
+			assertEquals(Arrays.asList("Dose/physical"), scene.localSpaceNames("Dose"));
+			assertEquals(Arrays.asList("LET/physical"), scene.localSpaceNames("LET"));
+
+			// a path not referenced by any scene transform has no local spaces
+			assertTrue(scene.localSpaceNames("nonexistent").isEmpty());
+			// "world" is only ever an output with no path, so it is not a
+			// dataset path and resolves to nothing
+			assertTrue(scene.localSpaceNames("world").isEmpty());
 		}
 	}
 
