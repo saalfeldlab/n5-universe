@@ -7,12 +7,16 @@ import java.util.List;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AbstractCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 
 /**
  * Represents a "scene" that represents multiple images or other objects in a
@@ -21,6 +25,8 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations
 public class NgffScene {
 	
 	public static final String SCENE_KEY = "ome/scene";
+
+	private static final String MULTISCALES_KEY = "ome/multiscales";
 
 	private final CoordinateTransform[] coordinateTransformations;
 
@@ -108,7 +114,33 @@ public class NgffScene {
 		return coordinateSystems[0].getName();
 	}
 
+	/**
+	 * Builds the graph relating this scene's coordinate systems to those of the
+	 * datasets it references, reading each referenced dataset's
+	 * {@code ome/multiscales}.
+	 * <p>
+	 * The referenced metadata is deserialized with this method's own {@link Gson}
+	 * (see {@link OmeNgffMetadataParser#gsonBuilder()}), not the reader's, so the
+	 * result does not depend on how the caller happened to construct {@code n5} --
+	 * a reader without the ome-ngff type adapters cannot deserialize
+	 * {@link CoordinateTransform}, which is an interface.
+	 *
+	 * @param n5
+	 *            the reader
+	 * @param basePath
+	 *            the path this scene's dataset references are relative to (may be
+	 *            null or empty)
+	 * @return the graph
+	 * @throws IllegalStateException
+	 *             if a referenced dataset's {@code ome/multiscales} is missing or
+	 *             unreadable. Failing here is deliberate: skipping such a dataset
+	 *             would yield a graph that looks complete but silently lacks its
+	 *             nodes, so every transformation into a coordinate system it
+	 *             participates in would resolve to the identity.
+	 */
 	public TransformGraph getGraph(N5Reader n5, String basePath) {
+
+		final Gson gson = new OmeNgffMetadataParser(n5).gsonBuilder().create();
 
 		final ArrayList<CoordinateSystem> allCs = new ArrayList<>();
 		if (coordinateSystems != null)
@@ -122,11 +154,18 @@ public class NgffScene {
 		for (final String extPath : getPaths()) {
 			final String resolvedPath = (basePath == null || basePath.isEmpty())
 					? extPath : basePath + "/" + extPath;
-			final List<CoordinateSystem> extCs = readCoordinateSystems(n5, resolvedPath);
-			allCs.addAll(extCs);
 
-			final List<CoordinateTransform<?>> extCts = readCoordinateTransformations(n5, resolvedPath);
-			allCts.addAll(extCts);
+			for (final OmeNgffMultiScaleMetadata ms : readMultiscales(n5, resolvedPath, gson)) {
+
+				final CoordinateSystem[] css = ms.getCoordinateSystems();
+				if (css != null)
+					allCs.addAll(prependPath(css, resolvedPath));
+
+				final CoordinateTransform<?>[] cts = ms.getCoordinateTransformations();
+				if (cts != null)
+					for (final CoordinateTransform<?> ct : cts)
+						allCts.add(qualify(ct, resolvedPath));
+			}
 		}
 
 		return new TransformGraph(allCts, new CoordinateSystems(allCs));
@@ -138,16 +177,33 @@ public class NgffScene {
 		return p != null && !p.isEmpty() && !p.equals(".");
 	}
 
-	private static List<CoordinateSystem> readCoordinateSystems(final N5Reader n5, final String path) {
-		
-		final ArrayList<CoordinateSystem> result = new ArrayList<>();
-		final OmeNgffMultiScaleMetadata[] mss = n5.getAttribute(path, "ome/multiscales", OmeNgffMultiScaleMetadata[].class);
-		if (mss != null)
-			for( OmeNgffMultiScaleMetadata ms : mss) {
-				result.addAll(prependPath(ms.getCoordinateSystems(), path));
-			}
+	/**
+	 * Reads the {@code ome/multiscales} of a dataset this scene references.
+	 *
+	 * @param n5
+	 *            the reader
+	 * @param path
+	 *            the (already basePath-resolved) external dataset path
+	 * @param gson
+	 *            deserializes the attribute; must have the ome-ngff type adapters
+	 *            registered (the reader's own gson generally does not)
+	 * @return the multiscales, never null or empty
+	 * @throws IllegalStateException
+	 *             if the attribute is absent or cannot be read
+	 */
+	private static OmeNgffMultiScaleMetadata[] readMultiscales(final N5Reader n5, final String path, final Gson gson) {
 
-		return result;
+		final JsonElement el = n5.getAttribute(path, MULTISCALES_KEY, JsonElement.class);
+		if (el == null)
+			throw new IllegalStateException("scene references \"" + path + "\", which has no \""
+					+ MULTISCALES_KEY + "\" attribute");
+
+		final OmeNgffMultiScaleMetadata[] mss = gson.fromJson(el, OmeNgffMultiScaleMetadata[].class);
+		if (mss == null || mss.length == 0)
+			throw new IllegalStateException("scene references \"" + path + "\", whose \""
+					+ MULTISCALES_KEY + "\" attribute could not be read");
+
+		return mss;
 	}
 
 	private static List<CoordinateSystem> prependPath(CoordinateSystem[] css, String path) {
@@ -158,31 +214,10 @@ public class NgffScene {
 	}
 
 	/**
-	 * Returns the multiscale-level {@code coordinateTransformations} declared
-	 * at the given external dataset {@code path}.
-	 * <p>
-	 * The input/output references of the transformations are
-	 * qualified names (see {@link OmeNgffReference#getQualifiedName()})
-	 *
-	 * @param n5 the reader
-	 * @param path the (already basePath-resolved) external dataset path
-	 * @return the path-qualified multiscale-level transforms
+	 * Rewrites a multiscale-level transform's input/output references as qualified
+	 * names (see {@link OmeNgffReference#getQualifiedName()}), so they name the
+	 * same nodes the graph registers for {@code path}.
 	 */
-	private static List<CoordinateTransform<?>> readCoordinateTransformations(final N5Reader n5, final String path) {
-
-		final ArrayList<CoordinateTransform<?>> result = new ArrayList<>();
-		final OmeNgffMultiScaleMetadata[] mss = n5.getAttribute(path, "ome/multiscales", OmeNgffMultiScaleMetadata[].class);
-		if (mss != null)
-			for (final OmeNgffMultiScaleMetadata ms : mss) {
-				final CoordinateTransform<?>[] cts = ms.getCoordinateTransformations();
-				if (cts != null)
-					for (final CoordinateTransform<?> ct : cts)
-						result.add(qualify(ct, path));
-			}
-
-		return result;
-	}
-
 	private static CoordinateTransform<?> qualify(final CoordinateTransform<?> ct, final String path) {
 
 		if (!(ct instanceof AbstractCoordinateTransform))
