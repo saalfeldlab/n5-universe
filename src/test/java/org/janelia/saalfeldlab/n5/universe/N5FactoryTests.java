@@ -29,12 +29,14 @@ import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class N5FactoryTests {
 
@@ -572,4 +574,28 @@ public class N5FactoryTests {
 			assertEquals(expected.getName() + messageSuffix, expected, n5.getClass());
 		}
 	}
+
+	@Test
+	public void testOpenExistingWriterDoesNotCreate() throws IOException {
+
+		final N5Factory factory = newN5Factory();
+		final File tmp = Files.createTempDirectory( "factory-existing-writer-" ).toFile();
+		try {
+			final File container = new File( tmp, "container.n5" );
+			final String uri = "n5:" + container.getAbsolutePath();
+
+			/* no container yet: it must throw and must not create anything */
+			assertThrows( N5Exception.class, () -> factory.openExistingWriter( uri ) );
+			assertFalse( "openExistingWriter must not create a container", container.exists() );
+
+			/* once the container exists, it opens as a writer */
+			factory.openWriter( uri ).createGroup( "foo" );
+			final N5Writer existing = factory.openExistingWriter( uri );
+			assertNotNull( existing );
+			assertTrue( existing.exists( "foo" ) );
+		} finally {
+			FileUtils.deleteDirectory( tmp );
+		}
+	}
+
 }
