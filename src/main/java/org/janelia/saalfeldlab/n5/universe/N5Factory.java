@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import static org.janelia.saalfeldlab.n5.universe.StorageFormat.*;
@@ -688,6 +689,56 @@ public class N5Factory implements Serializable {
             }
 		}
 		return null;
+	}
+
+	/**
+	 * Get a new {@link N5Writer} IFF the container already exists. If one does not already exist,
+	 * a new one will NOT be created.
+	 * This is achieved by first opening a reader at the location, and only then opening
+	 * a writer if the reader successfully opens.
+	 *
+	 * @param storage the storage format, or null
+	 * @param access to the key-value backend
+	 * @param location root URI of the container
+	 * @return a writer for the existing container
+	 *
+	 * @throws N5IOException if the container does not exist, no attempt will be made to create it
+	 */
+	public N5Writer openExistingWriter(@Nullable final StorageFormat storage, final KeyValueAccess access, final URI location) throws N5IOException {
+
+		requireContainerExists(() -> openReader(storage, access, location));
+		return openWriter(storage, access, location);
+	}
+
+	/**
+	 * Get a new {@link N5Writer} IFF the container already exists. If one does not already exist,
+	 * a new one will NOT be created.
+	 * This is achieved by first opening a reader at the location, and only then opening
+	 * a writer if the reader successfully opens.
+	 *
+	 * @param uri the container location, optionally prefixed with a storage format
+	 * @return a writer for the existing container
+	 *
+	 * @throws N5IOException if the container does not exist, no attempt will be made to create it
+	 */
+	public N5Writer openExistingWriter(final String uri) throws N5IOException {
+
+		requireContainerExists(() -> openReader(uri));
+		return openWriter(uri);
+	}
+
+    /**
+	 * Test if a reader can be opened from given supplier
+	 *
+	 * @throws N5IOException if the container does not exist
+     */
+	protected void requireContainerExists(Supplier<N5Reader> getReader) throws N5IOException {
+		//noinspection EmptyTryBlock
+		try (N5Reader ignored = getReader.get()) {
+			/* Just want to verify we can open, then we close to get the writer*/
+		} catch (final Exception e) {
+			throw new N5IOException("Existing container could not be opened, or does not exist.", e);
+		}
 	}
 
     /**

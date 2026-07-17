@@ -14,7 +14,6 @@ import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 import org.junit.Test;
-import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,23 +21,26 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class N5FactoryTests {
 
-	private StorageFormat[] reorderPreferedStorageFormat(StorageFormat preferredStorageFormat) {
+	protected N5Factory newN5Factory() {
+		return new N5Factory();
+	};
+
+	protected StorageFormat[] reorderPreferedStorageFormat(StorageFormat preferredStorageFormat) {
 
 		final StorageFormat[] defaultOrder = StorageFormat.values();
 		final List<StorageFormat> reorder = new ArrayList<>(Arrays.asList(defaultOrder));
@@ -50,7 +52,7 @@ public class N5FactoryTests {
 	@Test
 	public void testStorageFormatOrderWithPreference() {
 
-		N5Factory factory = new N5Factory();
+		N5Factory factory = newN5Factory();
 		final StorageFormat[] defaultPriority = StorageFormat.values();
 		assertArrayEquals(defaultPriority, factory.orderedStorageFormats());
 
@@ -117,7 +119,7 @@ public class N5FactoryTests {
 	@Test
 	public void testWriterTypeByExtension() throws IOException {
 
-		final N5Factory factory = new N5Factory();
+		final N5Factory factory = newN5Factory();
 
 		File tmp = null;
 		try {
@@ -151,7 +153,7 @@ public class N5FactoryTests {
 	@Test
 	public void testWriterTypeByPrefix() throws IOException {
 
-		final N5Factory factory = new N5Factory();
+		final N5Factory factory = newN5Factory();
 
 		File tmp = null;
 		try {
@@ -188,7 +190,7 @@ public class N5FactoryTests {
 
 	@Test
 	public void testDefaultForAmbiguousWritersWithPreference() throws IOException {
-		final N5Factory factory = new N5Factory();
+		final N5Factory factory = newN5Factory();
 		factory.preferredStorageFormat(StorageFormat.N5);
 
 		File tmp = null;
@@ -230,7 +232,7 @@ public class N5FactoryTests {
 	@Test
 	public void testDefaultForAmbiguousWriters() throws IOException {
 
-		final N5Factory factory = new N5Factory();
+		final N5Factory factory = newN5Factory();
 
 		File tmp = null;
 		try {
@@ -285,7 +287,7 @@ public class N5FactoryTests {
 	@Test
 	public void testAmbiguousZarrFormat() throws IOException {
 
-		final N5Factory factory = new N5Factory();
+		final N5Factory factory = newN5Factory();
 		File tmpDir = Files.createTempDirectory("factory-test-").toFile();
 
 		/* by default, should be zarr 3 with no other information */
@@ -321,7 +323,7 @@ public class N5FactoryTests {
 	@Test
 	public void testForExistingWriters() throws IOException {
 
-		final N5Factory factory = new N5Factory();
+		final N5Factory factory = newN5Factory();
 
 		File tmp = null;
 		try {
@@ -354,7 +356,7 @@ public class N5FactoryTests {
 	@Test
 	public void testDefaultForAmbiguousReaders() throws IOException {
 
-		final N5Factory factory = new N5Factory();
+		final N5Factory factory = newN5Factory();
 		final ArrayList<N5Writer> writers = new ArrayList<>();
 		File tmp = null;
 		try {
@@ -413,130 +415,6 @@ public class N5FactoryTests {
 	}
 
 	@Test
-	public void testCachedFactoryKeys() throws IOException {
-
-		final N5FactoryWithCache cachedFactory = new N5FactoryWithCache();
-
-		File tmp = null;
-		try {
-			tmp = Files.createTempDirectory("n5-cachedFactory-test-").toFile();
-			final String tmpPath = tmp.getAbsolutePath();
-
-			/* Writers */
-			final N5Writer writer1 = cachedFactory.openWriter(tmpPath); // a ZarrKeyValueWriter
-			final N5Writer writer2 = cachedFactory.openWriter(tmpPath);
-			assertSame(writer2, writer1);
-
-			final N5Writer writerFromStoragePrefix = cachedFactory.openWriter("zarr3:" + tmpPath);
-			assertSame(writerFromStoragePrefix, writer1);
-
-			final N5Writer writerFromStoragePrefix2 = cachedFactory.openWriter("zarr3://" + tmpPath);
-			assertSame(writerFromStoragePrefix2, writer1);
-
-			final N5Writer writerDifferentStorageFormat = cachedFactory.openWriter(StorageFormat.N5, tmpPath);
-			assertNotSame(writerDifferentStorageFormat, writer1);
-
-			final N5Writer writerFromStorageType = cachedFactory.openWriter(StorageFormat.ZARR3, tmpPath);
-			assertNotSame(writerFromStorageType, writerDifferentStorageFormat);
-			assertNotSame(writerFromStorageType, writer1);
-
-
-			/* Readers */
-			final N5Reader reader1 = cachedFactory.openReader(tmpPath);
-			assertNotSame(reader1, writer1);
-
-			final N5Reader reader2 = cachedFactory.openReader(tmpPath);
-			assertSame(reader2, reader1);
-
-			final N5Reader readerFromStoragePrefix = cachedFactory.openReader("zarr3:" + tmpPath);
-			assertSame(readerFromStoragePrefix, reader1);
-
-			final N5Reader readerFromStoragePrefix2 = cachedFactory.openReader("zarr3://" + tmpPath);
-			assertSame(readerFromStoragePrefix2, reader1);
-
-			final N5Reader readerDifferentStorageFormat = cachedFactory.openReader(StorageFormat.N5, tmpPath);
-			assertNotSame(readerDifferentStorageFormat, reader1);
-
-			final N5Reader readerFromStorageType = cachedFactory.openReader(StorageFormat.ZARR3, tmpPath);
-			assertNotSame(readerFromStorageType, readerDifferentStorageFormat);
-			assertNotSame(readerFromStorageType, reader1);
-
-
-			/* path normalization */
-			N5Reader expected = readerFromStorageType;
-
-			final N5Reader readerFromUri = cachedFactory.openReader(tmp.toURI().toString());
-			assertSame(readerFromUri, expected);
-
-			final N5Reader readerSlash = cachedFactory.openReader(tmpPath + "/");
-			assertSame(readerSlash, expected);
-
-			final N5Reader readerNotNormal = cachedFactory.openReader(tmpPath + "/foo/..");
-			assertSame(readerNotNormal, expected);
-
-			/* different methods of URI creation */
-			final N5Reader readerFromFileUri = cachedFactory.openReader(tmp.toURI().toString());
-			assertSame(readerFromFileUri, expected);
-
-			final N5Reader readerFromPathUri = cachedFactory.openReader(tmp.toPath().toUri().toString());
-			assertSame(readerFromPathUri, expected);
-
-
-			/* relative paths */
-			final String rootName = "monkeySee.n5";
-			final String absPath = Paths.get(rootName).toFile().getAbsolutePath();
-
-			final N5Writer writerAbs = cachedFactory.openWriter(absPath);
-			final N5Writer writerRel = cachedFactory.openWriter("./" + rootName);
-			assertSame(String.format("writers not same instance: %s \n%s\n", writerRel.getURI(), writerAbs.getURI()),
-					writerRel, writerAbs);
-
-			final N5Writer writerRel2 = cachedFactory.openWriter(rootName);
-			assertSame(String.format("writers not same instance: %s \n%s\n", writerRel2.getURI(), writerAbs.getURI()),
-					writerRel2, writerAbs);
-
-			final N5Writer writerRel3 = cachedFactory.openWriter(rootName + "/foo/..");
-			assertSame(String.format("writers not same instance: %s \n%s\n", writerRel3.getURI(), writerAbs.getURI()),
-					writerRel3, writerAbs);
-
-			/*Clean up*/
-			writerAbs.remove();
-
-
-			/* clear and remove */
-			cachedFactory.clear();
-
-			final N5Reader readerAfterClear = cachedFactory.openReader(tmpPath);
-			assertNotSame(readerAfterClear, expected);
-			expected = readerAfterClear;
-
-			final N5Writer writerAfterClear = cachedFactory.openWriter(tmpPath);
-			assertNotSame(writerAfterClear, expected);
-
-			// remove
-			cachedFactory.remove(tmpPath);
-			final N5Reader readerAfterRemove = cachedFactory.openReader(tmpPath);
-			assertNotSame(readerAfterRemove, expected);
-			expected = readerAfterRemove;
-
-			final N5Writer writerAfterRemove = cachedFactory.openWriter(tmpPath);
-			assertNotSame(writerAfterRemove, writerAfterClear);
-
-			// remove normalization
-			cachedFactory.remove("zarr:" + tmpPath);
-			final N5Reader readerAfterRemovePrefix = cachedFactory.openReader(tmpPath);
-			assertNotSame(readerAfterRemovePrefix, expected);
-
-			final N5Writer writerAfterRemovePrefix = cachedFactory.openWriter(tmpPath);
-			assertNotSame(writerAfterRemovePrefix, writerAfterRemove);
-
-
-		} finally {
-			FileUtils.deleteDirectory(tmp);
-		}
-	}
-
-	@Test
 	public void testZarr2VsZarr3Disambiguation() throws URISyntaxException {
 
 		final URI uri = new URI("src/test/resources/metadata.zarr");
@@ -572,4 +450,28 @@ public class N5FactoryTests {
 			assertEquals(expected.getName() + messageSuffix, expected, n5.getClass());
 		}
 	}
+
+	@Test
+	public void testOpenExistingWriterDoesNotCreate() throws IOException {
+
+		final N5Factory factory = newN5Factory();
+		final File tmp = Files.createTempDirectory( "factory-existing-writer-" ).toFile();
+		try {
+			final File container = new File( tmp, "container.n5" );
+			final String uri = "n5:" + container.getAbsolutePath();
+
+			/* no container yet: it must throw and must not create anything */
+			assertThrows( N5Exception.class, () -> factory.openExistingWriter( uri ) );
+			assertFalse( "openExistingWriter must not create a container", container.exists() );
+
+			/* once the container exists, it opens as a writer */
+			factory.openWriter( uri ).createGroup( "foo" );
+			final N5Writer existing = factory.openExistingWriter( uri );
+			assertNotNull( existing );
+			assertTrue( existing.exists( "foo" ) );
+		} finally {
+			FileUtils.deleteDirectory( tmp );
+		}
+	}
+
 }
