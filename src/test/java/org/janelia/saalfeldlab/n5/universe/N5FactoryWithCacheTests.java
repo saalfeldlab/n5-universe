@@ -82,13 +82,23 @@ public class N5FactoryWithCacheTests extends N5FactoryTests {
 		assertEquals(ZarrKeyValueWriter.class, factory.openWriter(StorageFormat.ZARR, bothZarrs).getClass());
 
 		N5Writer bothZarr3 = factory.openWriter(StorageFormat.ZARR3, bothZarrs);
+
 		/* the base factory re-resolves and returns zarr3 here; the cache instead returns the zarr2 reader cached
 		 * above, since it is still format-compatible with the ambiguous ZARR request */
-		assertEquals(ZarrKeyValueReader.class, factory.openReader(StorageFormat.ZARR, bothZarrs).getClass());
+		N5Reader cachedZarr2Reader = factory.openReader(StorageFormat.ZARR, bothZarrs);
+		assertEquals(ZarrKeyValueReader.class, cachedZarr2Reader.getClass());
+
 		/* the writer cache, on the other hand, was replaced by the zarr3 writer just opened, so ambiguous returns it */
 		assertEquals(ZarrV3KeyValueWriter.class, factory.openWriter(StorageFormat.ZARR, bothZarrs).getClass());
 
-		assertEquals(ZarrKeyValueReader.class, factory.openReader(StorageFormat.ZARR2, bothZarrs).getClass());
+		/* explicitly open a zarr3 reader, which should replace the reader cache entry */
+		assertEquals(ZarrV3KeyValueReader.class, factory.openReader(StorageFormat.ZARR3, bothZarrs).getClass());
+
+		N5Reader newZarr2Reader = factory.openReader(StorageFormat.ZARR2, bothZarrs);
+		assertEquals(ZarrKeyValueReader.class, newZarr2Reader.getClass());
+
+		assertNotSame("returned zarr2 reader should be a new one, since the cache was updated by the previous explicit zarr3 open reader", cachedZarr2Reader, newZarr2Reader);
+		assertSame("returned zarr2 reader should NOW be the same", newZarr2Reader, factory.openReader(StorageFormat.ZARR2, bothZarrs));
 		assertEquals(ZarrKeyValueWriter.class, factory.openWriter(StorageFormat.ZARR2, bothZarrs).getClass());
 	}
 
