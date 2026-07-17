@@ -701,8 +701,10 @@ public class N5Factory implements Serializable {
 	 * @param access to the key-value backend
 	 * @param location root URI of the container
 	 * @return a writer for the existing container
+	 *
+	 * @throws N5IOException if the container does not exist, no attempt will be made to create it
 	 */
-	public N5Writer openExistingWriter(@Nullable final StorageFormat storage, final KeyValueAccess access, final URI location) {
+	public N5Writer openExistingWriter(@Nullable final StorageFormat storage, final KeyValueAccess access, final URI location) throws N5IOException {
 
 		requireContainerExists(() -> openReader(storage, access, location));
 		return openWriter(storage, access, location);
@@ -716,8 +718,10 @@ public class N5Factory implements Serializable {
 	 *
 	 * @param uri the container location, optionally prefixed with a storage format
 	 * @return a writer for the existing container
+	 *
+	 * @throws N5IOException if the container does not exist, no attempt will be made to create it
 	 */
-	public N5Writer openExistingWriter(final String uri) {
+	public N5Writer openExistingWriter(final String uri) throws N5IOException {
 
 		requireContainerExists(() -> openReader(uri));
 		return openWriter(uri);
