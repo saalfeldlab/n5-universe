@@ -20,6 +20,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMe
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.AxisAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformationAdapter;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.omero.OmeroMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v03.OmeNgffV03MetadataProcessor;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
@@ -36,6 +37,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 	private final static String OME = "ome";
 	private final static String MS = "multiscales";
 	private final static String OMEMS = "ome/multiscales";
+	private final static String OMEOMERO = OME + "/" + OmeroMetadata.KEY;
 
 	private final Gson gson;
 
@@ -76,19 +78,36 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			return null;
 	}
 
+	/**
+	 * @param obj the parent of the "omero" attribute
+	 * @return the omero metadata, or null if absent or unparseable
+	 */
+	private OmeroMetadata getOmero(JsonObject obj) {
+
+		if (!obj.has(OmeroMetadata.KEY))
+			return null;
+
+		try {
+			return gson.fromJson(obj.get(OmeroMetadata.KEY), OmeroMetadata.class);
+		} catch (final Exception e) {
+			// omero is optional, so don't fail the whole parse
+			return null;
+		}
+	}
+
 	@Override
 	public Optional<OmeNgffMetadata> parseMetadata(final N5Reader n5, final N5TreeNode node) {
 
 		final JsonObject base = n5.getAttribute(node.getPath(), "", JsonElement.class).getAsJsonObject();
 
-		final JsonElement msBase;
-		if (base.has(OME)) // check v0.5
-			msBase = getMultiscales(base.get(OME).getAsJsonObject());
-		else
-			msBase = getMultiscales(base);
+		// omero is a sibling of multiscales, so lives under "ome" for v0.5
+		final JsonObject msParent = base.has(OME) ? base.get(OME).getAsJsonObject() : base;
 
+		final JsonElement msBase = getMultiscales(msParent);
 		if (msBase == null)
 			return Optional.empty();
+
+		final OmeroMetadata omero = getOmero(msParent);
 
 		OmeNgffMultiScaleMetadata[] multiscales;
 		try {
@@ -153,7 +172,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			multiscales[j] = new OmeNgffMultiScaleMetadata(ms, msChildrenMeta);
 		}
 
-		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales));
+		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales, omero));
 	}
 
 	@Override
@@ -162,13 +181,17 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		final OmeNgffMultiScaleMetadata[] ms = t.multiscales;
 		final JsonElement jsonElem = gson.toJsonTree(ms);
 
-		if( t.multiscales[0].version.equals("0.5")) {
+		final boolean v05 = t.multiscales[0].version.equals("0.5");
+		if (v05) {
 			n5.setAttribute(groupPath, OME + "/version", "0.5");
 			n5.setAttribute(groupPath, OMEMS, jsonElem);
 			writeZarr3DimensionNames(n5, groupPath, ms);
 		}
 		else
 			n5.setAttribute(groupPath, MS, jsonElem);
+
+		if (t.omero != null)
+			n5.setAttribute(groupPath, v05 ? OMEOMERO : OmeroMetadata.KEY, gson.toJsonTree(t.omero));
 	}
 
 	private void writeZarr3DimensionNames(N5Writer n5, final String groupPath, OmeNgffMultiScaleMetadata[] ms) {

@@ -9,6 +9,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransform
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.omero.OmeroMetadata;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.view.Views;
@@ -17,13 +18,23 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 {
 	public final OmeNgffMultiScaleMetadata[] multiscales;
 
+	/** rendering settings; may be null */
+	public final OmeroMetadata omero;
+
 	public final transient String version;
 
 	public OmeNgffMetadata( final String path, final OmeNgffMultiScaleMetadata[] multiscales)
 	{
+		this(path, multiscales, null);
+	}
+
+	public OmeNgffMetadata( final String path, final OmeNgffMultiScaleMetadata[] multiscales,
+			final OmeroMetadata omero)
+	{
 		// assumes children metadata are the same for all multiscales, which should be true
 		super(path, multiscales[0].getChildrenMetadata());
 		this.multiscales = multiscales;
+		this.omero = omero;
 		this.version = multiscales[0].version;
 	}
 
@@ -47,6 +58,32 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 			final String[] scalePaths,
 			final double[][] scales,
 			final double[][] translations) {
+
+		return buildForWriting(numDimensions, name, version, axes, scalePaths, scales, translations, null);
+	}
+
+	/**
+	 * Creates an OmeNgffMetadata object for writing, with rendering settings.
+	 * See {@link AxisUtils#defaultAxes(String...)} for convenient creation of axes.
+	 *
+	 * @param numDimensions number of dimensions
+	 * @param name a name for this dataset
+	 * @param version the OME-Zarr version
+	 * @param axes an array of axes (length numDimensions)
+	 * @param scalePaths relative paths to children containing scale level arrays
+	 * @param scales array of absolute resolutions. size: [numScales][numDimensions]
+	 * @param translations array of translations. size: [numScales][numDimensions]. May be null.
+	 * @param omero rendering settings. May be null.
+	 * @return OmeNgffMetadata
+	 */
+	public static OmeNgffMetadata buildForWriting( final int numDimensions,
+			final String name,
+			final String version,
+			final Axis[] axes,
+			final String[] scalePaths,
+			final double[][] scales,
+			final double[][] translations,
+			final OmeroMetadata omero) {
 
 		// TODO make this a constructor? (yes, says Caleb, and John)
 
@@ -77,7 +114,7 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 				"", name, type, version,
 				axes, datasets, cts, null, null);
 
-		return new OmeNgffMetadata("", new OmeNgffMultiScaleMetadata[]{ ms });
+		return new OmeNgffMetadata("", new OmeNgffMultiScaleMetadata[]{ ms }, omero);
 	}
 
 	public static <T, M extends AxisMetadata & N5Metadata> RandomAccessibleInterval<T> permuteForNgff(
