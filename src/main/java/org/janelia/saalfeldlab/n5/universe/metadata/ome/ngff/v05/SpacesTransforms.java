@@ -159,7 +159,7 @@ public class SpacesTransforms {
 	public static SpacesTransforms deserializeSingle(N5Reader n5, final String dataset, final String attributePrefix, final String fullTransformPath ) {
 
 		final CoordinateSystem[] reversedCss = n5.getAttribute( dataset, attributePrefix+"/"+"coordinateSystems", CoordinateSystem[].class);
-		final CoordinateSystem[] css = Arrays.stream(reversedCss).map(x -> {
+		final CoordinateSystem[] css = reversedCss == null ? new CoordinateSystem[0] : Arrays.stream(reversedCss).map(x -> {
 			return x.reverseAxes();
 		}).toArray(N -> new CoordinateSystem[N]);
 
