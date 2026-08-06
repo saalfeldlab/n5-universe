@@ -158,12 +158,22 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 		if (src.version.equals("0.4"))
 			obj.addProperty("version", src.version);
 
-		JsonElement serializedAxes = context.serialize(src.axes);
-		if (reverse) {
-			serializedAxes = MetadataUtils.reversedCopy(serializedAxes.getAsJsonArray());
+		// v0.5+ (RFC-5) stores axes inside named coordinateSystems; older layouts
+		// store a top-level "axes" array. Mirror deserializeCoordinateSystems:
+		// reverse each coordinate system's axes for zarr.
+		final CoordinateSystem[] css = src.coordinateSystems;
+		if (css != null && css.length > 0) {
+			final CoordinateSystem[] csOut = reverse
+					? Arrays.stream(css).map(CoordinateSystem::reverseAxes).toArray(CoordinateSystem[]::new)
+					: css;
+			obj.add("coordinateSystems", context.serialize(csOut));
+		} else {
+			JsonElement serializedAxes = context.serialize(src.axes);
+			if (reverse) {
+				serializedAxes = MetadataUtils.reversedCopy(serializedAxes.getAsJsonArray());
+			}
+			obj.add("axes", serializedAxes);
 		}
-
-		obj.add("axes", serializedAxes);
 		obj.add("datasets", context.serialize(src.getDatasets()));
 
 		CoordinateTransform<?>[] cts = src.getCoordinateTransformations();
