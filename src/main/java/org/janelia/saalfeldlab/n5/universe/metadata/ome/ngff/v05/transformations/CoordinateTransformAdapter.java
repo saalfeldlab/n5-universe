@@ -26,7 +26,7 @@ public class CoordinateTransformAdapter
 	private boolean reverse;
 
 	public static final String[] FIELD_TO_NULL_CHECK = new String[]{
-		"path", "name", "input", "output" 
+		"path", "name", "input", "output", "inputAxes", "outputAxes"
 	};
 
 	public CoordinateTransformAdapter() {
@@ -85,7 +85,7 @@ public class CoordinateTransformAdapter
 			out = bd;
 			break;
 		case("affine"):
-			out = new AffineCoordinateTransformAdapter().deserialize(json, typeOfT, context);
+			out = new AffineCoordinateTransformAdapter(reverse).deserialize(json, typeOfT, context);
 			break;
 		case("rotation"):
 			out = new RotationCoordinateTransformAdapter().deserialize(json, typeOfT, context);
@@ -205,6 +205,12 @@ public class CoordinateTransformAdapter
 			obj.add("inverse", serialize( inv, itype, context ));
 
 			elem = obj;
+		}
+		else if( src instanceof AbstractAffineCoordinateTransform )
+		{
+			// handle the affine matrix explicitly so the reverse flag can be passed
+			// this is called for both standalone affines and affines nested in a sequence.
+			elem = new AffineCoordinateTransformAdapter(reverse).serialize((AbstractAffineCoordinateTransform)src, typeOfSrc, context);
 		}
 		else
 		{
