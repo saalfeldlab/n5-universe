@@ -1,11 +1,14 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.janelia.saalfeldlab.n5.GzipCompression;
@@ -17,6 +20,11 @@ import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalSpatialDatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.SpatialMetadataCanonical;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.Common;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.RotationCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.SequenceCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.transforms.AffineSpatialTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.transforms.ScaleOffsetSpatialTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.transforms.ScaleSpatialTransform;
@@ -37,8 +45,8 @@ import net.imglib2.img.basictypeaccess.array.DoubleArray;
 import net.imglib2.realtransform.AbstractScale;
 import net.imglib2.realtransform.AbstractTranslation;
 import net.imglib2.realtransform.AffineGet;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.ScaleAndTranslation;
-import net.imglib2.realtransform.ScaleGet;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.DoubleType;
 
@@ -91,6 +99,92 @@ public class TransformTests {
 		try {
 			n5.remove();
 		} catch (final N5Exception e) { }
+	}
+
+	@Test
+	public void testAxisSelectionInAffineComposition() {
+
+		final double theta = Math.PI / 2; // 90 degrees; chosen so a wrong axis
+										   // selection would yield a determinant
+										   // of exactly zero (deterministic failure)
+		final double cos = Math.cos(theta);
+		final double sin = Math.sin(theta);
+
+		// 4x5 flat (row-major) matrix over axes [nonSpatial, z, y, x]:
+		// axis 0 (nonSpatial) and axis 1 (z) are identity; the rotation is
+		// confined to axes 2,3 (y,x).
+		final double[] flat4x5 = new double[] {
+				1, 0, 0,    0,   0,
+				0, 1, 0,    0,   0,
+				0, 0, cos, -sin, 0,
+				0, 0, sin,  cos, 0
+		};
+		final RotationCoordinateTransform rotation = new RotationCoordinateTransform(flat4x5);
+
+		final Axis[] axes = new Axis[] {
+				new Axis(Axis.CHANNEL, "nonSpatial"),
+				new Axis(Axis.SPACE, "z"),
+				new Axis(Axis.SPACE, "y"),
+				new Axis(Axis.SPACE, "x"),
+		};
+
+		// the correct 3D reduction: drop axis 0 (nonSpatial), keep axes 1,2,3 (z,y,x) in order
+		final AffineTransform3D expected = new AffineTransform3D();
+		expected.set(
+				1, 0,   0,   0,
+				0, cos, -sin, 0,
+				0, sin,  cos, 0);
+
+		final List<CoordinateTransform<?>> transforms = new ArrayList<>();
+		transforms.add(rotation);
+		final AffineTransform3D actual = Common.toAffine3D(null, transforms, axes);
+
+		assertArrayEquals(
+				"Common.toAffine3D should select the true spatial axes (1,2,3), not naively take the first 3 (0,1,2)",
+				expected.getRowPackedCopy(), actual.getRowPackedCopy(), 1e-9);
+	}
+
+	@Test
+	public void testSequenceReductionWithFewerThan3Axes() {
+
+		// A 2D dataset (axes [y, x], length 2) whose transform is a rotation
+		// wrapped in a sequence -- e.g. a "rotation around center". Composing
+		// this via the axis-aware Common.toAffine3D used to throw
+		// ArrayIndexOutOfBoundsException: the sequence branch re-projected its
+		// already-reduced 3D result through spatialTransform3D(.., axes),
+		// indexing axes[2] on the 3D result even though axes has only 2 entries.
+		final double theta = Math.PI / 2; // 90 degrees
+		final double cos = Math.cos(theta);
+		final double sin = Math.sin(theta);
+
+		// 2x3 flat (row-major) 2D rotation over axes [y, x]
+		final double[] flat2x3 = new double[] {
+				cos, -sin, 0,
+				sin,  cos, 0
+		};
+		final RotationCoordinateTransform rotation = new RotationCoordinateTransform(flat2x3);
+		final SequenceCoordinateTransform sequence = new SequenceCoordinateTransform(
+				new CoordinateTransform<?>[] { rotation });
+
+		final Axis[] axes = new Axis[] {
+				new Axis(Axis.SPACE, "y"),
+				new Axis(Axis.SPACE, "x"),
+		};
+
+		// the 2D rotation embedded in 3D: the y,x block, third dimension identity
+		final AffineTransform3D expected = new AffineTransform3D();
+		expected.set(
+				cos, -sin, 0, 0,
+				sin,  cos, 0, 0,
+				0,    0,   1, 0);
+
+		final List<CoordinateTransform<?>> transforms = new ArrayList<>();
+		transforms.add(sequence);
+		final AffineTransform3D actual = Common.toAffine3D(null, transforms, axes);
+
+		assertArrayEquals(
+				"Common.toAffine3D should compose a sequence over fewer than 3 axes without re-projecting its 3D result",
+				expected.getRowPackedCopy(), actual.getRowPackedCopy(), 1e-9);
 	}
 
 	@Test
