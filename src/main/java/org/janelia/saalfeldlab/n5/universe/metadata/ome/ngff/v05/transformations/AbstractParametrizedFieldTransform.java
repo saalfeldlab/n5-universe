@@ -6,10 +6,20 @@ import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.MultiscalesAdapter;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.AxisAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.Common;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
@@ -81,20 +91,25 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 
 	public int parseVectorAxisIndex( N5Reader n5 ) {
 
-		CoordinateSystem[] spaces;
 		try {
 
-			CoordinateSystem[] tmpSpaces = n5.getAttribute(getParameterPath(), "ome/" + CoordinateSystem.KEY, CoordinateSystem[].class);
+			// Prefer NGFF multiscales metadata (ome/multiscales); its coordinate
+			// systems are already un-reversed (imglib2 order) by MultiscalesAdapter.
+			CoordinateSystem[] spaces = readMultiscalesCoordinateSystems(n5, getParameterPath());
 
-			if( tmpSpaces == null || tmpSpaces.length == 0)
-				throw new N5Exception("No coordinate systems found at: " + getParameterPath());	
-
-			spaces = new CoordinateSystem[tmpSpaces.length];
-			for (int i = 0; i < tmpSpaces.length; i++) {
-				// TODO eventually may not always want to reverse :-/
-				// see MultiscalesAdapter
-				spaces[i] = tmpSpaces[i].reverseAxes();
+			if( spaces == null ) {
+				// for backward compatibility check whether the coordinate sytems exist at  "ome/coordinateSystems" 
+				// These were always stored reversed, so reverse each back to imglib2 order.
+				final CoordinateSystem[] tmpSpaces = n5.getAttribute(getParameterPath(), "ome/" + CoordinateSystem.KEY, CoordinateSystem[].class);
+				if( tmpSpaces != null && tmpSpaces.length > 0 ) {
+					spaces = new CoordinateSystem[tmpSpaces.length];
+					for (int i = 0; i < tmpSpaces.length; i++)
+						spaces[i] = tmpSpaces[i].reverseAxes();
+				}
 			}
+
+			if( spaces == null || spaces.length == 0)
+				throw new N5Exception("No coordinate systems found at: " + getParameterPath());
 
 			final String vectorAxisType = getVectorAxisType();
 			final CoordinateSystem space = spaces[0];
@@ -104,7 +119,7 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 
 		} catch (final N5Exception e) { }
 
-		throw new N5Exception("No displacement axis found at: " + getParameterPath());	
+		throw new N5Exception("No displacement axis found at: " + getParameterPath());
 	}
 
 	public RealRandomAccessible<RealComposite<S>> getField() {
@@ -152,7 +167,12 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		final RealRandomAccessible<RealComposite<S>> fieldInterp = Views.interpolate(
 				Views.extendBorder(collapsedFirst), getInterpolator());
 
-		CoordinateTransform<?> pixelToPhysicalCt = findPixelToPhysicalTransformStrict( n5, path, getInput().getName());
+		// Prefer the pixel->physical transform stored in NGFF multiscales metadata
+		// (on the self-referencing dataset), then fall back to the flat attributes.
+		CoordinateTransform<?> pixelToPhysicalCt = findPixelToPhysicalFromMultiscales( n5, path, getInput().getName());
+		if( pixelToPhysicalCt == null ) {
+			pixelToPhysicalCt = findPixelToPhysicalTransformStrict( n5, path, getInput().getName());
+		}
 		if( pixelToPhysicalCt == null ) {
 			pixelToPhysicalCt = findPixelToPhysicalTransformCheckSelfRef( n5, path, getInput().getName());
 		}
@@ -231,6 +251,104 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 			}
 		}
 		return null;
+	}
+
+	private static Gson multiscalesGson(final N5Reader n5) {
+
+		final boolean reverse = OmeNgffMetadataParser.reverse(n5);
+		return new GsonBuilder()
+				.registerTypeAdapter(CoordinateTransform.class, new CoordinateTransformAdapter(reverse))
+				.registerTypeAdapter(Axis.class, new AxisAdapter())
+				.registerTypeAdapter(OmeNgffMultiScaleMetadata.class, new MultiscalesAdapter(reverse))
+				.create();
+	}
+
+	/**
+	 * Reads the {@code ome/multiscales} metadata at a group, if present. The
+	 * reverse-aware gson un-reverses coordinate-system axes and transform
+	 * parameters for zarr.
+	 *
+	 * @param n5 the reader
+	 * @param group the group
+	 * @return the multiscales metadata, or {@code null} if none is present
+	 */
+	private static OmeNgffMultiScaleMetadata[] readMultiscales(final N5Reader n5, final String group) {
+
+		final JsonElement el;
+		try {
+			el = n5.getAttribute(group, "ome/multiscales", JsonElement.class);
+		} catch (final N5Exception e) {
+			return null;
+		}
+		if (el == null || !el.isJsonArray())
+			return null;
+
+		return multiscalesGson(n5).fromJson(el, OmeNgffMultiScaleMetadata[].class);
+	}
+
+	/**
+	 * Returns the coordinate systems declared in the group's {@code ome/multiscales}
+	 * metadata (imglib2 order), or {@code null} if there are none.
+	 */
+	private static CoordinateSystem[] readMultiscalesCoordinateSystems(final N5Reader n5, final String group) {
+
+		final OmeNgffMultiScaleMetadata[] ms = readMultiscales(n5, group);
+		if (ms == null)
+			return null;
+
+		for (final OmeNgffMultiScaleMetadata m : ms)
+			if (m.coordinateSystems != null && m.coordinateSystems.length > 0)
+				return m.coordinateSystems;
+
+		return null;
+	}
+
+	/**
+	 * Finds the pixel to physical transform for the field array in the group's
+	 * {@code ome/multiscales} metadata: the transform (on the self-referencing
+	 * dataset) whose output coordinate system matches {@code output}.
+	 *
+	 * @param n5 the reader
+	 * @param group the field array group (also the multiscales group)
+	 * @param output the name of the output (field) coordinate system
+	 * @return the transform, or {@code null} if not found
+	 */
+	public static CoordinateTransform<?> findPixelToPhysicalFromMultiscales(final N5Reader n5, final String group, final String output ) {
+
+		final OmeNgffMultiScaleMetadata[] ms = readMultiscales(n5, group);
+		if (ms == null)
+			return null;
+
+		for (final OmeNgffMultiScaleMetadata m : ms) {
+			final OmeNgffDataset[] datasets = m.getDatasets();
+			if (datasets == null)
+				continue;
+
+			for (final OmeNgffDataset d : datasets) {
+				if (!datasetIsSelf(group, d.path))
+					continue;
+				if (d.coordinateTransformations == null)
+					continue;
+
+				for (final CoordinateTransform<?> ct : d.coordinateTransformations)
+					if (ct.getOutput() != null && output.equals(ct.getOutput().getName()))
+						return ct;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Whether a multiscales dataset path refers to its own group. The field
+	 * exporter writes a single self-referencing dataset (path {@code "."}); on
+	 * read the constructor's relativization collapses it to the empty string.
+	 */
+	private static boolean datasetIsSelf(final String group, final String path) {
+
+		if (path == null || path.isEmpty() || path.equals("."))
+			return true;
+
+		return N5URI.normalizeGroupPath(group).equals(N5URI.normalizeGroupPath(path));
 	}
 
 	/*
