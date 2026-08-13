@@ -189,7 +189,7 @@ public class MetadataUtils {
 	public static void updateChildrenMetadata(final N5TreeNode parent, final N5Metadata[] childrenMetadata,
 			final boolean relative) {
 
-		final HashMap<String, N5Metadata> children = new HashMap<>();
+		final HashMap<String, N5Metadata> referenced = new HashMap<>();
 		Arrays.stream(childrenMetadata).forEach(x -> {
 			final String absolutePath;
 			if (relative) {
@@ -197,13 +197,23 @@ public class MetadataUtils {
 			} else {
 				absolutePath = x.getPath();
 			}
-			children.put(absolutePath, x);
+			referenced.put(absolutePath, x);
 		});
+
+		// update children
 		parent.childrenList().forEach(c -> {
-			final N5Metadata m = children.get(MetadataUtils.normalizeGroupPath(c.getPath()));
-			if (m != null)
-				c.setMetadata(m);
+			updateNodeMetadata(c, referenced);
 		});
+
+		// update parent itself
+		updateNodeMetadata(parent, referenced);
+	}
+
+	private static void updateNodeMetadata(final N5TreeNode node, final HashMap<String, N5Metadata> newMetadata) {
+
+		final N5Metadata m = newMetadata.get(MetadataUtils.normalizeGroupPath(node.getPath()));
+		if (m != null)
+			node.setMetadata(m);
 	}
 
 	public static String canonicalPath(final N5TreeNode parent, final String child) {

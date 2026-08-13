@@ -137,8 +137,8 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 				scaleLevelNodes.put(n.getPath(), n);
 			});
 		}
+		
 
-	
 		/*
 		 * Need to replace all children with new children with the metadata from
 		 * this object
@@ -149,13 +149,14 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffMultiScaleMetadata.buildMetadata(
 					nd, node.getPath(), ms.getDatasets(), attrs, ms.getCoordinateTransformations(), ms.metadata, ms.axes, false);
 
+			// updates both children of node, and node itself
 			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta, false);
 			multiscales[j] = new OmeNgffMultiScaleMetadata(ms, msChildrenMeta);
 		}
 
 		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales));
 	}
-
+	
 	@Override
 	public void writeMetadata(final OmeNgffMetadata t, final N5Writer n5, final String groupPath) throws Exception {
 
