@@ -2,6 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.options;
 
 import com.google.gson.GsonBuilder;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
+import org.janelia.saalfeldlab.n5.KeyValueRoot;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 
@@ -32,14 +33,14 @@ public class Zarr3Builder extends ZarrBuilder {
         return this;
     }
 
-    public ZarrV3KeyValueWriter buildWriter(KeyValueAccess access, String containerLocation) {
-        ZarrV3KeyValueWriter writer = new ZarrV3KeyValueWriter(access, containerLocation, getGsonBuilder(), getCacheAttributes());
+    public ZarrV3KeyValueWriter buildWriter(KeyValueRoot keyValueRoot) {
+        ZarrV3KeyValueWriter writer = new ZarrV3KeyValueWriter(keyValueRoot, getGsonBuilder(), getCacheAttributes());
         writer.setDimensionSeparator(getDimensionSeparator());
         return writer;
     }
 
-    public ZarrV3KeyValueReader buildReader(KeyValueAccess access, String containerLocation) {
-        ZarrV3KeyValueReader reader = new ZarrV3KeyValueReader(access, containerLocation, getGsonBuilder(), getCacheAttributes());
+    public ZarrV3KeyValueReader buildReader(KeyValueRoot keyValueRoot) {
+        ZarrV3KeyValueReader reader = new ZarrV3KeyValueReader(keyValueRoot, getGsonBuilder(), getCacheAttributes());
         reader.setDimensionSeparator(getDimensionSeparator());
         return reader;
     }

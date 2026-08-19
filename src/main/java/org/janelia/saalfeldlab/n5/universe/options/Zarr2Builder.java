@@ -2,6 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.options;
 
 import com.google.gson.GsonBuilder;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
+import org.janelia.saalfeldlab.n5.KeyValueRoot;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 
@@ -53,12 +54,12 @@ public class Zarr2Builder extends ZarrBuilder {
         return this;
     }
 
-    public ZarrKeyValueWriter buildWriter(KeyValueAccess access, String containerLocation) {
-        return new ZarrKeyValueWriter(access, containerLocation, getGsonBuilder(), getMapN5DatasetAttributes(), getMergeAttributes(), getDimensionSeparator(), getCacheAttributes());
+    public ZarrKeyValueWriter buildWriter(KeyValueRoot keyValueRoot) {
+        return new ZarrKeyValueWriter(keyValueRoot, getGsonBuilder(), getMapN5DatasetAttributes(), getMergeAttributes(), getDimensionSeparator(), getCacheAttributes());
     }
 
-    public ZarrKeyValueReader buildReader(KeyValueAccess access, String containerLocation) {
-        return new ZarrKeyValueReader(access, containerLocation, getGsonBuilder(), getMapN5DatasetAttributes(), getMergeAttributes(), getCacheAttributes());
+    public ZarrKeyValueReader buildReader(KeyValueRoot keyValueRoot) {
+        return new ZarrKeyValueReader(keyValueRoot, getGsonBuilder(), getMapN5DatasetAttributes(), getMergeAttributes(), getCacheAttributes());
     }
 
 
