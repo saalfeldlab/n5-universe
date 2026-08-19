@@ -1,12 +1,15 @@
 package org.janelia.saalfeldlab.n5.universe.translation;
 
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.util.Map;
 
+import org.janelia.saalfeldlab.n5.ContainerDialect;
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GsonN5Reader;
 import org.janelia.saalfeldlab.n5.N5Exception;
+import org.janelia.saalfeldlab.n5.N5Path;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
@@ -41,8 +44,48 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	}
 
 	@Override
+	public ContainerDialect getContainerDialect() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public JsonElement getAttributes(final String pathName) throws N5Exception.N5IOException {
 		return translation.getTranslated().getAttributes(pathName);
+	}
+
+	@Override
+	public <T> T getAttribute(final String pathName, final String key, final Type type) throws N5Exception {
+		return translation.getTranslated().getAttribute(pathName, key, type);
+	}
+
+	@Override
+	public DatasetAttributes getDatasetAttributes(final String pathName) throws N5Exception {
+		return translation.getTranslated().getDatasetAttributes(pathName);
+	}
+
+	@Override
+	public Map<String, Class<?>> listAttributes(String pathName) {
+		return translation.getTranslated().listAttributes(pathName);
+	}
+
+	@Override
+	public boolean groupExists(final String pathName) {
+		return translation.getTranslated().groupExists(pathName);
+	}
+
+	@Override
+	public boolean exists(String pathName) {
+		return translation.getTranslated().exists(pathName);
+	}
+
+	@Override
+	public boolean datasetExists(final String pathName) throws N5Exception {
+		return translation.getTranslated().datasetExists(pathName);
+	}
+
+	@Override
+	public String[] list(String pathName) {
+		return translation.getTranslated().list(pathName);
 	}
 
 	/**
@@ -75,24 +118,9 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	}
 
 	@Override
-	public boolean exists(String pathName) {
-		return translation.getTranslated().exists(pathName);
-	}
-
-	@Override
 	public boolean blockExists(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
 
 		return n5.blockExists( originalPath( pathName ), datasetAttributes, gridPosition);
-	}
-
-	@Override
-	public String[] list(String pathName) {
-		return translation.getTranslated().list(pathName);
-	}
-
-	@Override
-	public Map<String, Class<?>> listAttributes(String pathName) {
-		return translation.getTranslated().listAttributes(pathName);
 	}
 
 	@Override
@@ -114,5 +142,4 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	public String getAttributesKey() {
 		return n5 instanceof GsonN5Reader ? ((GsonN5Reader)n5).getAttributesKey() : "";
 	}
-
 }

@@ -32,7 +32,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>, N5MetadataWriter<OmeNgffMetadata> {
-	
+
 	private final static String OME = "ome";
 	private final static String MS = "multiscales";
 	private final static String OMEMS = "ome/multiscales";
@@ -164,7 +164,6 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			});
 		}
 		
-
 		/*
 		 * Need to replace all children with new children with the metadata from
 		 * this object
@@ -237,7 +236,6 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 			return;
 		}
 
-		final ZarrV3KeyValueWriter zarr3 = (ZarrV3KeyValueWriter)n5;
 		final List<String> axisNames = Stream.of(ms[0].getAxes()).map(Axis::getName)
 				.collect(Collectors.toList());
 
@@ -246,7 +244,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 		for (OmeNgffDataset dataset : ms[0].getDatasets()) {
 			final String path = groupPath + "/" + dataset.path;
-			zarr3.setRawAttribute(path, ZarrV3DatasetAttributes.DIMENSION_NAMES_KEY, axisNames);
+			n5.setAttribute(path, ZarrV3DatasetAttributes.DIMENSION_NAMES_KEY, axisNames);
 		}
 	}
 

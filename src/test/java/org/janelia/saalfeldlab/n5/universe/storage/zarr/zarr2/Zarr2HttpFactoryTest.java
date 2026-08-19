@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr2;
 
 import org.janelia.saalfeldlab.n5.DataType;
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GsonKeyValueN5Reader;
 import org.janelia.saalfeldlab.n5.GsonKeyValueN5Writer;
 import org.janelia.saalfeldlab.n5.HttpKeyValueAccess;
@@ -12,6 +13,7 @@ import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.http.HttpReaderFsWriter;
 import org.janelia.saalfeldlab.n5.http.RunnerWithHttpServer;
 import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
+import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
@@ -145,7 +147,8 @@ public class Zarr2HttpFactoryTest extends ZarrStorageTests.Zarr2FactoryTest {
 		final ZarrHttpReaderFsWriter n5Nested = (ZarrHttpReaderFsWriter) createTempN5Writer(testDirPath, "/");
 
 		n5Nested.createDataset(datasetName, dimensions, blockSize, DataType.UINT64, getCompressions()[0]);
-		assertEquals("/", n5Nested.getReader().getZArrayAttributes(datasetName).getDimensionSeparator());
+		final ZarrDatasetAttributes attributes = (ZarrDatasetAttributes) n5Nested.getDatasetAttributes(datasetName);
+		assertEquals("/", attributes.getDimensionSeparator());
 
 		// TODO test that parents of nested dataset are groups
 	}
