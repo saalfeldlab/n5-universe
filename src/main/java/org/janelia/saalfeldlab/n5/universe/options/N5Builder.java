@@ -2,6 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.options;
 
 import com.google.gson.GsonBuilder;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
+import org.janelia.saalfeldlab.n5.KeyValueRoot;
 import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 
@@ -24,11 +25,11 @@ public class N5Builder extends AbstractN5Builder {
         return this;
     }
 
-    public N5KeyValueWriter buildWriter(KeyValueAccess access, String containerLocation) {
-        return new N5KeyValueWriter(access, containerLocation, getGsonBuilder(), getCacheAttributes());
+    public N5KeyValueWriter buildWriter(KeyValueRoot keyValueRoot) {
+        return new N5KeyValueWriter(keyValueRoot, getGsonBuilder(), getCacheAttributes());
     }
 
-    public N5KeyValueReader buildReader(KeyValueAccess access, String containerLocation) {
-        return new N5KeyValueReader(access, containerLocation, getGsonBuilder(), getCacheAttributes());
+    public N5KeyValueReader buildReader(KeyValueRoot keyValueRoot) {
+        return new N5KeyValueReader(keyValueRoot, getGsonBuilder(), getCacheAttributes());
     }
 }

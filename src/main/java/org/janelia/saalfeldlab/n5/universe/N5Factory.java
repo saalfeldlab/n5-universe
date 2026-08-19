@@ -5,16 +5,25 @@ import com.google.cloud.storage.StorageOptions;
 import com.google.gson.GsonBuilder;
 import net.imglib2.util.Pair;
 import org.apache.commons.lang3.function.TriFunction;
+import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageURI;
 import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
+import org.janelia.saalfeldlab.n5.FileSystemKeyValueRoot;
+import org.janelia.saalfeldlab.n5.HttpKeyValueAccess;
+import org.janelia.saalfeldlab.n5.HttpKeyValueRoot;
 import org.janelia.saalfeldlab.n5.KeyValueAccess;
+import org.janelia.saalfeldlab.n5.KeyValueRoot;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Exception.N5IOException;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
+import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueRoot;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
+import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
+import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueRoot;
 import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
 import org.janelia.saalfeldlab.n5.universe.options.*;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
@@ -37,6 +46,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+import static org.janelia.saalfeldlab.n5.s3.AmazonS3Utils.getS3Bucket;
 import static org.janelia.saalfeldlab.n5.universe.StorageFormat.*;
 
 /**
@@ -450,17 +460,15 @@ public class N5Factory implements Serializable {
 
 		} else {
 
-			final String containerPath = location.toString();
-
 			switch (storage) {
                 case HDF5:
-                    return getOptions().getHdf5Builder().buildReader(containerPath);
+                    return getOptions().getHdf5Builder().buildReader(location.toString());
                 case N5:
-                    return getOptions().getN5Builder().buildReader(access, containerPath);
+                    return getOptions().getN5Builder().buildReader(keyValueRoot(access, location));
                 case ZARR3:
-                    return getOptions().getZarr3Builder().buildReader(access, containerPath);
+                    return getOptions().getZarr3Builder().buildReader(keyValueRoot(access, location));
                 case ZARR2:
-                    return getOptions().getZarr2Builder().buildReader(access, containerPath);
+                    return getOptions().getZarr2Builder().buildReader(keyValueRoot(access, location));
                 case ZARR:
                     return newGenericZarrReader(access, location);
             }
@@ -674,21 +682,42 @@ public class N5Factory implements Serializable {
 
 		} else {
 
-			final String containerLocation = location.toString();
 			switch (storage) {
                 case HDF5:
-                    return options.getHdf5Builder().buildWriter(containerLocation);
+                    return options.getHdf5Builder().buildWriter(location.toString());
                 case N5:
-                    return options.getN5Builder().buildWriter(access, containerLocation);
+                    return options.getN5Builder().buildWriter(keyValueRoot(access, location));
                 case ZARR3:
-                    return options.getZarr3Builder().buildWriter(access, containerLocation);
+                    return options.getZarr3Builder().buildWriter(keyValueRoot(access, location));
                 case ZARR2:
-                    return options.getZarr2Builder().buildWriter(access, containerLocation);
+                    return options.getZarr2Builder().buildWriter(keyValueRoot(access, location));
                 case ZARR:
                     return newGenericZarrWriter(access, location);
             }
 		}
 		return null;
+	}
+
+	// TODO (TP): temporary workaround to fix build
+	static KeyValueRoot keyValueRoot(final KeyValueAccess kva, final URI location) {
+		if (kva instanceof FileSystemKeyValueAccess) {
+			return new FileSystemKeyValueRoot(location.getPath());
+		} else if (kva instanceof AmazonS3KeyValueAccess) {
+			final AmazonS3KeyValueAccess s3kva = (AmazonS3KeyValueAccess) kva;
+			final S3Client s3 = s3kva.DEBUG_s3();
+			final String bucket = getS3Bucket(location);
+			final String root = AmazonS3Utils.getS3Key(location);
+			final boolean createBucket = s3kva.DEBUG_createBucket();
+			return new AmazonS3KeyValueRoot(s3, bucket, root, createBucket);
+		} else if (kva instanceof GoogleCloudStorageKeyValueAccess) {
+			final GoogleCloudStorageKeyValueAccess gckva = (GoogleCloudStorageKeyValueAccess) kva;
+			final Storage storage = gckva.DEBUG_storage();
+			final boolean createBucket = gckva.DEBUG_createBucket();
+			return new GoogleCloudStorageKeyValueRoot(storage, new GoogleCloudStorageURI(location), createBucket);
+		} else if (kva instanceof HttpKeyValueAccess) {
+			return new HttpKeyValueRoot(location);
+		}
+		throw new IllegalArgumentException("Unsupported KeyValueAccess type: " + kva.getClass().getName());
 	}
 
 	/**

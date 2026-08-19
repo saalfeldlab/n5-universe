@@ -155,11 +155,12 @@ public class N5FactoryWithCache extends N5Factory {
 	private boolean canRead(N5Reader reader) {
 
 		try {
-			if (reader instanceof CachedGsonKeyValueN5Reader) {
-				((CachedGsonKeyValueN5Reader)reader).getAttributesFromContainer("/", "/");
-			} else {
+			// TODO (TP): commented to fix build
+//			if (reader instanceof CachedGsonKeyValueN5Reader) {
+//				((CachedGsonKeyValueN5Reader)reader).getAttributesFromContainer("/", "/");
+//			} else {
 				reader.getAttribute("/", "/", JsonElement.class);
-			}
+//			}
 			return true;
 		} catch (Exception e) {
 			return false;
