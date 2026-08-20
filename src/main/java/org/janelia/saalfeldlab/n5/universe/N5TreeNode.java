@@ -198,7 +198,6 @@ public class N5TreeNode {
 		final StringBuffer out = new StringBuffer();
 		out.append(prefix + node.path + "\n");
 		for (final N5TreeNode c : node.childrenList()) {
-			System.out.println(c.path);
 			out.append(printRecursiveHelper(c, prefix + " "));
 		}
 
