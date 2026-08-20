@@ -198,7 +198,6 @@ public class N5TreeNode {
 		final StringBuffer out = new StringBuffer();
 		out.append(prefix + node.path + "\n");
 		for (final N5TreeNode c : node.childrenList()) {
-			System.out.println(c.path);
 			out.append(printRecursiveHelper(c, prefix + " "));
 		}
 
@@ -253,6 +252,7 @@ public class N5TreeNode {
 			if (parent == null) {
 				// possible for the parent to not appear in the list
 				// if deepList is called with a filter
+				// TODO (TP): shouldn't parents be recursively added in this case?
 				parent = new N5TreeNode(parentPath);
 				pathToNode.put(parentPath, parent);
 			}
