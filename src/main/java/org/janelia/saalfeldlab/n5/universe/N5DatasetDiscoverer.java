@@ -42,7 +42,7 @@ import se.sawano.java.text.AlphanumericComparator;
  * after all others are called, and should be used when a parsers result depends
  * on its children.
  * <p>
- * The {@link discoverAndParseRecursive} method returns a {@link N5TreeNode}
+ * The {@link #discoverAndParseRecursive} method returns a {@link N5TreeNode}
  * containing all child nodes, each of which contains parsed metadata. For each
  * group/dataset, the parsers will be called in order, and will return the first
  * non-empty result. As such parsers should be ordered from most- to
@@ -79,7 +79,7 @@ public class N5DatasetDiscoverer {
 
 	private N5Reader n5;
 
-	
+
 	public N5DatasetDiscoverer(final N5Reader n5, final ExecutorService executor) {
 
 		this(n5, executor, Optional.of(new AlphanumericComparator(Collator.getInstance())), null,
@@ -104,7 +104,7 @@ public class N5DatasetDiscoverer {
 	 * @param groupParsers
 	 *            group parsers
 	 */
-	public N5DatasetDiscoverer(final N5Reader n5, 
+	public N5DatasetDiscoverer(final N5Reader n5,
 			final List<N5MetadataParser<?>> metadataParsers,
 			final List<N5MetadataParser<?>> groupParsers) {
 
@@ -154,7 +154,7 @@ public class N5DatasetDiscoverer {
 				metadataParsers, groupParsers,
 				defaultShallowGroupParsers(n5));
 	}
-	
+
 	/**
 	 * Creates an N5 discoverer.
 	 * <p>
@@ -216,26 +216,35 @@ public class N5DatasetDiscoverer {
 			throws IOException {
 
 		// Go through all parsers to populate metadata
-		for (final N5MetadataParser<?> parser : metadataParsers) {
-			try {
-				Optional<? extends N5Metadata> parsedMeta;
-				parsedMeta = parser.apply(n5, node);
-
-				parsedMeta.ifPresent(node::setMetadata);
-				if (parsedMeta.isPresent())
-					break;
-			} catch (final Exception ignored) {}
-		}
+		setMetaDataFromFirstSuccessfulParser(n5, node, metadataParsers);
 
 		// this may be a group (e.g. multiscale pyramid) try to parse groups
 		if ((node.getMetadata() == null) && !node.childrenList().isEmpty() && groupParsers != null) {
-			for (final N5MetadataParser<?> gp : groupParsers) {
-				try {
-					final Optional<? extends N5Metadata> groupMeta = gp.apply(n5, node);
-					groupMeta.ifPresent(node::setMetadata);
-					if (groupMeta.isPresent())
-						break;
-				} catch(Exception ignored ) {}
+			setMetaDataFromFirstSuccessfulParser(n5, node, groupParsers);
+		}
+	}
+
+	/**
+	 * Parses metadata for a node using the given parsers, stopping after the
+	 * first success.
+	 *
+	 * @param n5              the N5Reader
+	 * @param node            the tree node
+	 * @param metadataParsers list of metadata parsers
+	 */
+	private static void setMetaDataFromFirstSuccessfulParser( // TODO rename ...
+			final N5Reader n5,
+			final N5TreeNode node,
+			final List<N5MetadataParser<?>> metadataParsers)
+	{
+		for (final N5MetadataParser<?> parser : metadataParsers) {
+			try {
+				final Optional<? extends N5Metadata> parsedMeta = parser.apply(n5, node);
+				if (parsedMeta.isPresent()) {
+					node.setMetadata(parsedMeta.get());
+					break;
+				}
+			} catch (final Exception ignored) {
 			}
 		}
 	}
@@ -255,27 +264,10 @@ public class N5DatasetDiscoverer {
 			final List<N5MetadataParser<?>> metadataParsers, final List<N5MetadataParser<?>> groupParsers) {
 
 		// Go through all parsers to populate metadata
-		for (final N5MetadataParser<?> parser : metadataParsers) {
-			try {
-				final Optional<? extends N5Metadata> parsedMeta;
-				parsedMeta = parser.apply(n5, node);
-
-				parsedMeta.ifPresent(node::setMetadata);
-				if (parsedMeta.isPresent())
-					break;
-			} catch (final Exception ignored) {
-			}
-		}
+		setMetaDataFromFirstSuccessfulParser(n5, node, metadataParsers);
 
 		// this may be a group (e.g. multiscale pyramid) try to parse groups
-		for (final N5MetadataParser<?> gp : groupParsers) {
-			try {
-				final Optional<? extends N5Metadata> groupMeta = gp.apply(n5, node);
-				groupMeta.ifPresent(node::setMetadata);
-				if (groupMeta.isPresent())
-					break;
-			} catch (Throwable ignore) {}
-		}
+		setMetaDataFromFirstSuccessfulParser(n5, node, groupParsers);
 	}
 
 	public static boolean trim(final N5TreeNode node) {
@@ -446,15 +438,7 @@ public class N5DatasetDiscoverer {
 	public N5TreeNode parse(final N5TreeNode node) {
 
 		// Go through all parsers to populate metadata
-		for (final N5MetadataParser<?> parser : metadataParsers) {
-			try {
-				final Optional<? extends N5Metadata> metadata = parser.apply(n5, node);
-				if (metadata.isPresent()) {
-					node.setMetadata(metadata.get());
-					break;
-				}
-			} catch (final Exception e) {}
-		}
+		setMetaDataFromFirstSuccessfulParser(n5, node, metadataParsers);
 		return node;
 	}
 
@@ -659,17 +643,17 @@ public class N5DatasetDiscoverer {
 
 		return discoverShallow(n5, "/");
 	}
-	
+
 	/**
 	 * Parser configuration depends on the n5 reader. OME-Zarr parsers reverse
 	 * axis parmeters for zarr, but not for n5.
-	 * 
+	 *
 	 * @param n5
 	 *            the n5 reader
 	 * @return the group parsers
 	 */
 	public static List<N5MetadataParser<?>> defaultGroupParsers(N5Reader n5) {
-		
+
 		final ArrayList<N5MetadataParser<?>> out = new ArrayList<>();
 		out.add(new OmeNgffMetadataParser(n5));
 		out.add(new N5CosemMultiScaleMetadata.CosemMultiScaleParser());
@@ -677,11 +661,11 @@ public class N5DatasetDiscoverer {
 		out.add(new CanonicalMetadataParser());
 		return out;
 	}
-	
+
 	/**
 	 * Parser configuration depends on the n5 reader.
 	 * OME-Zarr parsers reverse axis parmeters for zarr, but not for n5.
-	 * 
+	 *
 	 * @param n5
 	 *            the n5 reader
 	 * @return the shallow group parsers
