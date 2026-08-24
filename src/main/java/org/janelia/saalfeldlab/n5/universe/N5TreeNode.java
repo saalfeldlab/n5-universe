@@ -252,6 +252,7 @@ public class N5TreeNode {
 			if (parent == null) {
 				// possible for the parent to not appear in the list
 				// if deepList is called with a filter
+				// TODO (TP): shouldn't parents be recursively added in this case?
 				parent = new N5TreeNode(parentPath);
 				pathToNode.put(parentPath, parent);
 			}
