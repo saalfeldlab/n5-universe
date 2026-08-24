@@ -186,7 +186,7 @@ public class Zarr3HttpFactoryTest extends ZarrStorageTests.Zarr3FactoryTest {
 					getCompressions()[0].getClass(),
 					info.getCompression().getClass());
 
-			final JsonElement elem = n5.getReader().getRawAttribute(datasetName, "/", JsonElement.class);
+			final JsonElement elem = n5.getReader().getAttribute(datasetName, "/", JsonElement.class);
 
 			assertTrue(elem.getAsJsonObject().get("fill_value").getAsJsonPrimitive().isNumber());
 		}

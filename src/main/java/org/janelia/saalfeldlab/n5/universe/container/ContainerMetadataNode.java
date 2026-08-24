@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.janelia.saalfeldlab.n5.ContainerDialect;
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GsonN5Reader;
@@ -562,5 +563,9 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		return "attributes.json";
 	}
 
+	@Override
+	public ContainerDialect getContainerDialect() {
+		throw new UnsupportedOperationException();
+	}
 
 }

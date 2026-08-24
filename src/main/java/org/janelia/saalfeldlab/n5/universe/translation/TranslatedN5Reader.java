@@ -3,6 +3,7 @@ package org.janelia.saalfeldlab.n5.universe.translation;
 import java.net.URI;
 import java.util.Map;
 
+import org.janelia.saalfeldlab.n5.ContainerDialect;
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GsonN5Reader;
@@ -113,6 +114,11 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	@Override
 	public String getAttributesKey() {
 		return n5 instanceof GsonN5Reader ? ((GsonN5Reader)n5).getAttributesKey() : "";
+	}
+
+	@Override
+	public ContainerDialect getContainerDialect() {
+		return ((GsonN5Reader) n5).getContainerDialect();
 	}
 
 }
