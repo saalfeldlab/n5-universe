@@ -200,6 +200,31 @@ public class N5DatasetDiscoverer {
 	 * Parses metadata for a node using the given parsers, stopping after the
 	 * first success.
 	 *
+	 * @param n5              the N5Reader
+	 * @param node            the tree node
+	 * @param metadataParsers list of metadata parsers
+	 */
+	private static void setMetaDataFromFirstSuccessfulParser( // TODO rename ...
+			final N5Reader n5,
+			final N5TreeNode node,
+			final List<N5MetadataParser<?>> metadataParsers)
+	{
+		for (final N5MetadataParser<?> parser : metadataParsers) {
+			try {
+				final Optional<? extends N5Metadata> parsedMeta = parser.apply(n5, node);
+				if (parsedMeta.isPresent()) {
+					node.setMetadata(parsedMeta.get());
+					break;
+				}
+			} catch (final Exception ignored) {
+			}
+		}
+	}
+
+	/**
+	 * Parses metadata for a node using the given parsers, stopping after the
+	 * first success.
+	 *
 	 * @param n5
 	 *            the N5Reader
 	 * @param node
@@ -225,31 +250,6 @@ public class N5DatasetDiscoverer {
 	}
 
 	/**
-	 * Parses metadata for a node using the given parsers, stopping after the
-	 * first success.
-	 *
-	 * @param n5              the N5Reader
-	 * @param node            the tree node
-	 * @param metadataParsers list of metadata parsers
-	 */
-	private static void setMetaDataFromFirstSuccessfulParser( // TODO rename ...
-			final N5Reader n5,
-			final N5TreeNode node,
-			final List<N5MetadataParser<?>> metadataParsers)
-	{
-		for (final N5MetadataParser<?> parser : metadataParsers) {
-			try {
-				final Optional<? extends N5Metadata> parsedMeta = parser.apply(n5, node);
-				if (parsedMeta.isPresent()) {
-					node.setMetadata(parsedMeta.get());
-					break;
-				}
-			} catch (final Exception ignored) {
-			}
-		}
-	}
-
-	/**
 	 * Parses metadata for a node using the given parsers, stopping after the first
 	 * success.
 	 * <p>
@@ -260,6 +260,7 @@ public class N5DatasetDiscoverer {
 	 * @param metadataParsers list of metadata parsers
 	 * @param groupParsers    list of shallow group parsers
 	 */
+	// TODO (TP): This method looks REALLY similar to the above parseMetaData(...) method. Is this really necessary???
 	public static void parseMetadataShallow(final N5Reader n5, final N5TreeNode node,
 			final List<N5MetadataParser<?>> metadataParsers, final List<N5MetadataParser<?>> groupParsers) {
 
@@ -286,6 +287,7 @@ public class N5DatasetDiscoverer {
 	 * @return {@code true} if the branch contains a node that can be opened,
 	 *         {@code false} otherwise
 	 */
+	// NB node itself is not removed
 	public static boolean trim(final N5TreeNode node, final Consumer<N5TreeNode> callback) {
 
 		final List<N5TreeNode> children = node.childrenList();

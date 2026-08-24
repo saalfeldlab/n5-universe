@@ -71,15 +71,14 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		return attributes;
 	}
 
+	// TODO (TP): Verify... uses getNode(). Therefore only called on root node.
 	@Override
 	public JsonElement getAttributes(final String pathName) throws N5Exception.N5IOException {
 
 		final String groupPath = N5URI.normalizeGroupPath(pathName);
 		final Optional<ContainerMetadataNode> nodeOpt = getNode(groupPath);
-		if( nodeOpt.isPresent() )
-		{
-			final ContainerMetadataNode node = nodeOpt.get();
-			return gson.toJsonTree( node.getContainerAttributes() );
+		if (nodeOpt.isPresent()) {
+			return gson.toJsonTree(nodeOpt.get().attributes);
 		}
 		return null; // TODO is this correct?
 	}
@@ -89,17 +88,17 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	public Stream<ContainerMetadataNode> getChildrenStream() {
-		return children.entrySet().stream().map( e -> e.getValue() );
+		return children.values().stream();
 	}
 
 	public Stream<ContainerMetadataNode> flatten() {
-		return Stream.concat(Stream.of(this), getChildrenStream().flatMap( ContainerMetadataNode::flatten ));
+		return Stream.concat(Stream.of(this), getChildrenStream().flatMap(ContainerMetadataNode::flatten));
 	}
 
 	public Stream<ContainerMetadataNode> flattenLeaves() {
 		// probably not the fastest implementation,
 		// but not worried about optimization yet
-		return flatten().filter( x -> x.getChildren().isEmpty() );
+		return flatten().filter(x -> x.getChildren().isEmpty());
 	}
 
 
@@ -133,10 +132,10 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		return path;
 	}
 
-	public Stream<String> getChildPathsRecursive( String thisPath ) {
-		return Stream.concat( Stream.of( thisPath ),
-				this.children.keySet().stream().flatMap( k ->
-						this.children.get(k).getChildPathsRecursive( thisPath + "/" + k )));
+	public Stream<String> getChildPathsRecursive(String thisPath) {
+		return Stream.concat(Stream.of(thisPath),
+				children.entrySet().stream().flatMap(e ->
+						e.getValue().getChildPathsRecursive(thisPath + "/" + e.getKey())));
 	}
 
 	/**
@@ -151,18 +150,28 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	 *
 	 * @param thisPath path to a node
 	 */
-	public void addPathsRecursive( String thisPath ) {
+	public void addPathsRecursive(String thisPath) {
 		path = thisPath;
-		for ( final String childPath : children.keySet() )
-			children.get(childPath).addPathsRecursive( thisPath + "/" + childPath );
+		children.forEach((childPath, child) -> child.addPathsRecursive(thisPath + "/" + childPath));
 	}
 
+	// TODO (TP): Verify... uses getNode(). Therefore only called on root node.
+	// TODO (TP): Probably this can be made private?
 	public Optional<ContainerMetadataNode> getParent( final String path ) {
 		final String groupSeparator = "/";
 		final String normPath = path.replaceAll("^(" + groupSeparator + "*)|(" + groupSeparator + "*$)", "");
 		final String parentPath = normPath.substring(0, normPath.lastIndexOf( groupSeparator ) );
 		return getNode( parentPath );
 	}
+
+	// TODO (TP): This only works if called on the root node.
+	//  For internal nodes, the path returned by getPath() starts with "/",
+	//  while the normalized thisNodePath doesn't. Therefore getNode() will
+	//  always return empty if called on internal nodes.
+	//  ==> This means, that all methods that call getNode() will only ever be
+	//  called (successfully) on the root node. Taking this into account and
+	//  making the assumption that these methods are only called on a root node
+	//  should simplify refactoring.
 
 	public Optional<ContainerMetadataNode> getNode( final String path ) {
 
@@ -182,11 +191,8 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	}
 
 	public ContainerMetadataNode childRelative(final String normRelativePath) {
-		final String childName = normRelativePath.substring( 0, normRelativePath.indexOf('/'));
-		if( children.containsKey(childName) )
-			return children.get(childName);
-		else
-			return null;
+		final String childName = normRelativePath.substring(0, normRelativePath.indexOf('/'));
+		return children.get(childName);
 	}
 
 	public Optional<ContainerMetadataNode> getChild(final String relativePath, final String groupSeparator) {
@@ -207,7 +213,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 
 			cpath = pathSplit[0];
 			System.arraycopy(pathSplit, 1, relToChildList, 0, relToChildList.length);
-			relToChild = Arrays.stream(relToChildList).collect(Collectors.joining("/"));
+			relToChild = String.join("/", relToChildList);
 		}
 
 		final ContainerMetadataNode c = children.get(cpath);
@@ -217,6 +223,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 			return c.getChild(relToChild, groupSeparator);
 	}
 
+	// TODO (TP): Verify... uses getNode(). Therefore only called on root node.
 	@Override
 	public boolean exists(String pathName) {
 		return getNode( pathName ).isPresent();
@@ -229,6 +236,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		return false;
 	}
 
+	// TODO (TP): Verify... uses getNode(). Therefore only called on root node.
 	@Override
 	public String[] list(String pathName) throws N5Exception.N5IOException {
 		final Optional<ContainerMetadataNode> node = getNode(pathName);
@@ -240,11 +248,13 @@ public class ContainerMetadataNode implements GsonN5Writer {
 			return new String[]{};
 	}
 
+	// TODO (TP): Verify... uses getNode(). Therefore only called on root node.
 	@Override
 	public <T> void setAttribute( final String pathName, final String key, final T attribute) {
 		setAttributes(pathName, Collections.singletonMap(key, attribute));
 	}
 
+	// TODO (TP): Verify... uses getNode(). Therefore only called on root node.
 	@Override
 	public void setAttributes(String pathName, Map<String, ?> attributes) {
 		final Type mapType = new TypeToken<HashMap<String, JsonElement>>(){}.getType();
@@ -253,6 +263,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		getNode( pathName ).ifPresent( x -> x.attributes.putAll(map) );
 	}
 
+	// TODO (TP): Verify... uses getNode(). Therefore only called on root node.
 	@Override
 	public void setAttributes(String groupPath, JsonElement attributes) throws N5Exception {
 
@@ -262,6 +273,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		getNode(groupPath).ifPresent(x -> x.attributes.putAll(map));
 	}
 
+	// TODO (TP): Verify... uses getNode(). Therefore only called on root node.
 	@Override
 	public boolean removeAttribute(String pathName, String key) {
 		final Optional<ContainerMetadataNode> node = getNode( pathName );
@@ -271,6 +283,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		return false;
 	}
 
+	// TODO (TP): Verify... uses getNode(). Therefore only called on root node.
 	@Override
 	public <T> T removeAttribute(String pathName, String key, Class<T> clazz) {
 		final Optional<ContainerMetadataNode> node = getNode(pathName);
@@ -354,7 +367,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	public <T> void writeChunk(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
 		throw new UnsupportedOperationException("ContainerMetadata does not support writeChunk");
 	}
-	
+
 	@Override
 	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
 		throw new UnsupportedOperationException("ContainerMetadata does not support writeBlock");
@@ -396,7 +409,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 	public DataBlock<?> readChunk(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 		return null;
 	}
-	
+
 	@Override
 	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
 		return null;
@@ -442,7 +455,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		return null;
 	}
 
-	public static <N extends GsonN5Reader> ContainerMetadataNode buildHelper(final N n5, N5TreeNode baseNode ) {
+	private static <N extends GsonN5Reader> ContainerMetadataNode buildHelper(final N n5, N5TreeNode baseNode ) {
 
 		final JsonElement attrsRaw = n5.getAttributes(baseNode.getPath());
 		final JsonObject attrs = (attrsRaw != null && attrsRaw.isJsonObject() ) ? attrsRaw.getAsJsonObject() : new JsonObject();
@@ -476,7 +489,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		return null;
 	}
 
-	public static ContainerMetadataNode buildHelperN5(final N5Reader n5, N5TreeNode baseNode, Gson gson ) {
+	private static ContainerMetadataNode buildHelperN5(final N5Reader n5, N5TreeNode baseNode, Gson gson ) {
 		final Optional<HashMap<String, JsonElement>> attrs = getMetadataMapN5(n5, baseNode.getPath(), gson );
 		final List<N5TreeNode> children = baseNode.childrenList();
 
@@ -490,7 +503,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 			return new ContainerMetadataNode(new HashMap<>(), childMap, gson);
 	}
 
-	public static Optional<HashMap<String, JsonElement>> getMetadataMapN5(final N5Reader n5, final String dataset,
+	private static Optional<HashMap<String, JsonElement>> getMetadataMapN5(final N5Reader n5, final String dataset,
 			final Gson gson) {
 		try {
 			final HashMap<String, JsonElement> attrs = new HashMap<>();
@@ -518,7 +531,7 @@ public class ContainerMetadataNode implements GsonN5Writer {
 		return Optional.empty();
 	}
 
-	public static Optional<JsonObject> stringToJson(String s, final Gson gson) {
+	private static Optional<JsonObject> stringToJson(String s, final Gson gson) {
 
 		try {
 			final JsonObject elem = gson.fromJson(s, JsonObject.class);
