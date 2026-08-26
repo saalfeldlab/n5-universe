@@ -38,10 +38,14 @@ public class AxisMetadataTests {
 	private N5FSWriter n5w;
 
 	@Before
-	public void before() {
+	public void before() throws IOException {
 
 		final String n5Root = "src/test/resources/canonical.n5";
 		n5rootF = new File(n5Root);
+
+		final File tmpDir = Files.createTempDirectory("n5-axis-metadata-test-").toFile();
+		tmpDir.deleteOnExit();
+		containerDir = new File( tmpDir, "canonical.n5" );
 
 		try {
 

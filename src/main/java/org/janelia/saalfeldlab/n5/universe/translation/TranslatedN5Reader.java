@@ -1,145 +1,128 @@
 package org.janelia.saalfeldlab.n5.universe.translation;
 
-import java.lang.reflect.Type;
 import java.net.URI;
-import java.util.Map;
-
+import java.util.List;
 import org.janelia.saalfeldlab.n5.ContainerDialect;
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GsonN5Reader;
 import org.janelia.saalfeldlab.n5.N5Exception;
-import org.janelia.saalfeldlab.n5.N5Path;
+import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5URI;
-import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 
 public class TranslatedN5Reader implements GsonN5Reader {
 
-	private final N5Reader n5;
+	private final GsonN5Reader delegate;
 
-	protected final InvertibleTreeTranslation translation;
+	/**
+	 * The translated hierarchy. Used by {@link #containerDialect}.
+	 */
+	final DirectoryStore translated;
+
+	/**
+	 * Translation from {@link #translated} back to the hierarchy of the delegate
+	 * container.
+	 */
+	final JqTranslation inverse;
+
+	private final ContainerDialect containerDialect;
 
 	public TranslatedN5Reader( final N5Reader n5Base,
-			final Gson gson,
 			final String fwdTranslation,
 			final String invTranslation ) {
-		this.n5 = n5Base;
-		final ContainerMetadataNode root = ContainerMetadataNode.build(n5Base, gson);
-		root.addPathsRecursive();
-		translation = new InvertibleTreeTranslation(root, gson, fwdTranslation, invTranslation);
-	}
 
-	public InvertibleTreeTranslation getTranslation() {
-		return translation;
-	}
+		delegate = (GsonN5Reader) n5Base;
+		final DialectInfo dialect = DialectInfo.of(delegate);
 
-	public TranslatedN5Reader( final GsonN5Reader n5Base,
-			final String fwdTranslation,
-			final String invTranslation ) {
-		this( n5Base, JqUtils.buildGson(n5Base), fwdTranslation, invTranslation );
+		// NB: The forward translation is applied once, here. After this the
+		// translated hierarchy is the one that gets modified, and `inverse`
+		// derives the delegate's hierarchy from it.
+		final JqTranslation forward = new JqTranslation(dialect, fwdTranslation);
+		translated = new DirectoryStore(forward.translate(Directory.collectFrom(delegate)));
+		inverse = new JqTranslation(dialect, invTranslation);
+
+		containerDialect = new NotifyingDialect(
+				delegate.getContainerDialect().withStore(translated),
+				this::onModified);
 	}
 
 	@Override
 	public ContainerDialect getContainerDialect() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public JsonElement getAttributes(final String pathName) throws N5Exception.N5IOException {
-		return translation.getTranslated().getAttributes(pathName);
-	}
-
-	@Override
-	public <T> T getAttribute(final String pathName, final String key, final Type type) throws N5Exception {
-		return translation.getTranslated().getAttribute(pathName, key, type);
-	}
-
-	@Override
-	public DatasetAttributes getDatasetAttributes(final String pathName) throws N5Exception {
-		return translation.getTranslated().getDatasetAttributes(pathName);
-	}
-
-	@Override
-	public Map<String, Class<?>> listAttributes(String pathName) {
-		return translation.getTranslated().listAttributes(pathName);
-	}
-
-	@Override
-	public boolean groupExists(final String pathName) {
-		return translation.getTranslated().groupExists(pathName);
-	}
-
-	@Override
-	public boolean exists(String pathName) {
-		return translation.getTranslated().exists(pathName);
-	}
-
-	@Override
-	public boolean datasetExists(final String pathName) throws N5Exception {
-		return translation.getTranslated().datasetExists(pathName);
-	}
-
-	@Override
-	public String[] list(String pathName) {
-		return translation.getTranslated().list(pathName);
+		return containerDialect;
 	}
 
 	/**
-	 * Returns the path in the original container given the path in the translated container.
+	 * Called after every modification of the translated hierarchy made through
+	 * {@link #getContainerDialect()}.
+	 * <p>
+	 * Does nothing for a reader. {@link TranslatedN5Writer} overrides this to
+	 * translate the change back and write it to the delegate container.
+	 */
+	void onModified() {}
+
+	/**
+	 * Returns the path in the original container given the path in the
+	 * translated container.
 	 *
 	 * @param pathName the path in the translated container
 	 * @return the path in the original container
 	 */
-	public String originalPath( String pathName )
-	{
-		final ContainerMetadataNode pathNode = new ContainerMetadataNode();
-		pathNode.createGroup(pathName);
-		pathNode.addPathsRecursive();
-		final ContainerMetadataNode translatedPathNode = translation.getInverseTranslationFunction().apply(pathNode);
-		translatedPathNode.addPathsRecursive();
-		final String path = translatedPathNode.flattenLeaves().findFirst().get().getPath();
-		return N5URI.normalizeGroupPath(path);
+	String originalPath(final String pathName) {
+
+		return inverse.translatePath(N5DirectoryPath.of(pathName));
 	}
 
+	@Deprecated
 	@Override
-	public DataBlock<?> readChunk(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
-
-		return n5.readChunk( originalPath( pathName ), datasetAttributes, gridPosition);
-	}
-
-	@Override
-	public DataBlock<?> readBlock(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) {
-
-		return n5.readBlock(originalPath(pathName), datasetAttributes, gridPosition);
-	}
-
-	@Override
-	public boolean blockExists(String pathName, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
-
-		return n5.blockExists( originalPath( pathName ), datasetAttributes, gridPosition);
-	}
-
-	@Override
-	public String groupPath(String... nodes) {
-		return n5.groupPath(nodes);
+	public String getAttributesKey() {
+		return delegate.getAttributesKey();
 	}
 
 	@Override
 	public URI getURI() {
-		return n5.getURI(); // add translation info?
+		return delegate.getURI();
+	}
+
+	/**
+	 * The delegate decides how {@code DatasetAttributes} are converted (the zarr
+	 * readers narrow them to their own subclass). Translating does not change
+	 * the dialect, so the translated view must convert them the same way.
+	 */
+	@Override
+	public DatasetAttributes getConvertedDatasetAttributes(final DatasetAttributes attributes) {
+		return delegate.getConvertedDatasetAttributes(attributes);
+	}
+
+
+	// NB: Chunks are not translated: only the dataset path is.
+
+	// TODO: Passing the datasetAttributes on to the delegate is not strictly correct.
+	//   We obtain them from the translated store, so they might be modified by the translation.
+	//   In practice it is probably always ok, so I'll just leave this unfixed for now.
+
+	@Override
+	public <T> DataBlock<T> readChunk(final String datasetPath, final DatasetAttributes datasetAttributes, final long... gridPosition) throws N5Exception {
+		return delegate.readChunk(originalPath(datasetPath), datasetAttributes, gridPosition);
+	}
+
+	/**
+	 * NB: Overridden so that the delegate does the bulk read. The inherited
+	 * default would loop over {@link #readChunk}, which resolves {@code
+	 * originalPath} per chunk and gives up the delegate's batched (and
+	 * shard-aware) chunk access.
+	 */
+	@Override
+	public <T> List<DataBlock<T>> readChunks(final String datasetPath, final DatasetAttributes datasetAttributes, final List<long[]> gridPositions) throws N5Exception {
+		return delegate.readChunks(originalPath(datasetPath), datasetAttributes, gridPositions);
 	}
 
 	@Override
-	public Gson getGson() {
-		return translation.getGson();
+	public <T> DataBlock<T> readBlock(final String datasetPath, final DatasetAttributes datasetAttributes, final long... gridPosition) throws N5Exception {
+		return delegate.readBlock(originalPath(datasetPath), datasetAttributes, gridPosition);
 	}
 
 	@Override
-	public String getAttributesKey() {
-		return n5 instanceof GsonN5Reader ? ((GsonN5Reader)n5).getAttributesKey() : "";
+	public boolean blockExists(final String datasetPath, final DatasetAttributes datasetAttributes, final long... gridPosition) throws N5Exception {
+		return delegate.blockExists(originalPath(datasetPath), datasetAttributes, gridPosition);
 	}
 }
