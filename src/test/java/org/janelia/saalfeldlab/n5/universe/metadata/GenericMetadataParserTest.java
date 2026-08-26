@@ -6,7 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+import java.nio.file.Files;
 import java.util.Optional;
 
 import org.janelia.saalfeldlab.n5.DataType;
@@ -32,11 +32,11 @@ public class GenericMetadataParserTest {
 	private double[] zero;
 
 	@Before
-	public void before()
+	public void before() throws IOException
 	{
-		URL configUrl = TransformTests.class.getResource( "/n5.jq" );
-		File baseDir = new File( configUrl.getFile() ).getParentFile();
-		containerDir = new File( baseDir, "genericMeta.n5" );
+		final File tmpDir = Files.createTempDirectory("n5-generic-metadata-test-").toFile();
+		tmpDir.deleteOnExit();
+		containerDir = new File( tmpDir, "genericMeta.n5" );
 
 		one = new double[]{1,1,1};
 		zero = new double[]{0,0,0};

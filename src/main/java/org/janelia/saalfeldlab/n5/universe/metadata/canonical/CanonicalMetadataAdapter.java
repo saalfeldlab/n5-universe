@@ -6,7 +6,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Optional;
+import org.janelia.saalfeldlab.n5.Compression;
+import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.universe.metadata.ColorMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.IntColorMetadata;
@@ -21,7 +24,7 @@ public class CanonicalMetadataAdapter implements JsonDeserializer< CanonicalMeta
 
 		final JsonObject jsonObj = json.getAsJsonObject();
 		final String path = jsonObj.get("path").getAsString();
-		final Optional<DatasetAttributes> attrs = AbstractMetadataTemplateParser.datasetAttributes(context, json);
+		final Optional<DatasetAttributes> attrs = datasetAttributes(context, json);
 
 		SpatialMetadataCanonical spatial = null;
 		if (jsonObj.has("spatialTransform")) {
@@ -60,7 +63,7 @@ public class CanonicalMetadataAdapter implements JsonDeserializer< CanonicalMeta
 		if (attrs.isPresent()) {
 			if( spatial != null )
 				return new CanonicalSpatialDatasetMetadata(path, spatial, attrs.get(), intensityLimits, color );
-			else 
+			else
 				return new CanonicalDatasetMetadata(path, attrs.get(), intensityLimits, color );
 		} else if( spatial != null ) {
 			return new CanonicalSpatialMetadata( path, spatial, intensityLimits );
@@ -72,6 +75,32 @@ public class CanonicalMetadataAdapter implements JsonDeserializer< CanonicalMeta
 			// if lots of things are present
 			return null;
 		}
+	}
+
+
+	private static Optional<DatasetAttributes> datasetAttributes(final JsonDeserializationContext context, JsonElement elem) {
+
+		try {
+
+			final long[] dimensions = context.deserialize( elem.getAsJsonObject().get("dimensions"), long[].class);
+			if (dimensions == null)
+				return Optional.empty();
+
+			final DataType dataType = context.deserialize( elem.getAsJsonObject().get("dataType"), DataType.class);
+			if (dataType == null)
+				return Optional.empty();
+
+			int[] blockSize = context.deserialize( elem.getAsJsonObject().get("blockSize"), int[].class );
+			if (blockSize == null)
+				blockSize = Arrays.stream(dimensions).mapToInt(a -> (int)a).toArray();
+
+			final Compression compression = context.deserialize(elem.getAsJsonObject().get("compression"), Compression.class);
+			if (compression != null)
+				return Optional.of(new DatasetAttributes(dimensions, blockSize, dataType, compression));
+
+		} catch (Exception e) {}
+
+		return Optional.empty();
 	}
 
 }

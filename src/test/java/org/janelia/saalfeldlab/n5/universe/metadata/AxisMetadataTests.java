@@ -2,7 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+import java.nio.file.Files;
 import java.util.Optional;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -37,14 +37,14 @@ public class AxisMetadataTests {
 	private N5FSWriter n5w;
 
 	@Before
-	public void before() {
+	public void before() throws IOException {
 
 		final String n5Root = "src/test/resources/canonical.n5";
 		n5rootF = new File(n5Root);
 
-		final URL configUrl = TransformTests.class.getResource( "/n5.jq" );
-		final File baseDir = new File( configUrl.getFile() ).getParentFile();
-		containerDir = new File( baseDir, "canonical.n5" );
+		final File tmpDir = Files.createTempDirectory("n5-axis-metadata-test-").toFile();
+		tmpDir.deleteOnExit();
+		containerDir = new File( tmpDir, "canonical.n5" );
 
 		try {
 
