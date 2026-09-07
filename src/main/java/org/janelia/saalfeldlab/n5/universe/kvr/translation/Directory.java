@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.kvr;
+package org.janelia.saalfeldlab.n5.universe.kvr.translation;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;

@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.kvr;
+package org.janelia.saalfeldlab.n5.universe.kvr.translation;
 
 import org.janelia.saalfeldlab.n5.ContainerDialect;
 import org.janelia.saalfeldlab.n5.GsonN5Reader;

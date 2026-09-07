@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.kvr;
+package org.janelia.saalfeldlab.n5.universe.kvr.translation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

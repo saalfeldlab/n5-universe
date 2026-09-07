@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe.kvr;
+package org.janelia.saalfeldlab.n5.universe.kvr.translation;
 
 import java.net.URI;
 import java.util.List;
