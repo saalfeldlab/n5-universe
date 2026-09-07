@@ -4,6 +4,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.GsonN5Reader;
 import org.janelia.saalfeldlab.n5.GsonN5Writer;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Writer;
@@ -27,8 +28,22 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements GsonN5Writ
 	public TranslatedN5Writer(final N5Writer n5Base,
 			final String fwdTranslation,
 			final String invTranslation) {
-		super(n5Base, fwdTranslation, invTranslation);
+		super(requireWritableDialect(n5Base), fwdTranslation, invTranslation);
 		delegateWriter = (GsonN5Writer) n5Base;
+	}
+
+	/**
+	 * Refuse a delegate whose dialect cannot be written back to (before {@link
+	 * TranslatedN5Reader} harvests and translates its hierarchy).
+	 *
+	 * @return {@code n5Base}, if its dialect supports writing
+	 */
+	private static N5Writer requireWritableDialect(final N5Writer n5Base) {
+
+		final DialectInfo dialect = DialectInfo.of((GsonN5Reader) n5Base);
+		if (!dialect.supportsWriting())
+			throw new N5Exception("Translated writing is not supported for " + dialect);
+		return n5Base;
 	}
 
 	/**
