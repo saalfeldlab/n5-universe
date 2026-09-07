@@ -22,13 +22,13 @@ final class Directory {
 	/**
 	 * Maps name of attributes file to attributes file content.
 	 */
-	Map<String, JsonElement> attributes;
+	private Map<String, JsonElement> attributes;
 
 	/**
 	 * Maps path of directory-like child (relative to this {@code
 	 * Directory}) to child {@code Directory} node.
 	 */
-	Map<String, Directory> children;
+	private Map<String, Directory> children;
 
 	private void putChild(final String name, final Directory child) {
 		if (children == null) {
@@ -37,7 +37,7 @@ final class Directory {
 		children.put(name, child);
 	}
 
-	Directory getOrCreateChild(final String name) {
+	private Directory getOrCreateChild(final String name) {
 		if (children == null) {
 			children = new LinkedHashMap<>();
 		}

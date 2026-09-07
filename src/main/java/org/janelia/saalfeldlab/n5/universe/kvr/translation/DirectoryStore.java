@@ -15,11 +15,11 @@ import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
  * <p>
  * {@code DirectoryStore} is not thread-safe (unless for read-only use).
  */
-class DirectoryStore implements HierarchyStore {
+final class DirectoryStore implements HierarchyStore {
 
 	private Directory root;
 
-	public DirectoryStore(final Directory root) {
+	DirectoryStore(final Directory root) {
 		this.root = root;
 	}
 
@@ -29,10 +29,6 @@ class DirectoryStore implements HierarchyStore {
 	 */
 	Directory getRoot() {
 		return root;
-	}
-
-	void setRoot(final Directory root) {
-		this.root = root;
 	}
 
 

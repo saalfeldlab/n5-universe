@@ -15,8 +15,6 @@ import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
-import org.janelia.saalfeldlab.n5.universe.kvr.TranslatedN5Reader;
-import org.janelia.saalfeldlab.n5.universe.kvr.TranslatedN5Writer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

@@ -68,8 +68,7 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	 * @param pathName the path in the translated container
 	 * @return the path in the original container
 	 */
-	// TODO: This is only public because of a test in a different package. Should it be package-private?
-	public String originalPath(final String pathName) {
+	String originalPath(final String pathName) {
 
 		return inverse.translatePath(N5DirectoryPath.of(pathName));
 	}

@@ -27,7 +27,7 @@ enum DialectInfo {
 	HDF5     (false, "/kvr/dialect-n5.jq", "attributes.json");
 	// TODO: jq resources should move out of /kvr/ when old translation is phased out
 
-	public static DialectInfo of(GsonN5Reader n5) {
+	static DialectInfo of(GsonN5Reader n5) {
 		ContainerDialect dialect = n5.getContainerDialect();
 
 		// strip possible NotifyingDialect wrapper

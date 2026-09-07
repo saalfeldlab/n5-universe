@@ -41,7 +41,7 @@ import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
  * depend on the {@link Directory} tree shape). The order matters: each part may
  * only use definitions from the parts before it.
  */
-class JqTranslation {
+final class JqTranslation {
 
 	/**
 	 * Loading the jq builtins is not cheap and the result is the same every
@@ -68,7 +68,7 @@ class JqTranslation {
 		}
 	}
 
-	public JsonElement apply(final JsonElement src) {
+	private JsonElement apply(final JsonElement src) {
 		try {
 			final JsonNode in = objectMapper.readTree(src.toString());
 			final List<JsonNode> out = new ArrayList<>();

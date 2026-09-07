@@ -9,8 +9,6 @@ import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5FSWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.universe.kvr.TranslatedN5Reader;
-import org.janelia.saalfeldlab.n5.universe.kvr.TranslatedN5Writer;
 import org.junit.Ignore;
 import org.junit.Test;
 
