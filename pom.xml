@@ -115,7 +115,7 @@
 		<n5-aws-s3.version>5.0.2-SNAPSHOT</n5-aws-s3.version>
 		<n5-blosc.version>2.0.0</n5-blosc.version>
 		<n5-google-cloud.version>6.0.2-SNAPSHOT</n5-google-cloud.version>
-		<n5-hdf5.version>3.0.0</n5-hdf5.version>
+		<n5-hdf5.version>3.0.1-SNAPSHOT</n5-hdf5.version>
 		<n5-imglib2.version>8.0.0</n5-imglib2.version>
 		<n5-zarr.version>2.0.2-SNAPSHOT</n5-zarr.version>
 		<n5-zstandard.version>2.0.0</n5-zstandard.version>
