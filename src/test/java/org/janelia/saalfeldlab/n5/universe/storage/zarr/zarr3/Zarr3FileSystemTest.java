@@ -1,6 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr3;
 
-import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
+import org.janelia.saalfeldlab.n5.FileSystemKeyValueRoot;
 import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
 
 import java.io.IOException;
@@ -10,7 +10,7 @@ public class Zarr3FileSystemTest extends ZarrStorageTests.Zarr3FactoryTest {
 
 	@Override public Class<?> getBackendTargetClass() {
 
-		return FileSystemKeyValueAccess.class;
+		return FileSystemKeyValueRoot.class;
 	}
 
 	@Override protected String tempN5Location() {

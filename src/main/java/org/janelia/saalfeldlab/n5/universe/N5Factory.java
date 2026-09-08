@@ -3,841 +3,41 @@ package org.janelia.saalfeldlab.n5.universe;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.gson.GsonBuilder;
-import net.imglib2.util.Pair;
-import org.apache.commons.lang3.function.TriFunction;
-import org.janelia.saalfeldlab.googlecloud.GoogleCloudStorageURI;
-import org.janelia.saalfeldlab.googlecloud.GoogleCloudUtils;
-import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
-import org.janelia.saalfeldlab.n5.FileSystemKeyValueRoot;
-import org.janelia.saalfeldlab.n5.HttpKeyValueAccess;
-import org.janelia.saalfeldlab.n5.HttpKeyValueRoot;
-import org.janelia.saalfeldlab.n5.KeyValueAccess;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.function.Consumer;
+import javax.annotation.Nullable;
 import org.janelia.saalfeldlab.n5.KeyValueRoot;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Exception.N5IOException;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
-import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueRoot;
-import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
-import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
-import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
-import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueRoot;
-import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
-import org.janelia.saalfeldlab.n5.universe.options.*;
-import org.janelia.saalfeldlab.n5.zarr.N5ZarrReader;
-import org.janelia.saalfeldlab.n5.zarr.N5ZarrWriter;
+import org.janelia.saalfeldlab.n5.universe.factory.InferredStorageFormat;
+import org.janelia.saalfeldlab.n5.universe.factory.KeyValueRoots;
+import org.janelia.saalfeldlab.n5.universe.factory.StorageFormat;
+import org.janelia.saalfeldlab.n5.universe.factory.options.N5FactoryOptions;
+import org.janelia.saalfeldlab.n5.universe.factory.options.Zarr2Options;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
-
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
-import javax.annotation.Nullable;
-import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.regex.Pattern;
-
-import static org.janelia.saalfeldlab.n5.s3.AmazonS3Utils.getS3Bucket;
-import static org.janelia.saalfeldlab.n5.universe.StorageFormat.*;
-
 /**
- * Factory for various N5 readers and writers. Implementation-specific
- * parameters can be provided to the factory instance and will be used when such
- * implementations are generated and ignored otherwise. Reasonable defaults are
- * provided.
+ * Factory for various N5 readers and writers.
+ * <p>
+ * This class is kept for compatibility, and forwards to
+ * {@link org.janelia.saalfeldlab.n5.universe.factory.N5Factory}, which is where the
+ * factory now lives. What this class adds are the deprecated methods, which
+ * the new factory does not carry.
  *
  * @author Stephan Saalfeld
  * @author John Bogovic
  * @author Igor Pisarev
  */
-@SuppressWarnings("UnusedReturnValue")
-public class N5Factory implements Serializable {
+public class N5Factory {
 
-	static final N5Factory FACTORY = new N5Factory();
-    private N5FactoryOptions options = new N5FactoryOptions();
-
-	private static final long serialVersionUID = -6823715427289454617L;
-	final static Pattern HTTPS_SCHEME = Pattern.compile("http(s)?", Pattern.CASE_INSENSITIVE);
-	final static Pattern FILE_SCHEME = Pattern.compile("file", Pattern.CASE_INSENSITIVE);
-	private String googleCloudProjectId = null;
-	private StorageFormat preferredStorageFormat = null;
-	private Consumer<S3ClientBuilder> s3BuilderConfig;
-	private Consumer<StorageOptions.Builder> gcsBuilderConfig;
-
-    public N5FactoryOptions getOptions() {
-
-        return options;
-    }
-
-    public N5Factory setOptions(N5FactoryOptions options) {
-        this.options = options;
-		return this;
-    }
-
-	public N5Factory options( Consumer<N5FactoryOptions> configureOptions) {
-		configureOptions.accept(options);
-		return this;
-	}
-
-    /**
-     * @deprecated configure with {@link s3Configuration}.
-     */
-	@Deprecated
-	public N5Factory s3UseCredentials() {
-
-		s3Configuration(builder -> {
-			builder.credentialsProvider(DefaultCredentialsProvider.create());
-		});
-		return this;
-	}
-
-    /**
-     * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#hdf5(Consumer)}
-     */
-	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
-
-        getOptions().hdf5(opts -> opts.defaultBlockSize(blockSize));
-		return this;
-	}
-
-    /**
-     * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#hdf5(Consumer)}
-     */
-	public N5Factory hdf5OverrideBlockSize(final boolean override) {
-
-        getOptions().hdf5(opts -> opts.overrideBlockSize(override));
-		return this;
-	}
-
-    /**
-     * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#gsonBuilder(GsonBuilder)}
-     */
-	public N5Factory gsonBuilder(final GsonBuilder gsonBuilder) {
-
-        options.gsonBuilder(gsonBuilder);
-		return this;
-	}
-
-    /**
-     * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#cacheAttributes(boolean)}
-     */
-	public N5Factory cacheAttributes(final boolean cacheAttributes) {
-
-        options.cacheAttributes(cacheAttributes);
-		return this;
-	}
-
-
-    /**
-     * Deprecated method to set dimensions separator for zarr 2 writers.
-     *
-     * @param separator to use for Zarr2 dimension separator
-     * @deprecated configure with {@link N5Factory#getOptions()}, {@link N5FactoryOptions#zarr2(Consumer)}, {@link Zarr2Builder#dimensionSeparator(String)}
-     */
-	public N5Factory zarrDimensionSeparator(final String separator) {
-
-        getOptions().zarr2(options -> options.dimensionSeparator(separator));
-		return this;
-	}
-
-    /**
-     * Value to set for the [mapN5DatasetAttributes] parameter of ZarrKeyValueReader.
-     * NOTE: this is only used for Zarr2 readers, not Zarr3
-     *
-     * @param mapAttributes see {@link ZarrKeyValueReader#getAttributes(String)}
-     * @deprecated configure with {@link N5Factory#getOptions()}, {@link N5FactoryOptions#zarr2(Consumer)}, {@link Zarr2Builder#mapN5DatasetAttributes(boolean)}
-	 */
-	public N5Factory zarrMapN5Attributes(final boolean mapAttributes) {
-
-        getOptions().zarr2(options -> options.mapN5DatasetAttributes(mapAttributes));
-		return this;
-	}
-
-
-    /**
-     * Value to set for the [mergeAttributes] parameter of ZarrKeyValueReader.
-     * NOTE: this is only used for Zarr2 readers, not Zarr3
-     *
-     * @param mergeAttributes see {@link ZarrKeyValueReader#getAttributes(String)}
-	 * @deprecated configure with {@link N5Factory#getOptions()}, {@link N5FactoryOptions#zarr2(Consumer)}, {@link Zarr2Builder#mergeAttributes(boolean)}
-	 */
-	public N5Factory zarrMergeAttributes(final boolean mergeAttributes) {
-
-        getOptions().zarr2(options -> options.mergeAttributes(mergeAttributes));
-		return this;
-	}
-
-	public N5Factory googleCloudProjectId(final String projectId) {
-
-		googleCloudProjectId = projectId;
-		return this;
-	}
-
-	/**
-	 * When N5Factory cannot determine the StorageFormat from the URI, it will attempt to
-	 * try and create a reader/writer with all known StorageFormat values.
-	 * The order of th StorageFormat will dictate which will formats will be attempted first.
-	 * Some URI's may be valid for multiple StorageFormat types. (e.g. N5 and Zarr Writer
-	 * at a new location). This format will be tried first if specified.
-	 *
-	 * @param format the storage format to try first.
-	 * @return this N5Factory
-	 */
-	public N5Factory preferredStorageFormat(final StorageFormat format) {
-		this.preferredStorageFormat = format;
-		return this;
-	}
-
-	/**
-	 * This factory will use the builderConfig to configure the {@link S3ClientBuilder},
-	 * and thereby the {@link S3Client}.
-	 *
-	 * @return this N5Factory
-	 */
-	public N5Factory s3Configuration(final Consumer<S3ClientBuilder> builderConfig) {
-
-		this.s3BuilderConfig = builderConfig;
-		return this;
-	}
-
-	/**
-	 * This factory will use the gcsBuilderConfig to configure the Google Cloude Store {@link StorageOptions.Builder},
-	 * and thereby the Google Cloud {@link Storage} client.
-	 *
-	 * @return this N5Factory
-	 */
-	public N5Factory googleCloudConfiguration(final Consumer<StorageOptions.Builder> builderConfig) {
-
-		this.gcsBuilderConfig = builderConfig;
-		return this;
-	}
-
-	protected S3Client createS3(final String uri) {
-
-		try {
-			return AmazonS3Utils.createS3(uri, s3BuilderConfig);
-		} catch (final Throwable e) {
-			throw new N5Exception("Could not create s3 client from uri: " + uri, e);
-		}
-	}
-
-	protected Storage createGoogleCloudStorage() {
-
-		return GoogleCloudUtils.createGoogleCloudStorage(googleCloudProjectId, gcsBuilderConfig);
-	}
-
-
-
-	/**
-	 * Test the provided {@link URI} to and return the appropriate {@link KeyValueAccess}.
-	 * If no appropriate {@link KeyValueAccess} is found, may be null
-	 * <p>
-	 * This differs subtly from {@link KeyValueAccessBackend#getKeyValueAccess(URI, boolean)} in that
-	 * the resulting {@link KeyValueAccess} may use configured fields from this {@link N5Factory}.
-	 *
-	 * @param uri to create a {@link KeyValueAccess} from.
-	 * @return the {@link KeyValueAccess} and container path, or null if none are valid
-	 */
-	@Nullable
-	public KeyValueAccess getKeyValueAccess(final URI uri, final boolean readOnly) {
-		return KeyValueAccessBackend.getKeyValueAccess(uri ,this, readOnly);
-	}
-
-	/**
-	 * Open an {@link N5Reader} over an N5 Container.
-	 * <p>
-	 * NOTE: The name seems to imply that this will open any N5Reader, over a
-	 * {@link FileSystemKeyValueAccess} however that is misleading. Instead
-	 * this will open any N5Container that is a valid {@link  StorageFormat#N5}.
-	 * This is partially why it is deprecated, as well as the redundant
-	 * implementation with {@link N5Factory#openReader(StorageFormat, URI)}.
-	 *
-	 * @param path path to the n5 root folder
-	 * @return the N5Reader
-	 * @deprecated use {@link N5Factory#openReader(StorageFormat, URI)} instead
-	 */
-	@Deprecated
-	public N5Reader openFSReader(final String path) {
-
-		return openN5ContainerWithStorageFormat(StorageFormat.N5, path, this::openReader);
-	}
-
-	/**
-	 * Open an {@link N5Reader} for Zarr.
-	 * <p>
-	 * For more options of the Zarr backend study the {@link N5ZarrReader}
-	 * constructors.}
-	 *
-	 * @param path path to the zarr directory
-	 * @return the N5Reader
-	 * @deprecated use {@link N5Factory#openReader(StorageFormat, URI)} instead
-	 */
-	@Deprecated
-	public N5Reader openZarrReader(final String path) {
-
-		return openN5ContainerWithStorageFormat(StorageFormat.ZARR, path, this::openReader);
-	}
-
-	/**
-	 * Open an {@link N5Reader} for HDF5. Close the reader when you do not need
-	 * it any more.
-	 * <p>
-	 * For more options of the HDF5 backend study the {@link N5HDF5Reader}
-	 * constructors.
-	 *
-	 * @param path path to the hdf5 file
-	 * @return the N5Reader
-	 * @deprecated use {@link N5Factory#openReader(StorageFormat, URI)} instead
-	 */
-	@Deprecated
-	public N5Reader openHDF5Reader(final String path) {
-
-		return openN5ContainerWithStorageFormat(
-				StorageFormat.HDF5,
-				path,
-				(format, uri) -> openReader(format, null, uri)
-		);
-	}
-
-	/**
-	 * Open an {@link N5Reader} for Google Cloud.
-	 *
-	 * @param uri uri to the google cloud object
-	 * @return the N5Reader
-	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
-	 */
-	@Deprecated
-	public N5Reader openGoogleCloudReader(final String uri) {
-
-		return openN5ContainerWithBackend(KeyValueAccessBackend.GOOGLE_CLOUD, uri, true, this::openReader);
-	}
-
-	/**
-	 * Open an {@link N5Reader} for AWS S3.
-	 *
-	 * @param uri uri to the amazon s3 object
-	 * @return the N5Reader
-	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
-	 */
-	@Deprecated
-	public N5Reader openAWSS3Reader(final String uri) {
-
-		return openN5ContainerWithBackend(KeyValueAccessBackend.AWS, uri, true, this::openReader);
-	}
-
-	/**
-	 * Open an {@link N5Reader} over a FileSytem.
-	 *
-	 * @param uri uri to the N5Reader
-	 * @return the N5Reader
-	 * @deprecated use {@link N5Factory#openReader(KeyValueAccessBackend, URI)} instead
-	 */
-	@Deprecated
-	public N5Reader openFileSystemReader(final String uri) {
-
-		return openN5ContainerWithBackend(KeyValueAccessBackend.FILE, uri, true, this::openReader);
-	}
-
-	StorageFormat[] orderedStorageFormats() {
-
-		return Arrays.stream(StorageFormat.values()).sorted((l, r) -> {
-			if (l == preferredStorageFormat) return -1;
-			return l.compareTo(r);
-		}).toArray(StorageFormat[]::new);
-	}
-
-	/**
-	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
-	 * the appropriate {@link KeyValueAccessBackend} and {@link StorageFormat}.
-	 *
-	 * @param uri the root location of the store
-	 * @return the N5Reader
-	 */
-	public N5Reader openReader(final String uri) {
-
-		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
-		final StorageFormat format = storageAndUri.getA();
-		final URI asUri = storageAndUri.getB();
-		final boolean inferredStorageFormat = format != null && getStorageFromNestedScheme(uri).getA() == null;
-		if (inferredStorageFormat) {
-			final KeyValueAccess kva = getKeyValueAccess(asUri, true);
-			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
-			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
-			return openReader(inferredFormat, kva, asUri);
-		}
-		return openReader(format, asUri);
-
-	}
-
-	/**
-	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
-	 * the appropriate {@link KeyValueAccessBackend}.
-	 *
-	 * @param format of the data store this N5Reader is accessing
-	 * @param uri the root location of the store
-	 * @return the N5Reader
-	 */
-	public N5Reader openReader(final StorageFormat format, final String uri) {
-
-		return openReader(format, parseUriFromString(uri));
-	}
-
-	/**
-	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
-	 * the appropriate {@link KeyValueAccessBackend}.
-	 *
-	 * @param format of the data store this N5Reader is accessing
-	 * @param uri the root location of the store
-	 * @return the N5Reader
-	 */
-	public N5Reader openReader(final StorageFormat format, final URI uri) {
-
-		return openN5Container(format, uri, true, this::openReader);
-	}
-
-	/**
-	 * Open and N5Reader at the given URI given the specified {@code KeyValueAccessBackend}.
-	 *
-	 * @param backend key-value access
-	 * @param uri location of reader
-	 * @return the N5Reader
-	 */
-	public N5Reader openReader(final KeyValueAccessBackend backend, final String uri) {
-		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
-		final StorageFormat format = storageAndUri.getA();
-		final URI asUri = storageAndUri.getB();
-		final boolean inferredStorageFormat = format != null && getStorageFromNestedScheme(uri).getA() == null;
-		final KeyValueAccess kva = backend.apply(asUri, this, true);
-		if (inferredStorageFormat) {
-			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
-			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
-			return openReader(inferredFormat, kva, asUri);
-		}
-		return openReader(format, kva, asUri);
-	}
-
-    /**
-	 * Open and N5Reader at the given URI given the specified {@code KeyValueAccessBackend}.
-	 *
-     * @param backend key-value access
-     * @param uri location of reader
-     * @return the N5Reader
-     */
-	public N5Reader openReader(final KeyValueAccessBackend backend, final URI uri) {
-		final KeyValueAccess kva = backend.apply(uri, this, true);
-		final StorageFormat inferredFromKeys = guessStorageFromKeys(uri, kva);
-		return openReader(inferredFromKeys, kva, uri);
-	}
-
-
-	/**
-	 * Create an N5Reader at the {@code containerPath} requiring the specific {@link StorageFormat} and using {@link KeyValueAccess}.
-	 *
-	 * @param storage of the underlying data store this N5Reader is over
-	 * @param access to the key-value backend of the underlying data
-	 * @param location root URI of the resulting N5Reader
-	 * @return the N5Reader
-	 */
-	public N5Reader openReader(@Nullable final StorageFormat storage, final KeyValueAccess access, URI location) {
-
-		if (storage == null) {
-			for (final StorageFormat format : orderedStorageFormats()) {
-				try {
-					return openReader(format, access, location);
-				} catch (final Throwable ignored) {
-				}
-			}
-			throw new N5Exception("Unable to open " + location + " as N5Reader");
-
-		} else {
-
-			switch (storage) {
-                case HDF5:
-                    return getOptions().getHdf5Builder().buildReader(location.toString());
-                case N5:
-                    return getOptions().getN5Builder().buildReader(keyValueRoot(access, location));
-                case ZARR3:
-                    return getOptions().getZarr3Builder().buildReader(keyValueRoot(access, location));
-                case ZARR2:
-                    return getOptions().getZarr2Builder().buildReader(keyValueRoot(access, location));
-                case ZARR:
-                    return newGenericZarrReader(access, location);
-            }
-            return null;
-		}
-	}
-
-    /**
-	 * Open a zarr as N5Reader at the given {@code access} and {@code location}.
-	 * Will prefer returning the newest version of zarr that is found at the location.
-	 *
-     * @param access to the key-value access backend
-     * @param location of the zarr container
-     * @return an N5Reader
-     */
-	private N5Reader newGenericZarrReader(final KeyValueAccess access, final URI location) {
-		for (StorageFormat zarrFormat : Arrays.asList(ZARR3, ZARR2)) {
-			try {
-				return openReader(zarrFormat, access, location);
-			} catch (Exception ignored) {
-			}
-		}
-		throw new N5IOException("Unable to open Zarr reader at " + location.toString() + " as N5Reader");
-	}
-
-	/**
-	 * Open an {@link N5Writer} for N5 Container.
-	 * <p>
-	 * NOTE: The name seems to imply that this will open any N5Writer, over a
-	 * {@link FileSystemKeyValueAccess} however that is misleading. Instead
-	 * this will open any N5Container that is a valid {@link  StorageFormat#N5}.
-	 * This is partially why it is deprecated, as well as the redundant
-	 * implementation with {@link N5Factory#openWriter(StorageFormat, URI)}.
-	 *
-	 * @param path path to the n5 directory
-	 * @return the N5Writer
-	 * @deprecated use {@link N5Factory#openWriter(StorageFormat, URI)} instead
-	 */
-	@Deprecated
-	public N5Writer openFSWriter(final String path) {
-
-		return openN5ContainerWithStorageFormat(StorageFormat.N5, path, this::openWriter);
-	}
-
-	/**
-	 * Open an {@link N5Writer} for Zarr.
-	 * <p>
-	 * For more options of the Zarr backend study the {@link N5ZarrWriter}
-	 * constructors.
-	 *
-	 * @param path path to the zarr directory
-	 * @return the N5Writer
-	 * @deprecated use {@link N5Factory#openWriter(StorageFormat, URI)}) instead
-	 */
-	@Deprecated
-	public N5Writer openZarrWriter(final String path) {
-
-		return openN5ContainerWithStorageFormat(StorageFormat.ZARR, path, this::openWriter);
-	}
-
-	/**
-	 * Open an {@link N5Writer} for HDF5. Don't forget to close the writer after
-	 * writing to close the file and make it available to other processes.
-	 * <p>
-	 * For more options of the HDF5 backend study the {@link N5HDF5Writer}
-	 * constructors.
-	 *
-	 * @param path path to the hdf5 file
-	 * @return the N5HDF5Writer
-	 * @deprecated use {@link N5Factory#openReader(StorageFormat, URI)} instead
-	 */
-	@Deprecated
-	public N5Writer openHDF5Writer(final String path) {
-
-		return openN5ContainerWithStorageFormat(
-				StorageFormat.HDF5,
-				path,
-				(format, uri) -> openWriter(format, null, uri)
-		);
-	}
-
-	/**
-	 * Open an {@link N5Writer} for Google Cloud.
-	 *
-	 * @param uri uri to the google cloud object
-	 * @return the N5GoogleCloudStorageWriter
-	 * @deprecated use {@link #openWriter(KeyValueAccessBackend, String)} instead.
-	 */
-	@Deprecated
-	public N5Writer openGoogleCloudWriter(final String uri) {
-
-		return openN5ContainerWithBackend(KeyValueAccessBackend.GOOGLE_CLOUD, uri, false, this::openWriter);
-	}
-
-	/**
-	 * Open an {@link N5Writer} for AWS S3.
-	 *
-	 * @param uri uri to the s3 object
-	 * @return the N5Writer
-	 * @deprecated use {@link #openWriter(KeyValueAccessBackend, String)} instead.
-	 */
-	@Deprecated()
-	public N5Writer openAWSS3Writer(final String uri) {
-
-		return openN5ContainerWithBackend(KeyValueAccessBackend.AWS, uri, false, this::openWriter);
-	}
-
-	/**
-	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
-	 * the appropriate {@link KeyValueAccessBackend} and {@link StorageFormat}.
-	 *
-	 * @param uri the root location of the store
-	 * @return the N5Writer
-	 */
-	public N5Writer openWriter(final String uri) {
-		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
-		final StorageFormat format = storageAndUri.getA();
-		final URI asUri = storageAndUri.getB();
-		final boolean inferredStorageFormat = format != null && getStorageFromNestedScheme(uri).getA() == null;
-		if (inferredStorageFormat) {
-			final KeyValueAccess kva = getKeyValueAccess(asUri, false);
-			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
-			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
-			return openWriter(inferredFormat, kva, asUri);
-		}
-
-		return openWriter(format, asUri);
-	}
-
-	/**
-	 * Create or Open an N5Writer as the given uri and backend.
-	 *
-	 * @param backend key-value access
-	 * @param uri location of writer
-	 * @return the N5Writer
-	 */
-	public N5Writer openWriter(final KeyValueAccessBackend backend, final URI uri) {
-		final KeyValueAccess kva = backend.apply(uri, this, false);
-		final StorageFormat inferredFromKeys = guessStorageFromKeys(uri, kva);
-		return openWriter(inferredFromKeys, kva, uri);
-	}
-
-    /**
-	 * Create or Open an N5Writer as the given uri and backend.
-	 *
-     * @param backend key-value access
-     * @param uri location of writer
-     * @return the N5Writer
-     */
-	public N5Writer openWriter(final KeyValueAccessBackend backend, final String uri) {
-		final Pair<StorageFormat, URI> storageAndUri = StorageFormat.parseUri(uri);
-		final StorageFormat format = storageAndUri.getA();
-		final URI asUri = storageAndUri.getB();
-		final KeyValueAccess kva = backend.apply(asUri, this, false);
-		final boolean inferredStorageFormat = format != null && getStorageFromNestedScheme(uri).getA() == null;
-		if (inferredStorageFormat) {
-			final StorageFormat inferredFromKeys = guessStorageFromKeys(asUri, kva);
-			final StorageFormat inferredFormat = inferredFromKeys != null ? inferredFromKeys : format;
-			return openWriter(inferredFormat, kva, asUri);
-		}
-
-		return openWriter(format, kva, asUri);
-	}
-
-	/**
-	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
-	 * the appropriate {@link KeyValueAccessBackend}.
-	 *
-	 * @param format of the data store for this N5Writer
-	 * @param uri the root location of the store
-	 * @return the N5Writer
-	 */
-	public N5Writer openWriter(final StorageFormat format, final String uri) {
-
-		return openWriter(format, parseUriFromString(uri));
-
-	}
-
-	/**
-	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
-	 * the appropriate {@link KeyValueAccessBackend}.
-	 *
-	 * @param format of the data store for this N5Writer
-	 * @param uri the root location of the store
-	 * @return the N5Writer
-	 */
-	public N5Writer openWriter(final StorageFormat format, final URI uri) {
-
-		return openN5Container(format, uri, false, this::openWriter);
-	}
-
-
-	/**
-	 * Create an N5Writer at the {@code location} requiring the specific {@link StorageFormat} and using {@link KeyValueAccess}.
-	 *
-	 * @param storage of the underlying data store this N5Writer is over
-	 * @param access to the key-value backend of the underlying data
-	 * @param location root location of the resulting N5Writer
-	 * @return the N5Writer
-	 */
-	public N5Writer openWriter(@Nullable final StorageFormat storage, final KeyValueAccess access, final URI location) {
-
-		if (storage == null) {
-			for (final StorageFormat format : orderedStorageFormats()) {
-				try {
-					return openWriter(format, access, location);
-				} catch (final Throwable ignored) {
-				}
-			}
-			throw new N5Exception("Unable to open " + location + " as N5Writer");
-
-		} else {
-
-			switch (storage) {
-                case HDF5:
-                    return options.getHdf5Builder().buildWriter(location.toString());
-                case N5:
-                    return options.getN5Builder().buildWriter(keyValueRoot(access, location));
-                case ZARR3:
-                    return options.getZarr3Builder().buildWriter(keyValueRoot(access, location));
-                case ZARR2:
-                    return options.getZarr2Builder().buildWriter(keyValueRoot(access, location));
-                case ZARR:
-                    return newGenericZarrWriter(access, location);
-            }
-		}
-		return null;
-	}
-
-	// TODO (TP): temporary workaround to fix build
-	static KeyValueRoot keyValueRoot(final KeyValueAccess kva, final URI location) {
-		if (kva instanceof FileSystemKeyValueAccess) {
-			return new FileSystemKeyValueRoot(location.getPath());
-		} else if (kva instanceof AmazonS3KeyValueAccess) {
-			final AmazonS3KeyValueAccess s3kva = (AmazonS3KeyValueAccess) kva;
-			final S3Client s3 = null; // STUB: DEBUG_s3() no longer exists in n5-aws-s3
-			final String bucket = getS3Bucket(location);
-			final String root = AmazonS3Utils.getS3Key(location);
-			final boolean createBucket = false; // STUB: DEBUG_createBucket() no longer exists in n5-aws-s3
-			return new AmazonS3KeyValueRoot(s3, bucket, root, createBucket);
-		} else if (kva instanceof GoogleCloudStorageKeyValueAccess) {
-			final GoogleCloudStorageKeyValueAccess gckva = (GoogleCloudStorageKeyValueAccess) kva;
-			final Storage storage = null; // STUB: DEBUG_storage() no longer exists in n5-google-cloud
-			final boolean createBucket = false; // STUB: DEBUG_createBucket() no longer exists in n5-google-cloud
-			return new GoogleCloudStorageKeyValueRoot(storage, new GoogleCloudStorageURI(location), createBucket);
-		} else if (kva instanceof HttpKeyValueAccess) {
-			return new HttpKeyValueRoot(location);
-		}
-		throw new IllegalArgumentException("Unsupported KeyValueAccess type: " + kva.getClass().getName());
-	}
-
-	/**
-	 * Get a new {@link N5Writer} IFF the container already exists. If one does not already exist,
-	 * a new one will NOT be created.
-	 * This is achieved by first opening a reader at the location, and only then opening
-	 * a writer if the reader successfully opens.
-	 *
-	 * @param storage the storage format, or null
-	 * @param access to the key-value backend
-	 * @param location root URI of the container
-	 * @return a writer for the existing container
-	 *
-	 * @throws N5IOException if the container does not exist, no attempt will be made to create it
-	 */
-	public N5Writer openExistingWriter(@Nullable final StorageFormat storage, final KeyValueAccess access, final URI location) throws N5IOException {
-
-		requireContainerExists(() -> openReader(storage, access, location));
-		return openWriter(storage, access, location);
-	}
-
-	/**
-	 * Get a new {@link N5Writer} IFF the container already exists. If one does not already exist,
-	 * a new one will NOT be created.
-	 * This is achieved by first opening a reader at the location, and only then opening
-	 * a writer if the reader successfully opens.
-	 *
-	 * @param uri the container location, optionally prefixed with a storage format
-	 * @return a writer for the existing container
-	 *
-	 * @throws N5IOException if the container does not exist, no attempt will be made to create it
-	 */
-	public N5Writer openExistingWriter(final String uri) throws N5IOException {
-
-		requireContainerExists(() -> openReader(uri));
-		return openWriter(uri);
-	}
-
-    /**
-	 * Test if a reader can be opened from given supplier
-	 *
-	 * @throws N5IOException if the container does not exist
-     */
-	protected void requireContainerExists(Supplier<N5Reader> getReader) throws N5IOException {
-		//noinspection EmptyTryBlock
-		try (N5Reader ignored = getReader.get()) {
-			/* Just want to verify we can open, then we close to get the writer*/
-		} catch (final Exception e) {
-			throw new N5IOException("Existing container could not be opened, or does not exist.", e);
-		}
-	}
-
-    /**
-	 * Try to get a zarr writer at the given location and access.
-	 * If a container exists at the location, load that version as a writer if possible.
-	 * If no container exists, create a new writer with the newest zarr version.
-	 *
-     * @param access to the key-value backend
-     * @param location of the zarr writer
-     * @return the zarr writer
-     */
-	private N5Writer newGenericZarrWriter(final KeyValueAccess access, final URI location) {
-		List<StorageFormat> zarrFormats = Arrays.asList(ZARR3, ZARR2);
-		for (StorageFormat zarrFormat : zarrFormats) {
-			 /* we dont care about the read, but we do want to prefer a writer over a container that
-			 * exists, rather than creating a new writer; the only way to check is to see if
-			 * we can get a valid reader. If we can, try the writer. */
-            try (N5Reader ignore = openReader(zarrFormat, access, location)) {
-                return openWriter(zarrFormat, access, location);
-            } catch (Exception ignored) {
-            }
-		}
-		/* However, if we have no valid readers, then try and return the first valid (created) writer */
-		for (StorageFormat zarrFormat : zarrFormats) {
-			try {
-				return openWriter(zarrFormat, access, location);
-			} catch (Exception ignored) {
-			}
-		}
-
-		throw new N5IOException("Unable to open Zarr writer at " + location.toString() + " as N5Reader");
-	}
-
-	private <T extends N5Reader> T openN5ContainerWithStorageFormat(
-			final StorageFormat format,
-			final String uri,
-			final BiFunction<StorageFormat, URI, T> openWithFormat
-	) {
-
-		final URI asUri = StorageFormat.parseUri(uri).getB();
-		return openWithFormat.apply(format, asUri);
-	}
-
-	private <T extends N5Reader> T openN5ContainerWithBackend(
-			final KeyValueAccessBackend backend,
-			final String containerUri,
-			final boolean readOnly,
-			final TriFunction<StorageFormat, KeyValueAccess, URI, T> openWithBackend
-	) {
-
-		final Pair<StorageFormat, URI> formatAndUri = StorageFormat.parseUri(containerUri);
-		final URI uri = formatAndUri.getB();
-		final KeyValueAccess kva = backend.apply(uri, this, readOnly);
-		StorageFormat format = formatAndUri.getA();
-		format = format != null? format : StorageFormat.guessStorageFromKeys(uri, kva);
-		return openWithBackend.apply(format, kva, uri);
-	}
-
-	private <T extends N5Reader> T openN5Container(
-			final StorageFormat storageFormat,
-			final URI uri,
-			final boolean readOnly,
-			final TriFunction<StorageFormat, KeyValueAccess, URI, T> openWithKva) {
-
-		final KeyValueAccess kva = getKeyValueAccess(uri, readOnly);
-		if (kva == null)
-			throw new N5Exception("Cannot get KeyValueAccess at " + uri);
-		final StorageFormat format = storageFormat != null ? storageFormat : StorageFormat.guessStorageFromKeys(uri, kva);
-		return openWithKva.apply(format, kva, uri);
-	}
+	private static final N5Factory FACTORY = new N5Factory();
 
 	/**
 	 * Creates an N5 writer for the specified container URI with default N5Factory configuration.
@@ -861,7 +61,608 @@ public class N5Factory implements Serializable {
 		return FACTORY.openReader(containerUri);
 	}
 
-	static URI parseUriFromString(String uri) {
+	private final org.janelia.saalfeldlab.n5.universe.factory.N5Factory factory;
+
+	public N5Factory() {
+
+		this(new org.janelia.saalfeldlab.n5.universe.factory.N5Factory());
+	}
+
+	protected N5Factory(final org.janelia.saalfeldlab.n5.universe.factory.N5Factory factory) {
+
+		this.factory = factory;
+	}
+
+	/**
+	 * @return the {@link org.janelia.saalfeldlab.n5.universe.factory.N5Factory} this forwards to
+	 */
+	public org.janelia.saalfeldlab.n5.universe.factory.N5Factory getFactory() {
+
+		return factory;
+	}
+
+
+	// ┌──────────────────────────────────────────────────────────────────────┐
+	// │ Options                                                              │
+	// └──────────────────────────────────────────────────────────────────────┘
+
+	public N5FactoryOptions getOptions() {
+
+		return factory.getOptions();
+	}
+
+	public N5Factory setOptions(N5FactoryOptions options) {
+
+		factory.setOptions(options);
+		return this;
+	}
+
+	public N5Factory options(Consumer<N5FactoryOptions> configureOptions) {
+
+		factory.options(configureOptions);
+		return this;
+	}
+
+	/**
+	 * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#hdf5(Consumer)}
+	 */
+	@Deprecated
+	public N5Factory hdf5DefaultBlockSize(final int... blockSize) {
+
+		getOptions().format().hdf5().defaultBlockSize(blockSize);
+		return this;
+	}
+
+	/**
+	 * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#hdf5(Consumer)}
+	 */
+	@Deprecated
+	public N5Factory hdf5OverrideBlockSize(final boolean override) {
+
+		getOptions().format().hdf5().overrideBlockSize(override);
+		return this;
+	}
+
+	/**
+	 * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#gsonBuilder(GsonBuilder)}
+	 */
+	@Deprecated
+	public N5Factory gsonBuilder(final GsonBuilder gsonBuilder) {
+
+		getOptions().gsonBuilder(gsonBuilder);
+		return this;
+	}
+
+	/**
+	 * @deprecated configure with {@link N5Factory#getOptions()} and {@link N5FactoryOptions#cacheAttributes(boolean)}
+	 */
+	@Deprecated
+	public N5Factory cacheAttributes(final boolean cacheAttributes) {
+
+		getOptions().cacheAttributes(cacheAttributes);
+		return this;
+	}
+
+	/**
+	 * Deprecated method to set dimensions separator for zarr 2 writers.
+	 *
+	 * @param separator to use for Zarr2 dimension separator
+	 * @deprecated configure with {@link N5Factory#getOptions()}, {@link N5FactoryOptions#zarr2(Consumer)}, {@link Zarr2Options#dimensionSeparator(String)}
+	 */
+	@Deprecated
+	public N5Factory zarrDimensionSeparator(final String separator) {
+
+		getOptions().format().zarr2().dimensionSeparator(separator);
+		return this;
+	}
+
+	/**
+	 * Value to set for the [mapN5DatasetAttributes] parameter of ZarrKeyValueReader.
+	 * NOTE: this is only used for Zarr2 readers, not Zarr3
+	 *
+	 * @param mapAttributes see {@link ZarrKeyValueReader#getAttributes(String)}
+	 * @deprecated configure with {@link N5Factory#getOptions()}, {@link N5FactoryOptions#zarr2(Consumer)}, {@link Zarr2Options#mapN5DatasetAttributes(boolean)}
+	 */
+	@Deprecated
+	public N5Factory zarrMapN5Attributes(final boolean mapAttributes) {
+
+		getOptions().format().zarr2().mapN5DatasetAttributes(mapAttributes);
+		return this;
+	}
+
+	/**
+	 * Value to set for the [mergeAttributes] parameter of ZarrKeyValueReader.
+	 * NOTE: this is only used for Zarr2 readers, not Zarr3
+	 *
+	 * @param mergeAttributes see {@link ZarrKeyValueReader#getAttributes(String)}
+	 * @deprecated configure with {@link N5Factory#getOptions()}, {@link N5FactoryOptions#zarr2(Consumer)}, {@link Zarr2Options#mergeAttributes(boolean)}
+	 */
+	@Deprecated
+	public N5Factory zarrMergeAttributes(final boolean mergeAttributes) {
+
+		getOptions().format().zarr2().mergeAttributes(mergeAttributes);
+		return this;
+	}
+
+	/**
+	 * When N5Factory cannot determine the StorageFormat from the URI, it will attempt to
+	 * try and create a reader/writer with all known StorageFormat values.
+	 * The order of th StorageFormat will dictate which will formats will be attempted first.
+	 * Some URI's may be valid for multiple StorageFormat types. (e.g. N5 and Zarr Writer
+	 * at a new location). This format will be tried first if specified.
+	 *
+	 * @param format the storage format to try first.
+	 * @return this N5Factory
+	 */
+	public N5Factory preferredStorageFormat(final StorageFormat format) {
+
+		getOptions().format().preferredStorageFormat(format);
+		return this;
+	}
+
+	/**
+	 * This factory will use the builderConfig to configure the {@link S3ClientBuilder},
+	 * and thereby the {@link S3Client}.
+	 *
+	 * @return this N5Factory
+	 */
+	public N5Factory s3Configuration(final Consumer<S3ClientBuilder> builderConfig) {
+
+		getOptions().backend().s3().builderConfig(builderConfig);
+		return this;
+	}
+
+	public N5Factory googleCloudProjectId(final String projectId) {
+
+		getOptions().backend().googleCloud().projectId(projectId);
+		return this;
+	}
+
+	/**
+	 * This factory will use the gcsBuilderConfig to configure the Google Cloude Store {@link StorageOptions.Builder},
+	 * and thereby the Google Cloud {@link Storage} client.
+	 *
+	 * @return this N5Factory
+	 */
+	public N5Factory googleCloudConfiguration(final Consumer<StorageOptions.Builder> builderConfig) {
+
+		getOptions().backend().googleCloud().builderConfig(builderConfig);
+		return this;
+	}
+
+
+	// ┌──────────────────────────────────────────────────────────────────────┐
+	// │ Create KeyValueRoot                                                  │
+	// └──────────────────────────────────────────────────────────────────────┘
+
+	/**
+	 * Return the {@link KeyValueRoot} appropriate for the given {@link
+	 * URI}, or {@code null} if no backend can handle it. The backend is
+	 * resolved from the URI scheme (and potentially probing the content
+	 * if that is inconclusive).
+	 *
+	 * @param uri to create a {@link KeyValueRoot} from
+	 * @param readOnly whether the root will only be read from
+	 * @return the {@link KeyValueRoot}, or null if none are valid
+	 */
+	@Nullable
+	public KeyValueRoot getKeyValueRoot(final URI uri, final boolean readOnly) {
+
+		return factory.getKeyValueRoot(uri, readOnly);
+	}
+
+
+	// ┌──────────────────────────────────────────────────────────────────────┐
+	// │ Create Reader                                                        │
+	// └──────────────────────────────────────────────────────────────────────┘
+
+	/**
+	 * Open an {@link N5Reader} over an N5 Container.
+	 *
+	 * @param path path to the n5 root folder
+	 * @return the N5Reader
+	 * @deprecated use {@link N5Factory#openReader(StorageFormat, URI)} instead
+	 */
+	@Deprecated
+	public N5Reader openFSReader(final String path) {
+
+		return openReader(StorageFormat.N5, path);
+	}
+
+	/**
+	 * Open an {@link N5Reader} for Zarr.
+	 *
+	 * @param path path to the zarr directory
+	 * @return the N5Reader
+	 * @deprecated use {@link N5Factory#openReader(StorageFormat, URI)} instead
+	 */
+	@Deprecated
+	public N5Reader openZarrReader(final String path) {
+
+		return openReader(StorageFormat.ZARR, path);
+	}
+
+	/**
+	 * Open an {@link N5Reader} for HDF5. Close the reader when you do not need
+	 * it any more.
+	 *
+	 * @param path path to the hdf5 file
+	 * @return the N5Reader
+	 * @deprecated use {@link N5Factory#openReader(StorageFormat, URI)} instead
+	 */
+	@Deprecated
+	public N5Reader openHDF5Reader(final String path) {
+
+		return openReader(StorageFormat.HDF5, path);
+	}
+
+	/**
+	 * Open an {@link N5Reader} for Google Cloud.
+	 *
+	 * @param uri uri to the google cloud object
+	 * @return the N5Reader
+	 * @deprecated use {@link N5Factory#openReader(String)} instead
+	 */
+	@Deprecated
+	public N5Reader openGoogleCloudReader(final String uri) {
+
+		final KeyValueRoot root = KeyValueRoots.createGoogleCloud(stripStorageSchemePrefix(uri), true, getOptions().backend());
+		return openReader(explicitStorageFormat(uri), root);
+	}
+
+	/**
+	 * Open an {@link N5Reader} for AWS S3.
+	 *
+	 * @param uri uri to the amazon s3 object
+	 * @return the N5Reader
+	 * @deprecated use {@link N5Factory#openReader(String)} instead
+	 */
+	@Deprecated
+	public N5Reader openAWSS3Reader(final String uri) {
+
+		final KeyValueRoot root = KeyValueRoots.createAmazonS3(stripStorageSchemePrefix(uri), true, getOptions().backend());
+		return openReader(explicitStorageFormat(uri), root);
+	}
+
+	/**
+	 * Open an {@link N5Reader} over a FileSytem.
+	 *
+	 * @param uri uri to the N5Reader
+	 * @return the N5Reader
+	 * @deprecated use {@link N5Factory#openReader(String)} instead
+	 */
+	@Deprecated
+	public N5Reader openFileSystemReader(final String uri) {
+
+		final KeyValueRoot root = KeyValueRoots.createFileSystem(stripStorageSchemePrefix(uri));
+		return openReader(explicitStorageFormat(uri), root);
+	}
+
+	/**
+	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
+	 * the appropriate storage backend and {@link StorageFormat}.
+	 *
+	 * @param uri the root location of the store
+	 * @return the N5Reader
+	 */
+	public N5Reader openReader(final String uri) {
+
+		return factory.openReader(uri);
+	}
+
+	/**
+	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
+	 * the appropriate storage backend.
+	 *
+	 * @param format of the data store this N5Reader is accessing
+	 * @param uri the root location of the store
+	 * @return the N5Reader
+	 */
+	public N5Reader openReader(final StorageFormat format, final String uri) {
+
+		return factory.openReader(format, uri);
+	}
+
+	/**
+	 * Open an {@link N5Reader} at the given URL, with best attempts to infer
+	 * the appropriate storage backend.
+	 *
+	 * @param format of the data store this N5Reader is accessing
+	 * @param uri the root location of the store
+	 * @return the N5Reader
+	 */
+	public N5Reader openReader(final StorageFormat format, final URI uri) {
+
+		return factory.openReader(format, uri);
+	}
+
+	/**
+	 * Open a N5Reader at the given URI given the specified {@code KeyValueAccessBackend}.
+	 *
+	 * @param backend key-value access
+	 * @param uri location of reader
+	 * @return the N5Reader
+	 */
+	@Deprecated
+	public N5Reader openReader(final KeyValueAccessBackend backend, final String uri) {
+
+		return openReader(backend, parseUriFromString(uri));
+	}
+
+	/**
+	 * Open a N5Reader at the given URI given the specified {@code KeyValueAccessBackend}.
+	 *
+	 * @param backend key-value access
+	 * @param uri location of reader
+	 * @return the N5Reader
+	 */
+	@Deprecated
+	public N5Reader openReader(final KeyValueAccessBackend backend, final URI uri) {
+
+		final KeyValueRoot root = createKeyValueRoot(backend, uri, true);
+		if (root == null)
+			return null;
+
+		try {
+			return openReader(explicitStorageFormat(uri.toString()), root);
+		} catch (final N5Exception e) {
+			throw new N5Exception("Unable to open " + uri + " as N5Reader", e);
+		}
+	}
+
+	/**
+	 * Create an N5Reader at {@code root} requiring the specified {@link StorageFormat}.
+	 * <p>
+	 * NB: If {@code format==null}, all formats are attempted, starting with the
+	 * {@link #preferredStorageFormat(StorageFormat) preferredStorageFormat}.
+	 *
+	 * @param format of the underlying data store this N5Reader is over
+	 * @param root root of the container
+	 * @return the N5Reader
+	 */
+	public N5Reader openReader(@Nullable final StorageFormat format, final KeyValueRoot root) {
+
+		return factory.openReader(format, root);
+	}
+
+
+	// ┌──────────────────────────────────────────────────────────────────────┐
+	// │ Create Writer                                                        │
+	// └──────────────────────────────────────────────────────────────────────┘
+
+	/**
+	 * Open an {@link N5Writer} for N5 Container.
+	 *
+	 * @param path path to the n5 directory
+	 * @return the N5Writer
+	 * @deprecated use {@link N5Factory#openWriter(StorageFormat, URI)} instead
+	 */
+	@Deprecated
+	public N5Writer openFSWriter(final String path) {
+
+		return openWriter(StorageFormat.N5, path);
+	}
+
+	/**
+	 * Open an {@link N5Writer} for Zarr.
+	 *
+	 * @param path path to the zarr directory
+	 * @return the N5Writer
+	 * @deprecated use {@link N5Factory#openWriter(StorageFormat, URI)}) instead
+	 */
+	@Deprecated
+	public N5Writer openZarrWriter(final String path) {
+
+		return openWriter(StorageFormat.ZARR, path);
+	}
+
+	/**
+	 * Open an {@link N5Writer} for HDF5. Don't forget to close the writer after
+	 * writing to close the file and make it available to other processes.
+	 *
+	 * @param path path to the hdf5 file
+	 * @return the N5HDF5Writer
+	 * @deprecated use {@link N5Factory#openWriter(StorageFormat, URI)} instead
+	 */
+	@Deprecated
+	public N5Writer openHDF5Writer(final String path) {
+
+		return openWriter(StorageFormat.HDF5, path);
+	}
+
+	/**
+	 * Open an {@link N5Writer} for Google Cloud.
+	 *
+	 * @param uri uri to the google cloud object
+	 * @return the N5GoogleCloudStorageWriter
+	 * @deprecated use {@link #openWriter(String)} instead.
+	 */
+	@Deprecated
+	public N5Writer openGoogleCloudWriter(final String uri) {
+
+		final KeyValueRoot root = KeyValueRoots.createGoogleCloud(stripStorageSchemePrefix(uri), false, getOptions().backend());
+		return openWriter(explicitStorageFormat(uri), root);
+	}
+
+	/**
+	 * Open an {@link N5Writer} for AWS S3.
+	 *
+	 * @param uri uri to the s3 object
+	 * @return the N5Writer
+	 * @deprecated use {@link #openWriter(String)} instead.
+	 */
+	@Deprecated
+	public N5Writer openAWSS3Writer(final String uri) {
+
+		final KeyValueRoot root = KeyValueRoots.createAmazonS3(stripStorageSchemePrefix(uri), false, getOptions().backend());
+		return openWriter(explicitStorageFormat(uri), root);
+	}
+
+	/**
+	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
+	 * the appropriate storage backend and {@link StorageFormat}.
+	 *
+	 * @param uri the root location of the store
+	 * @return the N5Writer
+	 */
+	public N5Writer openWriter(final String uri) {
+
+		return factory.openWriter(uri);
+	}
+
+	/**
+	 * Create or Open an N5Writer as the given uri and backend.
+	 *
+	 * @param backend key-value access
+	 * @param uri location of writer
+	 * @return the N5Writer
+	 */
+	@Deprecated
+	public N5Writer openWriter(final KeyValueAccessBackend backend, final URI uri) {
+
+		final KeyValueRoot root = createKeyValueRoot(backend, uri, false);
+		if (root == null)
+			return null;
+
+		try {
+			return openWriter(explicitStorageFormat(uri.toString()), root);
+		} catch (final N5Exception e) {
+			throw new N5Exception("Unable to open " + uri + " as N5Writer", e);
+		}
+	}
+
+	/**
+	 * Create or Open an N5Writer as the given uri and backend.
+	 *
+	 * @param backend key-value access
+	 * @param uri location of writer
+	 * @return the N5Writer
+	 */
+	@Deprecated
+	public N5Writer openWriter(final KeyValueAccessBackend backend, final String uri) {
+
+		return openWriter(backend, parseUriFromString(uri));
+	}
+
+	/**
+	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
+	 * the appropriate storage backend.
+	 *
+	 * @param format of the data store for this N5Writer
+	 * @param uri the root location of the store
+	 * @return the N5Writer
+	 */
+	public N5Writer openWriter(final StorageFormat format, final String uri) {
+
+		return factory.openWriter(format, uri);
+	}
+
+	/**
+	 * Open an {@link N5Writer} at the given URL, with best attempts to infer
+	 * the appropriate storage backend.
+	 *
+	 * @param format of the data store for this N5Writer
+	 * @param uri the root location of the store
+	 * @return the N5Writer
+	 */
+	public N5Writer openWriter(final StorageFormat format, final URI uri) {
+
+		return factory.openWriter(format, uri);
+	}
+
+	/**
+	 * Create an N5Writer at {@code root} requiring the specified {@link StorageFormat}.
+	 * <p>
+	 * NB: If {@code format==null}, all formats are attempted, starting with the
+	 * {@link #preferredStorageFormat(StorageFormat) preferredStorageFormat}.
+	 *
+	 * @param format of the underlying data store this N5Writer is over
+	 * @param root root of the container
+	 * @return the N5Writer
+	 */
+	public N5Writer openWriter(@Nullable final StorageFormat format, final KeyValueRoot root) {
+
+		return factory.openWriter(format, root);
+	}
+
+	/**
+	 * Get a new {@link N5Writer} IFF the container already exists. If one does not already exist,
+	 * a new one will NOT be created.
+	 *
+	 * @param storage the storage format, or null
+	 * @param root root of the container
+	 * @return a writer for the existing container
+	 *
+	 * @throws N5IOException if the container does not exist, no attempt will be made to create it
+	 */
+	public N5Writer openExistingWriter(@Nullable final StorageFormat storage, final KeyValueRoot root) throws N5IOException {
+
+		return factory.openExistingWriter(storage, root);
+	}
+
+	/**
+	 * Get a new {@link N5Writer} IFF the container already exists. If one does not already exist,
+	 * a new one will NOT be created.
+	 *
+	 * @param uri the container location, optionally prefixed with a storage format
+	 * @return a writer for the existing container
+	 *
+	 * @throws N5IOException if the container does not exist, no attempt will be made to create it
+	 */
+	public N5Writer openExistingWriter(final String uri) throws N5IOException {
+
+		return factory.openExistingWriter(uri);
+	}
+
+
+	// ┌──────────────────────────────────────────────────────────────────────┐
+	// │ Helpers                                                              │
+	// └──────────────────────────────────────────────────────────────────────┘
+
+	/**
+	 * The root for {@code uri} on the given {@code backend}, whatever the URI
+	 * looks like; {@code null} for an unknown backend.
+	 */
+	@Nullable
+	private KeyValueRoot createKeyValueRoot(final KeyValueAccessBackend backend, final URI uri, final boolean readOnly) {
+
+		final URI rootUri = stripStorageSchemePrefix(uri.toString());
+		switch (backend) {
+		case GOOGLE_CLOUD:
+			return KeyValueRoots.createGoogleCloud(rootUri, readOnly, getOptions().backend());
+		case AWS:
+			return KeyValueRoots.createAmazonS3(rootUri, readOnly, getOptions().backend());
+		case HTTP:
+			return KeyValueRoots.createHttp(rootUri, getOptions().backend());
+		case FILE:
+			return KeyValueRoots.createFileSystem(rootUri);
+		default:
+			return null;
+		}
+	}
+
+	/**
+	 * Return explicit {@code StorageFormat} if {@code uri} has a storage-scheme prefix, {@code null} otherwise.
+	 */
+	@Nullable
+	private static StorageFormat explicitStorageFormat(final String uri) {
+
+		final InferredStorageFormat inferred = InferredStorageFormat.of(uri);
+		return inferred.isExplicit() ? inferred.format() : null;
+	}
+
+	/**
+	 * Strip storage-scheme prefix from {@code uri}, if there is one.
+	 */
+	private static URI stripStorageSchemePrefix(final String uri) {
+
+		return InferredStorageFormat.of(uri).uri();
+	}
+
+	// NB: A copy of the package-private factory.N5Factory.parseUriFromString,
+	// needed only by the deprecated KeyValueAccessBackend overloads.
+	private static URI parseUriFromString(String uri) {
+
 		try {
 			return URI.create(uri);
 		} catch (final Throwable ignore) {}
@@ -876,5 +677,4 @@ public class N5Factory implements Serializable {
 			throw new N5Exception(e);
 		}
 	}
-
 }
