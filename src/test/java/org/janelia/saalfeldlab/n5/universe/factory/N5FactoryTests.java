@@ -1,12 +1,12 @@
-package org.janelia.saalfeldlab.n5.universe;
+package org.janelia.saalfeldlab.n5.universe.factory;
 
 import org.apache.commons.io.FileUtils;
-import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.KeyValueRoot;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
@@ -54,66 +54,43 @@ public class N5FactoryTests {
 
 		N5Factory factory = newN5Factory();
 		final StorageFormat[] defaultPriority = StorageFormat.values();
-		assertArrayEquals(defaultPriority, factory.orderedStorageFormats());
+		assertArrayEquals(defaultPriority, factory.getOptions().format().orderedStorageFormats());
 
 		for (StorageFormat format : StorageFormat.values()) {
-			factory.preferredStorageFormat(format);
-			assertArrayEquals(reorderPreferedStorageFormat(format), factory.orderedStorageFormats());
+			factory.getOptions().format().preferredStorageFormat(format);
+			assertArrayEquals(reorderPreferedStorageFormat(format), factory.getOptions().format().orderedStorageFormats());
 		}
 	}
 
+	/**
+	 * The {@code kvr} counterpart of the old {@code StorageFormat.guessStorageFromUri} test:
+	 * inference from the path suffix alone, which is {@link InferredStorageFormat.Source#SUFFIX}.
+	 * <p>
+	 * NB: These are deliberately paths that do not exist. Suffix inference must not touch the
+	 * filesystem — a writer is opened for a container that is not there yet.
+	 */
 	@Test
 	public void testStorageFormatGuesses() throws URISyntaxException {
 
-		final URI noExt = new URI("file:///tmp/a");
-		final URI h5Ext = new URI("file:///tmp/a.h5");
-		final URI hdf5Ext = new URI("file:///tmp/a.hdf5");
-		final URI n5Ext = new URI("file:///tmp/a.n5");
-		final URI n5ExtSlash = new URI("file:///tmp/a.n5/");
-		final URI zarrExt = new URI("file:///tmp/a.zarr");
-		final URI zarrExtSlash = new URI("file:///tmp/a.zarr/");
-		final URI unknownExt = new URI("file:///tmp/a.abc");
+		assertSuffixGuess(null, "file:///tmp/a");
+		assertSuffixGuess(StorageFormat.HDF5, "file:///tmp/a.h5");
+		assertSuffixGuess(StorageFormat.HDF5, "file:///tmp/a.hdf5");
+		assertSuffixGuess(StorageFormat.N5, "file:///tmp/a.n5");
+		assertSuffixGuess(StorageFormat.N5, "file:///tmp/a.n5/");
+		assertSuffixGuess(StorageFormat.ZARR, "file:///tmp/a.zarr");
+		assertSuffixGuess(StorageFormat.ZARR, "file:///tmp/a.zarr/");
+		assertSuffixGuess(null, "file:///tmp/a.abc");
+	}
 
-		assertNull("no extension null", StorageFormat.guessStorageFromUri(noExt));
+	private static void assertSuffixGuess(final StorageFormat expected, final String uri) throws URISyntaxException {
 
-		/*
-		 * h5 tests fail now because these test whether the file exists. It
-		 * should not do that, if, for example, we're making a writer.
-		 */
-		assertEquals("h5 extension == h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(h5Ext));
-		assertNotEquals("h5 extension != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(h5Ext));
-		assertNotEquals("h5 extension != zarr2", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(h5Ext));
-		assertNotEquals("h5 extension != zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(h5Ext));
-
-		assertEquals("hdf5 extension == h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(hdf5Ext));
-		assertNotEquals("hdf5 extension != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(hdf5Ext));
-		assertNotEquals("hdf5 extension != zarr2", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(hdf5Ext));
-		assertNotEquals("hdf5 extension != zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(hdf5Ext));
-
-		assertNotEquals("n5 extension != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(n5Ext));
-		assertEquals("n5 extension == n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(n5Ext));
-		assertNotEquals("n5 extension != zarr2", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(n5Ext));
-		assertNotEquals("n5 extension != zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(n5Ext));
-
-		assertNotEquals("n5 extension slash != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(n5ExtSlash));
-		assertEquals("n5 extension slash == n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(n5ExtSlash));
-		assertNotEquals("n5 extension slash != zarr2", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(n5ExtSlash));
-		assertNotEquals("n5 extension slash != zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(n5ExtSlash));
-
-		assertNotEquals("zarr extension != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(zarrExt));
-		assertNotEquals("zarr extension != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(zarrExt));
-		assertNotEquals("zarr extension != zarr3", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(zarrExt));
-		assertEquals("zarr extension == zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(zarrExt));
-
-		assertNotEquals("zarr extension slash != h5", StorageFormat.HDF5, StorageFormat.guessStorageFromUri(zarrExtSlash));
-		assertNotEquals("zarr extension slash != n5", StorageFormat.N5, StorageFormat.guessStorageFromUri(zarrExtSlash));
-		assertNotEquals("zarr extension slash != zarr", StorageFormat.ZARR2, StorageFormat.guessStorageFromUri(zarrExtSlash));
-		assertEquals("zarr extension slash == zarr3", StorageFormat.ZARR, StorageFormat.guessStorageFromUri(zarrExtSlash));
-
-		assertNull("unknown extension != h5", StorageFormat.guessStorageFromUri(unknownExt));
-		assertNull("unknown extension != n5", StorageFormat.guessStorageFromUri(unknownExt));
-		assertNull("unknown extension != zarr2", StorageFormat.guessStorageFromUri(unknownExt));
-		assertNull("unknown extension != zarr3", StorageFormat.guessStorageFromUri(unknownExt));
+		final InferredStorageFormat inferred = InferredStorageFormat.of(new URI(uri));
+		assertEquals(uri, expected, inferred.format());
+		assertEquals(uri + " source", expected == null
+						? InferredStorageFormat.Source.UNKNOWN
+						: InferredStorageFormat.Source.SUFFIX,
+				inferred.source());
+		assertFalse(uri + " is a guess, not explicit", inferred.isExplicit());
 	}
 
 	@Test
@@ -191,7 +168,7 @@ public class N5FactoryTests {
 	@Test
 	public void testDefaultForAmbiguousWritersWithPreference() throws IOException {
 		final N5Factory factory = newN5Factory();
-		factory.preferredStorageFormat(StorageFormat.N5);
+		factory.getOptions().format().preferredStorageFormat(StorageFormat.N5);
 
 		File tmp = null;
 		try {
@@ -417,11 +394,16 @@ public class N5FactoryTests {
 	@Test
 	public void testZarr2VsZarr3Disambiguation() throws URISyntaxException {
 
+		/* The suffix only says ZARR; only probing the keys can tell v2 from v3. */
 		final URI uri = new URI("src/test/resources/metadata.zarr");
-		final FileSystemKeyValueAccess kva = new FileSystemKeyValueAccess();
+		final KeyValueRoot root = KeyValueRoots.createFileSystem(uri);
 
-		final StorageFormat format = StorageFormat.guessStorageFromKeys(uri, kva);
-		assertEquals("zarr 2", StorageFormat.ZARR2, format);
+		final InferredStorageFormat inferred = InferredStorageFormat.of(uri);
+		assertEquals("from the suffix", StorageFormat.ZARR, inferred.format());
+
+		final InferredStorageFormat probed = inferred.resolveFromKeys(root);
+		assertEquals("zarr 2", StorageFormat.ZARR2, probed.format());
+		assertEquals(InferredStorageFormat.Source.CONTENT, probed.source());
 	}
 
 	private void checkWriterTypeFromFactory(N5Factory factory, String uri, Class<?> expected, String messageSuffix) {

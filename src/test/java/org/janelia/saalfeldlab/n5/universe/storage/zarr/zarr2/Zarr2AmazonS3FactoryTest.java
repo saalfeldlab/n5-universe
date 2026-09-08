@@ -1,10 +1,11 @@
 package org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr2;
 
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueAccess;
+import org.janelia.saalfeldlab.n5.s3.AmazonS3KeyValueRoot;
+import org.janelia.saalfeldlab.n5.s3.AmazonS3Utils;
 import org.janelia.saalfeldlab.n5.s3.N5AmazonS3Tests;
 import org.janelia.saalfeldlab.n5.s3.mock.MockS3Factory;
-import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.factory.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.storage.AmazonTest;
 import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
 import org.junit.AfterClass;
@@ -29,14 +30,13 @@ public abstract class Zarr2AmazonS3FactoryTest extends ZarrStorageTests.Zarr2Fac
 
 	final static String testBucket = tempBucketName();
 
-	final static N5Factory FACTORY = new N5Factory() {
+	/* Pin the client through AmazonS3Options.clientProvider, the hook that replaces
+	 * overriding createS3() on the old factory. `s3` is set by the Mock subclass and null in
+	 * the Backend subclass, where the default client is built once and memoized here. */
+	final static N5Factory FACTORY = new N5Factory()
+			.options(o -> o.backend().s3().clientProvider(
+					uri -> s3 != null ? s3 : (s3 = AmazonS3Utils.createS3(uri.toString()))));
 
-		@Override protected S3Client createS3(String uri) {
-
-			return s3 != null ? s3 : (s3 = super.createS3(uri));
-		}
-	};
-	
 	@BeforeClass
 	public static void before() {
 
@@ -46,7 +46,7 @@ public abstract class Zarr2AmazonS3FactoryTest extends ZarrStorageTests.Zarr2Fac
 
 	@Override public Class<?> getBackendTargetClass() {
 
-		return AmazonS3KeyValueAccess.class;
+		return AmazonS3KeyValueRoot.class;
 	}
 
 	@AfterClass

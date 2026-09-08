@@ -1,4 +1,4 @@
-package org.janelia.saalfeldlab.n5.universe;
+package org.janelia.saalfeldlab.n5.universe.factory;
 
 import org.apache.commons.io.FileUtils;
 import org.janelia.saalfeldlab.n5.N5Reader;

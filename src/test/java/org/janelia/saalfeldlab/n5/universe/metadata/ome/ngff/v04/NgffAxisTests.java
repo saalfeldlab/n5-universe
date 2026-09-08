@@ -115,10 +115,10 @@ public class NgffAxisTests {
 		// in the same order after parsing (reversed relative to the JSON).
 		// The children's axis parameters are aligned with their array's dimensions,
 		// so they are reversed again for f-order arrays.
+		final double[] expectedScales = new double[]{13, 12, 11, 1};
+		final double[] expectedTranslations = new double[]{3, 2, 1, 0};
 		final OmeNgffMetadataParser parser = new OmeNgffMetadataParser();
 		final String[] expectedNames = new String[]{"z", "y", "x", "c"};
-		final double[] expectedScales = new double[] { 13, 12, 11, 1 };
-		final double[] expectedTranslations = new double[] { 3, 2, 1, 0 };
 
 		// f-Order
 		// n5-zarr does not reverse dimensions of f-order arrays,
