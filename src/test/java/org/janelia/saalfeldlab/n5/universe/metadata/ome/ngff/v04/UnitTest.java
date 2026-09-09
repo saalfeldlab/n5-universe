@@ -21,6 +21,10 @@ public class UnitTest {
 		assertEquals( Unit.megameter, Unit.fromString("Mm"));
 
 		assertEquals(Unit.micrometer, Unit.fromString("micrometer"));
+		assertEquals(Unit.micrometer, Unit.fromString("MICROMETER"));
+		assertEquals(Unit.micrometer, Unit.fromString("micron"));
+		assertEquals(Unit.micrometer, Unit.fromString("MICRON"));
+		assertEquals(Unit.micrometer, Unit.fromString("MicROn"));
 		assertEquals(Unit.micrometer, Unit.fromString("um"));
 		assertEquals(Unit.micrometer, Unit.fromString(Unit.MICRO + "m"));
 		assertEquals(Unit.micrometer, Unit.fromString(Unit.MU + "m"));
