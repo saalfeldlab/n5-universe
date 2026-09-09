@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
 import org.janelia.saalfeldlab.n5.N5Exception;
+import org.janelia.saalfeldlab.n5.codec.transpose.TransposeCodec;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
@@ -90,20 +91,6 @@ public class MapAxisCoordinateTransform extends AbstractCoordinateTransform<Affi
 		return new AffineTransform(TransformUtils.flatten(affine));
 	}
 
-	private static void validate(final AffineGet affine, final double eps) {
-
-		// imglib2 AffineGet always ave numSourceDimensions == numTargetDimensions
-		int nd = affine.numSourceDimensions();
-		for( int i = 0; i < nd; i++)
-			for( int j = 0; j < nd; j++) {
-				double val = affine.get(i, j);
-				if( Math.abs(1 - val) > eps && Math.abs(val) > eps ) {
-					throw new IllegalArgumentException(
-							String.format("Matrix representation for mapAxis must be a permutation matrix"));
-				}
-			}
-	}
-	
 	public static void validate(int[] axisMapping, String[] inputAxes, String[] outputAxes) {
 		
 		final int numOutput = outputAxes.length;
@@ -121,7 +108,9 @@ public class MapAxisCoordinateTransform extends AbstractCoordinateTransform<Affi
 				throw new N5Exception("The entry at [" + i + "] " + axisMapping[i] + " > " + outputAxes.length + " (the number of output axes).");
 
 		}
-
 	}
 
+	public static void reverseParameters(MapAxisCoordinateTransform ct) {
+		ct.mapAxis = TransposeCodec.conjugateWithReverse(ct.mapAxis);
+	}
 }
