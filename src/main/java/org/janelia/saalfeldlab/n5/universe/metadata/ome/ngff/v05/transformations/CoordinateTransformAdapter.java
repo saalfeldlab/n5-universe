@@ -75,7 +75,11 @@ public class CoordinateTransformAdapter
 			out = context.deserialize( jobj, TranslationCoordinateTransform.class );
 			break;
 		case("mapAxis"):
-			out = context.deserialize( jobj, MapAxisCoordinateTransform.class );
+			final MapAxisCoordinateTransform ct = context.deserialize(jobj, MapAxisCoordinateTransform.class);
+			if (reverse) {
+				MapAxisCoordinateTransform.reverseParameters(ct);
+			}
+			out = ct;
 			break;
 		case("byDimension"):
 			ByDimensionCoordinateTransform bd = context.deserialize(jobj, ByDimensionCoordinateTransform.class);
