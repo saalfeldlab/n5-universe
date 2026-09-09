@@ -210,8 +210,8 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 
 			TransformWithIndexes ti = transformations[i];
 			CoordinateTransform<?> t = ti.transformation;
-			t.setInputAxes(ti.input_axes);
-			t.setOutputAxes(ti.output_axes);
+			t.setInputAxes(ti.inputAxes);
+			t.setOutputAxes(ti.outputAxes);
 			transforms[i] = t;
 		}
 	}
@@ -225,8 +225,8 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 			CoordinateTransform<?> t = transforms[i];
 
 			ti.transformation = t;
-			ti.input_axes = t.getInputAxes();
-			ti.output_axes = t.getOutputAxes();
+			ti.inputAxes = t.getInputAxes();
+			ti.outputAxes = t.getOutputAxes();
 			transformations[i] = new TransformWithIndexes();
 		}
 
@@ -310,8 +310,8 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 	private static class TransformWithIndexes {
 		
 		CoordinateTransform<?> transformation;
-		int[] input_axes;
-		int[] output_axes;
+		int[] inputAxes;
+		int[] outputAxes;
 	}
 
 }
