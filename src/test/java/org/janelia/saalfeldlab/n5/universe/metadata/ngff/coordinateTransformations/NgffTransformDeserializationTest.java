@@ -30,8 +30,8 @@ public class NgffTransformDeserializationTest {
 				+ "\"input\": {\"name\": \"input\"},"
 				+ "\"output\": {\"name\": \"output\"},"
 				+ "\"transformations\": ["
-				+ "  {\"transformation\": {\"type\": \"identity\"}, \"input_axes\": [0], \"output_axes\": [0]},"
-				+ "  {\"transformation\": {\"type\": \"scale\", \"scale\": [10.0]}, \"input_axes\": [1], \"output_axes\": [1]}"
+				+ "  {\"transformation\": {\"type\": \"identity\"}, \"inputAxes\": [0], \"outputAxes\": [0]},"
+				+ "  {\"transformation\": {\"type\": \"scale\", \"scale\": [10.0]}, \"inputAxes\": [1], \"outputAxes\": [1]}"
 				+ "]"
 				+ "}";
 
