@@ -1,25 +1,21 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations;
 
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
-import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.MultiscalesAdapter;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.AxisAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.Common;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
@@ -127,6 +123,7 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		return field;
 	}
 
+	@SuppressWarnings("rawtypes")
 	private InterpolatorFactory getInterpolator() {
 
 		switch(interpolation) {
@@ -142,23 +139,32 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 	@Override
 	public RealRandomAccessible<RealComposite<S>> getParameters(final N5Reader n5) {
 
-		final String path = getParameterPath();
+		final String group = getParameterPath();
 
 		vectorAxisIndex = parseVectorAxisIndex( n5 );
 
-//		// TODO generalize
-//		if( vectorAxisIndex != 0 )
-//			throw new N5Exception("Vector axis is in index " + vectorAxisIndex + " but only index 0 currently supported" );
+		// We allow the transform's path may be the field array itself (self-referencing shortcut) or a
+		// multiscales group whose array is a child dataset (standard OME-Zarr multiscales).
+		// Resolve the array path and its pixel->physical transform together from the group's
+		// multiscales. The pixel->physical is matched by the field's input coordinate-system name 
+		final OmeNgffReference inputRef = getInput();
+		final String inputName = inputRef == null ? null : inputRef.getName();
+		final ResolvedField resolved = resolveFieldFromMultiscales( n5, group, inputName );
+		final String arrayPath = resolved != null ? resolved.arrayPath : group;
 
 		final RandomAccessibleInterval<S> fieldRaw;
 		try {
-			fieldRaw = (RandomAccessibleInterval<S>)N5Utils.open(n5, path );
+			fieldRaw = (RandomAccessibleInterval<S>)N5Utils.open(n5, arrayPath );
 		} catch (final N5Exception e) {
 			return null;
 		}
 
+		// The vector components are stored reversed only for zarr, matching the
+		// reversal the writer applies; see OmeNgffMetadataParser.reverse.
 		// TODO this will need generalizing if vectorAxisIndex != 0
-		final RandomAccessibleInterval<S> fieldRev = reverseCoordinates(fieldRaw);
+		final RandomAccessibleInterval<S> fieldRev = OmeNgffMetadataParser.reverse(n5)
+				? reverseCoordinates(fieldRaw)
+				: fieldRaw;
 
 		final CompositeIntervalView< S, RealComposite< S > >  collapsedFirst =
 				Views.collapseReal(
@@ -167,14 +173,13 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		final RealRandomAccessible<RealComposite<S>> fieldInterp = Views.interpolate(
 				Views.extendBorder(collapsedFirst), getInterpolator());
 
-		// Prefer the pixel->physical transform stored in NGFF multiscales metadata
-		// (on the self-referencing dataset), then fall back to the flat attributes.
-		CoordinateTransform<?> pixelToPhysicalCt = findPixelToPhysicalFromMultiscales( n5, path, getInput().getName());
+		// pixel->physical: prefer the transform resolved from multiscales, then the flat attributes.
+		CoordinateTransform<?> pixelToPhysicalCt = resolved != null ? resolved.pixelToPhysical : null;
 		if( pixelToPhysicalCt == null ) {
-			pixelToPhysicalCt = findPixelToPhysicalTransformStrict( n5, path, getInput().getName());
+			pixelToPhysicalCt = findPixelToPhysicalTransformStrict( n5, group, inputName );
 		}
 		if( pixelToPhysicalCt == null ) {
-			pixelToPhysicalCt = findPixelToPhysicalTransformCheckSelfRef( n5, path, getInput().getName());
+			pixelToPhysicalCt = findPixelToPhysicalTransformCheckSelfRef( n5, group, inputName );
 		}
 
 		if( pixelToPhysicalCt == null ) {
@@ -183,59 +188,28 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		}
 
 		// TODO is this general enough?
-		AffineGet affine = TransformUtils.toAffine(pixelToPhysicalCt, fieldRev.numDimensions());
-		affine = Common.removeDimension(vectorAxisIndex, affine);
-		if( affine != null )
-			return RealViews.affine(fieldInterp, affine);;
+		final AffineGet storedAffine = TransformUtils.toAffine(pixelToPhysicalCt, fieldRev.numDimensions());
+		if( storedAffine == null )
+			throw new N5Exception("Warning: only invertible affine pixel to physical transforms are currently supported");
 
-		throw new N5Exception("Warning: only invertible affine pixel to physical transforms are currently supported");
+		/*
+		 * Make sure to handle the case when the field's coordinate transforms
+		 * are both nD and (n+1)D. Since earlier versions of the spec had 
+		 * the coordinate transforms apply to the vector dimension.
+		 * Ignore that component of the transformation, if present. 
+		 */
+		final int spatialNd = fieldRev.numDimensions() - 1;
+		final AffineGet affine = storedAffine.numSourceDimensions() == fieldRev.numDimensions()
+				? Common.removeDimension(vectorAxisIndex, storedAffine)
+				: storedAffine;
 
-		// TODO should we eventually support the general case below?
-		// but need to handle removing a dimension from an arbitrary transform.
-		// not dealing with it now
+		// fail here rather than hand back an under-dimensioned field
+		if( affine.numSourceDimensions() != spatialNd )
+			throw new N5Exception(String.format(
+					"pixel to physical transform at \"%s\" is %dD; the field at \"%s\" is %dD (%dD once its vector axis is collapsed)",
+					group, storedAffine.numSourceDimensions(), arrayPath, fieldRev.numDimensions(), spatialNd));
 
-//		final RealTransform tform = pixelToPhysicalCt.getTransform();
-//		if( tform == null ) {
-//			field = fieldInterp;
-//			return field;
-//		}
-//		else if ( tform instanceof InvertibleRealTransform) {
-//			field = RealViews.transform(fieldInterp, (InvertibleRealTransform)tform);
-//			return field;
-//		}
-//		else
-//		{
-//			field = new RealTransformRealRandomAccessible< >( fieldInterp, tform );
-//			return field;
-//		}
-//
-//		RandomAccessible<V>[] rawfields;
-//		int nv = 1;
-//		if( vectorAxisIndex < 0 ) {
-//			rawfields = new RandomAccessible[]{ fieldRaw };
-//		}
-//		else {
-//			nv = (int)fieldRaw.dimension(getVectorAxisIndex());
-//			rawfields = new RandomAccessible[nv];
-//			for( int i = 0; i < nv; i++ )
-//			{
-//				rawfields[i] = Views.extendZero(Views.hyperSlice( fieldRaw, vectorAxisIndex, i));
-//			}
-//		}
-//
-//		fields = new RealRandomAccessible[ rawfields.length ];
-//		for( int i = 0; i < nv; i++ ) {
-//			if( ixfm == null )
-//			{
-//				fields[i] = Views.interpolate( rawfields[i], new NLinearInterpolatorFactory<>());
-//			}
-//			else {
-//				fields[i] = new RealTransformRealRandomAccessible(
-//						Views.interpolate( rawfields[i], new NLinearInterpolatorFactory<>()),
-//						ixfm );
-//			}
-//		}
-//		return field;
+		return RealViews.affine(fieldInterp, affine);
 	}
 
 	public static CoordinateTransform<?> findPixelToPhysicalTransformStrict(final N5Reader n5, final String group, final String output ) {
@@ -245,54 +219,40 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 			return null;
 
 		for (final CoordinateTransform<?> ct : transforms) {
-			// TODO properly handle reference
-			if (ct.getOutput().getName().equals(output) ) {
+			// output == null: the field transform names no input space (positional in a
+			// sequence), so take the dataset's sole pixel->physical transform.
+			if (output == null)
 				return ct;
-			}
+			// TODO properly handle reference
+			if (ct.getOutput() != null && ct.getOutput().getName().equals(output) )
+				return ct;
 		}
 		return null;
 	}
 
-	private static Gson multiscalesGson(final N5Reader n5) {
-
-		final boolean reverse = OmeNgffMetadataParser.reverse(n5);
-		return new GsonBuilder()
-				.registerTypeAdapter(CoordinateTransform.class, new CoordinateTransformAdapter(reverse))
-				.registerTypeAdapter(Axis.class, new AxisAdapter())
-				.registerTypeAdapter(OmeNgffMultiScaleMetadata.class, new MultiscalesAdapter(reverse))
-				.create();
-	}
-
 	/**
-	 * Reads the {@code ome/multiscales} metadata at a group, if present. The
-	 * reverse-aware gson un-reverses coordinate-system axes and transform
-	 * parameters for zarr.
-	 *
-	 * @param n5 the reader
-	 * @param group the group
-	 * @return the multiscales metadata, or {@code null} if none is present
+	 * Reads the {@code ome/multiscales} metadata at {@code group} via the canonical
+	 * {@link OmeNgffMetadataParser} (reverse-aware: coordinate systems and transform
+	 * parameters come back in imglib2 order). Returns {@code null} when there is none.
 	 */
-	private static OmeNgffMultiScaleMetadata[] readMultiscales(final N5Reader n5, final String group) {
+	private static OmeNgffMultiScaleMetadata[] readMultiscalesMetadata(final N5Reader n5, final String group) {
 
-		final JsonElement el;
+		final Optional<OmeNgffMetadata> meta;
 		try {
-			el = n5.getAttribute(group, "ome/multiscales", JsonElement.class);
-		} catch (final N5Exception e) {
+			meta = new OmeNgffMetadataParser(n5).parseMetadata(n5, new N5TreeNode(group));
+		} catch (final Exception e) {
 			return null;
 		}
-		if (el == null || !el.isJsonArray())
-			return null;
-
-		return multiscalesGson(n5).fromJson(el, OmeNgffMultiScaleMetadata[].class);
+		return meta.isPresent() ? meta.get().multiscales : null;
 	}
 
 	/**
-	 * Returns the coordinate systems declared in the group's {@code ome/multiscales}
+	 * Returns the coordinate systems declared in {@code group}'s {@code ome/multiscales}
 	 * metadata (imglib2 order), or {@code null} if there are none.
 	 */
 	private static CoordinateSystem[] readMultiscalesCoordinateSystems(final N5Reader n5, final String group) {
 
-		final OmeNgffMultiScaleMetadata[] ms = readMultiscales(n5, group);
+		final OmeNgffMultiScaleMetadata[] ms = readMultiscalesMetadata(n5, group);
 		if (ms == null)
 			return null;
 
@@ -303,52 +263,77 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		return null;
 	}
 
+	/** The field array's path and its pixel-&gt;physical transform, resolved from a group's multiscales. */
+	private static final class ResolvedField {
+
+		final String arrayPath;
+		final CoordinateTransform<?> pixelToPhysical;
+
+		ResolvedField(final String arrayPath, final CoordinateTransform<?> pixelToPhysical) {
+			this.arrayPath = arrayPath;
+			this.pixelToPhysical = pixelToPhysical;
+		}
+	}
+
 	/**
-	 * Finds the pixel to physical transform for the field array in the group's
-	 * {@code ome/multiscales} metadata: the transform (on the self-referencing
-	 * dataset) whose output coordinate system matches {@code output}.
+	 * Resolves the field array path and its pixel-&gt;physical transform from {@code group}'s
+	 * {@code ome/multiscales}, picking the highest-resolution dataset ({@code datasets[0]}).
+	 * Handles both the standard layout (a group with a child array, {@code datasets[0].path = "s0"}
+	 * &rarr; {@code group + "/s0"}) and the self-referencing shortcut ({@code datasets[0].path = "."}
+	 * / {@code ""} &rarr; the group itself, array co-located with the multiscales).
 	 *
 	 * @param n5 the reader
-	 * @param group the field array group (also the multiscales group)
-	 * @param output the name of the output (field) coordinate system
-	 * @return the transform, or {@code null} if not found
+	 * @param group the multiscales group (the field transform's path)
+	 * @param output the field's input coordinate-system name, matched against the pixel-&gt;physical
+	 *            transform's output; {@code null} takes the dataset's sole transform
+	 * @return the resolved field, or {@code null} if {@code group} has no multiscales (flat/legacy:
+	 *            the caller opens the array at {@code group})
 	 */
-	public static CoordinateTransform<?> findPixelToPhysicalFromMultiscales(final N5Reader n5, final String group, final String output ) {
+	private static ResolvedField resolveFieldFromMultiscales(final N5Reader n5, final String group, final String output) {
 
-		final OmeNgffMultiScaleMetadata[] ms = readMultiscales(n5, group);
+		final OmeNgffMultiScaleMetadata[] ms = readMultiscalesMetadata(n5, group);
 		if (ms == null)
 			return null;
 
 		for (final OmeNgffMultiScaleMetadata m : ms) {
 			final OmeNgffDataset[] datasets = m.getDatasets();
-			if (datasets == null)
+			if (datasets == null || datasets.length == 0)
 				continue;
 
-			for (final OmeNgffDataset d : datasets) {
-				if (!datasetIsSelf(group, d.path))
-					continue;
-				if (d.coordinateTransformations == null)
-					continue;
+			final OmeNgffDataset d = datasets[0]; // highest resolution
+			final String arrayPath = (d.path == null || d.path.isEmpty() || d.path.equals("."))
+					? group
+					: group + "/" + d.path;
 
+			CoordinateTransform<?> pixelToPhysical = null;
+			if (d.coordinateTransformations != null)
 				for (final CoordinateTransform<?> ct : d.coordinateTransformations)
-					if (ct.getOutput() != null && output.equals(ct.getOutput().getName()))
-						return ct;
-			}
+					// output == null: the field transform names no input space (positional in a
+					// sequence), so take the dataset's sole pixel->physical transform.
+					if (output == null || (ct.getOutput() != null && output.equals(ct.getOutput().getName()))) {
+						pixelToPhysical = ct;
+						break;
+					}
+
+			return new ResolvedField(arrayPath, pixelToPhysical);
 		}
 		return null;
 	}
 
 	/**
-	 * Whether a multiscales dataset path refers to its own group. The field
-	 * exporter writes a single self-referencing dataset (path {@code "."}); on
-	 * read the constructor's relativization collapses it to the empty string.
+	 * The pixel-&gt;physical transform for the field array in {@code group}'s {@code ome/multiscales}
+	 * (the highest-resolution dataset's transform whose output matches {@code output}, or its sole
+	 * transform when {@code output} is {@code null}).
+	 *
+	 * @param n5 the reader
+	 * @param group the multiscales group
+	 * @param output the output coordinate-system name to match, or {@code null}
+	 * @return the transform, or {@code null} if not found
 	 */
-	private static boolean datasetIsSelf(final String group, final String path) {
+	public static CoordinateTransform<?> findPixelToPhysicalFromMultiscales(final N5Reader n5, final String group, final String output ) {
 
-		if (path == null || path.isEmpty() || path.equals("."))
-			return true;
-
-		return N5URI.normalizeGroupPath(group).equals(N5URI.normalizeGroupPath(path));
+		final ResolvedField resolved = resolveFieldFromMultiscales(n5, group, output);
+		return resolved == null ? null : resolved.pixelToPhysical;
 	}
 
 	/*
