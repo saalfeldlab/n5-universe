@@ -9,9 +9,9 @@ import net.imglib2.realtransform.RealTransform;
  * An affine (linear + translation) {@link RealTransform} between points of
  * arbitrary dimension.
  * <p>
- * Is not invertible because source and target dimensionality may differ.a This
- * class can can also represent non-invertible affine transofrmations between
- * points of the same dimension.
+ * Is not invertible because source and target dimensionality may differ. This
+ * class can can also represent non-invertible affine transformations 
+ * between coordinate systems of like dimension. 
  */
 public class AffineRealTransform implements RealTransform {
 
