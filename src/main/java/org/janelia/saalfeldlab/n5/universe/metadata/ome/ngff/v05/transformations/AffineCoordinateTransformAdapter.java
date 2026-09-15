@@ -10,6 +10,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import java.lang.reflect.Type;
+import java.util.Collections;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
@@ -90,41 +91,10 @@ public class AffineCoordinateTransformAdapter implements
 			return tf;
 		}
 	}
-	
-	private static void reverseJsonMatrix( JsonArray arr ) { 
-		
-		// reverse columns
-		Collections.reverse(arr.asList());
-
-		// reverse rows
-		arr.asList().forEach( row -> {
-			Collections.reverse(row.getAsJsonArray().asList());
-		});
-		
-	}
-	
-	private static void reverseJsonMatrix( JsonArray arr ) { 
-		
-		// reverse columns
-		Collections.reverse(arr.asList());
-
-		// reverse rows
-		arr.asList().forEach( row -> {
-			Collections.reverse(row.getAsJsonArray().asList());
-		});
-		
-	}
 
 	private static boolean sourceDimsEqualTargetDims(final double[][] affine) {
 		// rows = numTarget, cols = numSource + 1; square iff numTarget == numSource
 		return affine != null && affine.length > 0 && affine.length == affine[0].length - 1;
 	}
-
-
-	private static boolean sourceDimsEqualTargetDims(final double[][] affine) {
-		// rows = numTarget, cols = numSource + 1; square iff numTarget == numSource
-		return affine != null && affine.length > 0 && affine.length == affine[0].length - 1;
-	}
-
 
 }
