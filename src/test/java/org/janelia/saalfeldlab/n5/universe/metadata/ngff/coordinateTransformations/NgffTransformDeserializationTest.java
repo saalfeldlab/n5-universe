@@ -5,8 +5,8 @@ import static org.junit.Assert.assertNotNull;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.AxisAdapter;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransformAdapter;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransformAdapter;
 import org.junit.Test;
 
 import com.google.gson.Gson;
@@ -41,8 +41,8 @@ public class NgffTransformDeserializationTest {
 		assertNotNull("byDimension transform should deserialize", ct);
 
 		// sub-transforms should have input_axes / output_axes populated
-		final org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.ByDimensionCoordinateTransform byDim =
-				(org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.ByDimensionCoordinateTransform) ct;
+		final org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ByDimensionCoordinateTransform byDim =
+				(org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ByDimensionCoordinateTransform) ct;
 
 		final CoordinateTransform<?>[] sub = byDim.getTransformations();
 		assertNotNull("sub-transforms should not be null", sub);

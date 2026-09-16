@@ -2,7 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransfor
 
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 
 import net.imglib2.realtransform.AffineGet;
 
