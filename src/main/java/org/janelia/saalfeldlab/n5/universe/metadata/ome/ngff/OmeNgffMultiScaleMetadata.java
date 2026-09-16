@@ -72,7 +72,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 		super( MetadataUtils.normalizeGroupPath(path), 
 				buildMetadata(nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, pickAxes( axes, coordinateSystems)));
-		
+
 		if (datasets != null) {
 			this.datasets = relativizeDatasets(path, datasets);
 		} else {
@@ -216,7 +216,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		return buildMetadata(nd, path, multiscales.datasets, childrenAttributes, multiscales.coordinateTransformations, multiscales.metadata,
 				multiscales.axes);
 	}
-	
+
 	public static NgffSingleScaleAxesMetadata[] buildMetadata(
 			final int nd, final String path, final OmeNgffDataset[] datasets,
 			final DatasetAttributes[] childrenAttributes,
@@ -224,51 +224,63 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final OmeNgffDownsamplingMetadata metadata,
 			final Axis[] axes)
 	{
-			
-		return buildMetadata( nd, path, datasets, 
-				childrenAttributes, 
-				transforms,
-				metadata,
-				axes, 
-				false);
-	}
-
-	public static NgffSingleScaleAxesMetadata[] buildMetadata(
-			final int nd, final String path, final OmeNgffDataset[] datasets,
-			final DatasetAttributes[] childrenAttributes,
-			final CoordinateTransform<?>[] transforms,
-			final OmeNgffDownsamplingMetadata metadata,
-			final Axis[] axes, 
-			boolean reverseParameters)
-	{
 		final String normPath = MetadataUtils.normalizeGroupPath(path);
 		final int N = datasets.length;
-		final Axis[] axesToWrite = reverseParameters ? MetadataUtils.reversedCopy(axes) : axes;
 
 		final NgffSingleScaleAxesMetadata[] childrenMetadata = new NgffSingleScaleAxesMetadata[ N ];
 		for ( int i = 0; i < N; i++ )
 		{
+			// The NgffSingleScaleAxesMetadata stores scale and translation
+			// assuming that scale is applied first and translation is applied second
+			// (this is the required order for OME-Zarr v0.4).
+			// The process below (making an affine and extracting scale & translation)
+			// ensures that appropriate scale and translation arguments
+			// are passed to NgffSingleScaleAxesMetadata even if the dataset
+			// coordinateTransformations contain arbitrary combinations
+			// of scale and translation in arbitrary order.
 			AffineGet affineTransform = tranformsToAffine(datasets[i], transforms);
 			if( affineTransform == null )
 				affineTransform = new AffineTransform( nd );
 
-			final double[] offset = DoubleStream.generate( () -> 0 ).limit( nd ).toArray();
+			final double[] offset = zeros(nd);
 			offsetFromAffine(affineTransform, offset);
 
-			final double[] scale = DoubleStream.generate( () -> 1 ).limit( nd ).toArray();
+			final double[] scale = ones(nd);
 			scaleFromAffine(affineTransform, scale);
 
-			NgffSingleScaleAxesMetadata meta;
-			if (childrenAttributes == null) {
-				meta = new NgffSingleScaleAxesMetadata(MetadataUtils.canonicalPath(normPath, datasets[i].path),
-						scale, offset, axesToWrite, null);
-			} else {
-				meta = new NgffSingleScaleAxesMetadata(MetadataUtils.canonicalPath(normPath, datasets[i].path),
-						scale, offset, axesToWrite, childrenAttributes[i]);
+			// n5-zarr does not reverse the dimensions of f-order zarr2 arrays,
+			// so the child's axis parameters are reversed relative to the parent's
+			final DatasetAttributes attrs = childrenAttributes == null ? null : childrenAttributes[i];
+			final int[] permutation = attrs != null && fOrder(attrs) ? AxisUtils.reversePermutation(nd) : null;
+
+			Axis[] childAxes = axes;
+			double[] childScale = scale;
+			double[] childOffset = offset;
+			if (permutation != null) {
+				childScale = AxisUtils.permute(scale, permutation);
+				childOffset = AxisUtils.permute(offset, permutation);
+				if (axes != null) {
+					childAxes = new Axis[axes.length];
+					AxisUtils.permute(axes, childAxes, permutation);
+				}
 			}
-			childrenMetadata[i] = meta;
+
+			childrenMetadata[i] = new NgffSingleScaleAxesMetadata(
+					MetadataUtils.canonicalPath(normPath, datasets[i].path),
+					childScale, childOffset, childAxes, attrs, permutation);
 		}
 		return childrenMetadata;
+	}
+
+	private static double[] zeros(int N) {
+		double[] out = new double[N];
+		return out;
+	}
+
+	private static double[] ones(int N) {
+		double[] out = new double[N];
+		Arrays.fill(out, 1);
+		return out;
 	}
 
 	public NgffSingleScaleAxesMetadata[] buildChildren( final int nd,

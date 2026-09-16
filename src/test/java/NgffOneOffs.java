@@ -2,7 +2,10 @@ import java.util.Iterator;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.N5DatasetDiscoverer;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
+import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 
 import net.imglib2.cache.img.CachedCellImg;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -12,7 +15,34 @@ public class NgffOneOffs {
 	public static void main(String[] args) {
 
 //		readAffine()
-		readCoordinates();
+//		readCoordinates();
+//		jrc18FcwbDemo();
+		miaData();
+
+		// get reader
+//		N5Reader zarr = new N5Factory().openReader("https://radosgw.public.os.wwu.de/rfc5-transform-test-data/logan_shepp_rotation_30_clockwise.ome.zarr");
+//		System.out.println(zarr.getClass().getName());
+		
+	}
+
+	public static void jrc18FcwbDemo() {
+
+		N5Reader zarr = new N5Factory().openReader("/home/john/data/jrc18_demo_sample_data/JRC2018F_FCWB_small.ome.zarr");
+		System.out.println(zarr.getClass().getName());
+
+		N5TreeNode node = N5DatasetDiscoverer.discover(zarr);
+		System.out.println( node.getMetadata().getClass().getName());
+	}
+	
+	public static void miaData() {
+
+		N5Reader zarr = new N5Factory().openReader("/home/john/data/ome-zarr/v0.5/em-mouse-MICrONS-minnie65/crop-001.zarr");
+		System.out.println(zarr.getClass().getName());
+
+		N5TreeNode node = N5DatasetDiscoverer.discover(zarr);
+
+		final N5Metadata meta = node.getMetadata();
+		System.out.println( meta.getClass().getName());
 	}
 
 	public static void readCoordinates() {
@@ -27,7 +57,6 @@ public class NgffOneOffs {
 			{
 				System.out.println(it.next());
 			}
-				
 
 		}
 	}

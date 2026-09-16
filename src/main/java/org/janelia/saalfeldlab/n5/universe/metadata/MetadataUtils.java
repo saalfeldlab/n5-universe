@@ -443,7 +443,8 @@ public class MetadataUtils {
 				resolution,
 				translation,
 				baseMetadata.getAxes(),
-				baseMetadata.getAttributes());
+				baseMetadata.getAttributes(),
+				baseMetadata.getPermutationFromParent());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -475,12 +476,16 @@ public class MetadataUtils {
 
 		AxisUtils.permute(axesPermuted, axesPermuted, axisPermutation);
 
+		// compose with any existing permutation relative to the parent:
+		// new[i] = old[q[i]] = parent[p[q[i]]]
+		final int[] fromParent = metadata.getPermutationFromParent();
 		return new NgffSingleScaleAxesMetadata(
 				metadata.getPath(),
 				AxisUtils.permute(metadata.getScale(), axisPermutation),
 				AxisUtils.permute(metadata.getTranslation(), axisPermutation),
 				axesPermuted,
-				metadata.getAttributes());
+				metadata.getAttributes(),
+				fromParent == null ? null : AxisUtils.permute(fromParent, axisPermutation));
 	}
 
 	public static N5CosemMetadata permuteCosemMetadata(final N5CosemMetadata metadata, int[] axisPermutation) {
