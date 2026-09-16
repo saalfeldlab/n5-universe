@@ -37,6 +37,13 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 
 	private transient final AffineGet transform;
 
+	/**
+	 * Permutation of this dataset's axis parameters relative to its parent multiscales,
+	 * such that {@code childValue[i] = parentValue[permutationFromParent[i]]}.
+	 * Null if not permuted, or if there is no parent.
+	 */
+	private transient final int[] permutationFromParent;
+
 	public NgffSingleScaleAxesMetadata(final String path,
 			final double[] scale, final double[] translation,
 			final DatasetAttributes datasetAttributes) {
@@ -52,7 +59,23 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 			final Axis[] axes,
 			final DatasetAttributes datasetAttributes) {
 
+		this(path, scale, translation, axes, datasetAttributes, null);
+	}
+
+	/**
+	 * @param permutationFromParent
+	 *            the permutation of this dataset's axis parameters relative to its parent multiscales
+	 *            (see {@link #getPermutationFromParent()}), or null if not permuted or there is no parent
+	 */
+	public NgffSingleScaleAxesMetadata(final String path,
+			final double[] scale,
+			final double[] translation,
+			final Axis[] axes,
+			final DatasetAttributes datasetAttributes,
+			final int[] permutationFromParent) {
+
 		this.path = MetadataUtils.normalizeGroupPath(path);
+		this.permutationFromParent = permutationFromParent == null ? null : permutationFromParent.clone();
 
 		this.scale = scale != null ? scale : ones(axes.length);
 		this.translation = translation != null ? translation : new double[axes.length];
@@ -109,6 +132,24 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 	public double[] getTranslation() {
 
 		return translation;
+	}
+
+	/**
+	 * Returns the permutation of this dataset's axis parameters (axes, scale, translation)
+	 * relative to those of its parent multiscales, such that
+	 * {@code childValue[i] = parentValue[p[i]]}, the convention of the array overloads of
+	 * {@link AxisUtils#permute(double[], int[])}.
+	 * <p>
+	 * When parsed from a zarr2 f-order array this is a reversal, because n5-zarr does not
+	 * reverse the dimensions of f-order arrays. To permute an image with this, pass
+	 * {@link AxisUtils#invertPermutation(int[])} of it to
+	 * {@link AxisUtils#permute(net.imglib2.RandomAccessibleInterval, int[])}.
+	 *
+	 * @return a copy of the permutation, or null if not permuted or there is no parent
+	 */
+	public int[] getPermutationFromParent() {
+
+		return permutationFromParent == null ? null : permutationFromParent.clone();
 	}
 
 	@Override
@@ -185,7 +226,7 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 
 		return new NgffSingleScaleAxesMetadata( newPath,
 				newScale, newTranslation,
-				axes, datasetAttributes);
+				axes, datasetAttributes, permutationFromParent);
 	}
 
 }
