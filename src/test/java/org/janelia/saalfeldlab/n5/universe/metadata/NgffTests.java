@@ -2,8 +2,11 @@ package org.janelia.saalfeldlab.n5.universe.metadata;
 
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -12,14 +15,18 @@ import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5FSReader;
+import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.codec.transpose.TransposeCodecInfo;
 import org.janelia.saalfeldlab.n5.universe.N5DatasetDiscoverer;
+import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
+import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadata.CosemTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.NgffMultiScaleGroupAttributes.MultiscaleDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
@@ -36,6 +43,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
+import net.imglib2.realtransform.AffineTransform3D;
 
 public class NgffTests {
 
@@ -193,6 +202,117 @@ public class NgffTests {
 		}
 	}
 
+	/**
+	 * The multiscales metadata of an OME-NGFF group may refer to the group
+	 * itself ({@code "path" : "."}), in which case that node is both a
+	 * multiscale group and an array.
+	 * <p>
+	 * Such a node must be discovered as a dataset, and must keep the spatial
+	 * metadata that the multiscales describe. The multiscale metadata that
+	 * {@link OmeNgffMetadataParser} returns describe the group, and are not
+	 * openable on their own, so they must not replace the single scale metadata
+	 * that the parser sets on the node.
+	 */
+	@Test
+	public void testSelfReferencedMultiscales() throws IOException {
+
+		// the container root is both the multiscale group and the array
+		final String rootContainer = writeSelfReferencedMultiscales("");
+		assertSelfReferencedDataset("shallow parse of root", shallowParse(rootContainer, ""));
+		assertSelfReferencedDataset("deep parse of root", deepParse(rootContainer, ""));
+
+		// a group below the root is both the multiscale group and the array
+		final String nestedContainer = writeSelfReferencedMultiscales("a/b");
+		assertSelfReferencedDataset("shallow parse of 'a/b'", shallowParse(nestedContainer, "a/b"));
+
+		/*
+		 * Deep parsing does not yet find a self-referenced multiscale group
+		 * below the root. Group parsers only run for nodes without metadata that
+		 * have children, and such a node has neither: the plain parsers
+		 * recognize the array it is, and its only scale level is itself.
+		 */
+	}
+
+	/**
+	 * Writes a container with multiscales metadata at the given group path whose
+	 * only dataset is the group itself.
+	 *
+	 * @param groupPath the group path
+	 * @return the container root
+	 */
+	private static String writeSelfReferencedMultiscales(final String groupPath) throws IOException {
+
+		final String root = Files.createTempDirectory("selfMultiscales").resolve("test.zarr").toString();
+		final long[] dims = new long[]{27, 226, 186};
+		final int[] blkSize = new int[]{16, 64, 64};
+
+		try (final N5Writer zarr = new N5Factory().openWriter(StorageFormat.ZARR, root)) {
+			zarr.createDataset(groupPath, dims, blkSize, DataType.UINT8, new RawCompression());
+			zarr.setAttribute(groupPath, "multiscales",
+					new Gson().fromJson(SELF_REFERENCED_MULTISCALES, JsonElement.class));
+		}
+		return root;
+	}
+
+	/** Parses a single node, as done when a container is first opened. */
+	private static N5TreeNode shallowParse(final String containerRoot, final String groupPath) {
+
+		try (final N5Reader zarr = new N5Factory().openReader(StorageFormat.ZARR, containerRoot)) {
+			return N5DatasetDiscoverer.discoverShallow(zarr, groupPath);
+		}
+	}
+
+	/** Parses the whole container, returning the node at the given group path. */
+	private static N5TreeNode deepParse(final String containerRoot, final String groupPath) {
+
+		try (final N5Reader zarr = new N5Factory().openReader(StorageFormat.ZARR, containerRoot)) {
+			final Optional<N5TreeNode> node = N5DatasetDiscoverer.discover(zarr).getDescendant(groupPath);
+			Assert.assertTrue("node discovered at '" + groupPath + "'", node.isPresent());
+			return node.get();
+		}
+	}
+
+	private static void assertSelfReferencedDataset(final String message, final N5TreeNode node) {
+
+		final double eps = 1e-9;
+		final N5Metadata meta = node.getMetadata();
+		Assert.assertNotNull(message + " has metadata", meta);
+		Assert.assertTrue(message + " is a dataset, but was " + meta.getClass().getSimpleName(), node.isDataset());
+
+		// the multiscales describe the array, so its spatial metadata must survive
+		Assert.assertTrue(message + " has spatial metadata, but was " + meta.getClass().getSimpleName(),
+				meta instanceof N5SpatialDatasetMetadata);
+
+		// zarr parameters are reversed, so the json scale [2.2, 0.9, 0.9] is (x,y,z) here
+		final AffineTransform3D transform = ((N5SpatialDatasetMetadata)meta).spatialTransform3d();
+		Assert.assertEquals(message + " x scale", 0.9, transform.get(0, 0), eps);
+		Assert.assertEquals(message + " y scale", 0.9, transform.get(1, 1), eps);
+		Assert.assertEquals(message + " z scale", 2.2, transform.get(2, 2), eps);
+		Assert.assertEquals(message + " unit", "mm", ((N5SpatialDatasetMetadata)meta).unit());
+
+		Assert.assertArrayEquals(message + " axis labels",
+				new String[]{"x", "y", "z"}, ((AxisMetadata)meta).getAxisLabels());
+	}
+
+	private static final String SELF_REFERENCED_MULTISCALES =
+			"[{"
+			+ "  'name': 'multiscales-dataset-self',"
+			+ "  'type': 'Average',"
+			+ "  'version': '0.4',"
+			+ "  'axes': ["
+			+ "    {'type': 'space', 'name': 'z', 'unit': 'mm'},"
+			+ "    {'type': 'space', 'name': 'y', 'unit': 'mm'},"
+			+ "    {'type': 'space', 'name': 'x', 'unit': 'mm'}"
+			+ "  ],"
+			+ "  'datasets': [{"
+			+ "    'path': '.',"
+			+ "    'coordinateTransformations': ["
+			+ "      {'scale': [2.2, 0.9, 0.9], 'type': 'scale'},"
+			+ "      {'translation': [0, 0, 0], 'type': 'translation'}"
+			+ "    ]"
+			+ "  }]"
+			+ "}]";
+
 	public static OmeNgffMultiScaleMetadata parse(final N5Writer zarr, final String base) {
 
 		final N5TreeNode root = N5DatasetDiscoverer.discover(zarr);
@@ -293,7 +413,7 @@ public class NgffTests {
 
 		final DatasetAttributes dsetAttrs = zarr.getDatasetAttributes(dsetPath);
 
-		final OmeNgffMultiScaleMetadata meta = NgffTests.buildPermutedAxesMetadata(permutation, true, dsetAttrs);
+		final OmeNgffMultiScaleMetadata meta = NgffTests.buildPermutedAxesMetadata(permutation, cOrder, dsetAttrs);
 		zarr.setAttribute(base, "multiscales", new OmeNgffMultiScaleMetadata[]{meta});
 	}
 
