@@ -370,10 +370,18 @@ public class AxisUtils {
 
 	public static <T> RandomAccessibleInterval<T> reverseDimensions(final RandomAccessibleInterval<T> img) {
 
-		final int nd = img.numDimensions();
-		final int[] p = IntStream.iterate(nd - 1, x -> x - 1).limit(nd).toArray();
 		// reversing is its own permutation, so can skip the invert step
-		return permute(img, p);
+		return permute(img, reversePermutation(img.numDimensions()));
+	}
+
+	/**
+	 * @param nd
+	 *            the number of dimensions
+	 * @return the permutation that reverses {@code nd} dimensions: {@code [nd-1, ..., 0]}
+	 */
+	public static int[] reversePermutation(final int nd) {
+
+		return IntStream.iterate(nd - 1, x -> x - 1).limit(nd).toArray();
 	}
 
 	private static final <T> int indexOf(final T[] arr, final T tgt) {
