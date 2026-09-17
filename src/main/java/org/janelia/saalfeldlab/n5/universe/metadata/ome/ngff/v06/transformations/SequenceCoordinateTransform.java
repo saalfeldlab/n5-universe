@@ -233,47 +233,7 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 	 *
 	 * Currently does not allow re-used axes.
 	 *
-	 * @param tforms transformations	public static class InverseCT extends AbstractCoordinateTransform<InvertibleRealTransform>
-	implements InvertibleCoordinateTransform<InvertibleRealTransform> {
-
-	InvertibleCoordinateTransform<?> ict;
-
-	public InverseCT( final InvertibleCoordinateTransform<?> ict ) {
-		super("invWrap", "inv-" + ict.getName(), ict.getOutput(), ict.getInput());
-		this.ict = ict;
-	}
-
-	public InverseCT(final String type, final String name, final String inputSpace, final String outputSpace,
-			final InvertibleCoordinateTransform<?> ict ) {
-		super(type, name, inputSpace, outputSpace);
-		this.ict = ict;
-	}
-	
-	public InvertibleCoordinateTransform<?> getWrappedCoordinateTransform() {
-		return ict;
-	}
-
-	@Override
-	public InvertibleRealTransform getTransform() {
-		return ict.getInvertibleTransform();
-	}
-
-	@Override
-	public InvertibleRealTransform getTransform( final N5Reader n5 ) {
-		return ict.getInvertibleTransform( n5 );
-	}
-
-	@Override
-	public InvertibleRealTransform getInvertibleTransform() {
-		return ict.getTransform();
-	}
-
-	@Override
-	public InvertibleRealTransform getInvertibleTransform( final N5Reader n5 ) {
-		return ict.getTransform( n5 );
-	}
-}
-
+	 * @param tforms transformations
 	 * @param tgtAxes target axis names
 	 * @return list of intermediate axis lists
 	 */
