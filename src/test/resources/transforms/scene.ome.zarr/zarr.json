@@ -1,0 +1,83 @@
+{
+  "attributes": {
+    "ome": {
+      "scene": {
+        "coordinateTransformations": [
+          {
+            "type": "translation",
+            "input": {
+              "name": "physical",
+              "path": "CBCT"
+            },
+            "output": {
+              "name": "world"
+            },
+            "name": "CBCT_to_world",
+            "translation": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "type": "translation",
+            "input": {
+              "name": "physical",
+              "path": "Dose"
+            },
+            "output": {
+              "name": "world"
+            },
+            "name": "Dose_to_world",
+            "translation": [
+              4400.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "type": "translation",
+            "input": {
+              "name": "physical",
+              "path": "LET"
+            },
+            "output": {
+              "name": "world"
+            },
+            "name": "LET_to_world",
+            "translation": [
+              4400.0,
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "coordinateSystems": [
+          {
+            "name": "world",
+            "axes": [
+              {
+                "name": "z",
+                "type": "space",
+                "unit": "micrometer"
+              },
+              {
+                "name": "y",
+                "type": "space",
+                "unit": "micrometer"
+              },
+              {
+                "name": "x",
+                "type": "space",
+                "unit": "micrometer"
+              }
+            ]
+          }
+        ]
+      },
+      "version": "0.6"
+    }
+  },
+  "zarr_format": 3,
+  "node_type": "group"
+}
