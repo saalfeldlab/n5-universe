@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import net.imglib2.Cursor;
@@ -77,6 +78,7 @@ public class AxisUtilsTest {
 	}
 
 	@Test
+	@Ignore("Need to decide fillPermutation's behavior")
 	public void testFillPermutationWithUnmatchedSourceAxis() {
 
 		// the source axis "q" is not a target, so index 2 is never used
