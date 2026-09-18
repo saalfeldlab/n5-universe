@@ -138,62 +138,69 @@ public class AxisUtils {
 	{
 		return Arrays.stream(labels).map( x -> {
 			final String type = getDefaultType( x );
-			return new Axis(x, type, "", type.equals(Axis.CHANNEL));
+			return new Axis(type, x, "", type.equals(Axis.CHANNEL));
 		}).toArray( Axis[]::new );
 	}
 
 	/**
-	 * Finds and returns a permutation p such that source[p[i]] equals target[i]
+	 * Finds and returns a permutation p such that the label of axis p[i]
+	 * equals targetLabels[i].
 	 *
 	 * @param <A> the axis type
 	 * @param axisMetadata the axis metadata
+	 * @param targetLabels the desired axis order after permutation
 	 * @return the permutation
 	 */
-	public static <A extends AxisMetadata > int[] findImagePlusPermutation( final AxisMetadata axisMetadata ) {
+	public static <A extends AxisMetadata > int[] findPermutationByName( final AxisMetadata axisMetadata, final String... targetLabels ) {
 
 		// TODO should use axis types, not just labels.
 		// and should consider what to do if an unknown label exists
-		return findImagePlusPermutation(axisMetadata.getAxisLabels());
+		return findPermutationByName(axisMetadata.getAxisLabels(), targetLabels);
 	}
 
 	/**
-	 * Finds and returns a permutation p such that source[p[i]] equals xyczt
+	 * Finds and returns a permutation p such that the name of axes[p[i]]
+	 * equals targetLabels[i].
 	 *
 	 * @param axes the axes
+	 * @param targetLabels the desired axis order after permutation
 	 * @return the permutation array
 	 */
-	public static int[] findImagePlusPermutation(final Axis[] axes) {
+	public static int[] findPermutationByName(final Axis[] axes, final String... targetLabels) {
 
 		final String[] axisLabels = Arrays.stream(axes).map(Axis::getName).toArray(String[]::new);
-		return findImagePlusPermutation(axisLabels);
+		return findPermutationByName(axisLabels, targetLabels);
 	}
 
 	/**
-	 * Finds and returns a permutation p such that source[p[i]] equals xyczt
+	 * Finds and returns a permutation p such that axisLabels[p[i]] equals
+	 * targetLabels[i].
 	 *
-	 * @param axisLabels the axis labels
+	 * @param axisLabels
+	 *            the axis labels
+	 * @param targetLabels
+	 *            the desired axis order after permutation
 	 * @return the permutation array
 	 */
-	public static int[] findImagePlusPermutation(final String[] axisLabels) {
+	public static int[] findPermutationByName(final String[] axisLabels, final String... targetLabels) {
 
-		final int[] p = new int[ 5 ];
-		p[0] = indexOf( axisLabels, "x" );
-		p[1] = indexOf( axisLabels, "y" );
-		p[2] = indexOf( axisLabels, "c" );
-		p[3] = indexOf( axisLabels, "z" );
-		p[4] = indexOf( axisLabels, "t" );
+		final int N = targetLabels.length;
+		final int[] p = new int[ N ];
+		for( int i = 0; i < N; i++)
+			p[i] = indexOf( axisLabels, targetLabels[i]);
+
 		return p;
 	}
 
-	public static int[] findImagePlusSpatialPermutation(final int[] p) {
-
-		final OptionalInt minOpt = Arrays.stream(p).min();
-		if (minOpt.isPresent()) {
-			final int min = minOpt.getAsInt();
-			return Arrays.stream(p).map(x -> x - min).toArray();
-		} else
-			return p;
-	}
+//	public static int[] findImagePlusSpatialPermutation(final int[] p) {
+//
+//		final OptionalInt minOpt = Arrays.stream(p).min();
+//		if (minOpt.isPresent()) {
+//			final int min = minOpt.getAsInt();
+//			return Arrays.stream(p).map(x -> x - min).toArray();
+//		} else
+//			return p;
+//	}
 
 	/**
 	 * Converters an array of integers to a normalized array of integers such that the smallest
@@ -258,11 +265,12 @@ public class AxisUtils {
 		return true;
 	}
 
-	public static <T, M extends AxisMetadata & N5Metadata> RandomAccessibleInterval<T> permuteForImagePlus(
+	public static <T, M extends AxisMetadata & N5Metadata> RandomAccessibleInterval<T> permute(
 			final RandomAccessibleInterval<T> img,
-			final M meta) {
+			final M meta,
+			final String... targetLabels) {
 
-		final int[] p = findImagePlusPermutation( meta );
+		final int[] p = findPermutationByName( meta, targetLabels );
 		fillPermutation( p );
 
 		// TODO under what conditions can I return the image directly?
@@ -276,11 +284,12 @@ public class AxisUtils {
 		return permute(imgTmp, invertPermutation(p));
 	}
 
-	public static <T> RandomAccessibleInterval<T> permuteForImagePlus(
+	public static <T> RandomAccessibleInterval<T> permute(
 			final RandomAccessibleInterval<T> img,
-			final Axis[] axes) {
+			final Axis[] axes,
+			final String... targetLabels) {
 
-		final int[] p = findImagePlusPermutation( axes );
+		final int[] p = findPermutationByName( axes, targetLabels );
 		fillPermutation( p );
 
 		// TODO under what conditions can I return the image directly?
@@ -294,7 +303,7 @@ public class AxisUtils {
 		return permute(imgTmp, invertPermutation(p));
 	}
 
-	public static <M extends AxisMetadata & N5Metadata> M permuteForImagePlus(int[] spatialPermutation, final M meta) {
+	public static <M extends AxisMetadata & N5Metadata> M permuteMetadata(int[] spatialPermutation, final M meta) {
 
 		if (isIdentityPermutation(spatialPermutation))
 			return meta;
@@ -315,12 +324,13 @@ public class AxisUtils {
 		return meta;
 	}
 
-	public static <T, M extends N5Metadata, A extends AxisMetadata & N5Metadata> Pair<RandomAccessibleInterval<T>, M> permuteImageAndMetadataForImagePlus(
-			final RandomAccessibleInterval<T> img, final M meta) {
+	public static <T, M extends N5Metadata, A extends AxisMetadata & N5Metadata> Pair<RandomAccessibleInterval<T>, M> permuteImageAndMetadata(
+			final RandomAccessibleInterval<T> img, final M meta,
+			final String... targetLabels) {
 
 		if (meta != null && meta instanceof AxisMetadata) {
 
-			final int[] p = AxisUtils.findImagePlusPermutation((AxisMetadata)meta);
+			final int[] p = AxisUtils.findPermutationByName((AxisMetadata)meta, targetLabels);
 			AxisUtils.fillPermutation(p);
 
 			RandomAccessibleInterval<T> imgTmp = img;
@@ -334,7 +344,7 @@ public class AxisUtils {
 			final RandomAccessibleInterval<T> imgOut = permute(imgTmp, invertPermutation(p));
 			final int[] spatialPermutation = new int[]{p[0], p[1], p[3]};
 			@SuppressWarnings("unchecked")
-			final M permutedMeta = (M)permuteForImagePlus(spatialPermutation, (A)meta);
+			final M permutedMeta = (M)permuteMetadata(spatialPermutation, (A)meta);
 
 			return new ValuePair<>(imgOut, permutedMeta);
 		}
@@ -342,7 +352,7 @@ public class AxisUtils {
 		return new ValuePair<>(img, meta);
 	}
 
-	public static <T, M extends N5Metadata, A extends AxisMetadata & N5Metadata> Pair<RandomAccessibleInterval<T>, M> permuteImageAndMetadataForImagePlus(
+	public static <T, M extends N5Metadata, A extends AxisMetadata & N5Metadata> Pair<RandomAccessibleInterval<T>, M> permuteImageAndMetadata(
 			final int[] p, final RandomAccessibleInterval<T> img, final M meta) {
 
 		// store the permutation for metadata
