@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -134,6 +135,84 @@ public class NgffAxisTests {
 		final N5TreeNode cOrderNode = CoordinateTransformParsingTest.setupNode(zarr, "cOrder", "1");
 		axisOrderTest(parser.parseMetadata(zarr, cOrderNode), expectedNames, expectedScales, expectedTranslations,
 				expectedDimensionsC, null);
+	}
+
+	@Test
+	public void testMixedStorageOrderMultiscales() {
+
+		final URI rootF = Paths.get("src", "test", "resources", "metadata.zarr").toUri();
+		final N5Reader zarr = new N5Factory().openReader(rootF.toString());
+
+		// s0 and s3 are c-order arrays, s1 and s2 are f-order arrays.
+		// The multiscales metadata is shared by all scale levels, so the parsed
+		// axes, scales, and translations are reversed relative to the JSON for every level.
+		// Only the children's axis parameters differ, since they are aligned with
+		// their array's dimensions, which n5-zarr reverses for c-order arrays only.
+		final OmeNgffMetadataParser parser = new OmeNgffMetadataParser();
+		final Optional<OmeNgffMetadata> metaOpt = parser
+				.parseMetadata(zarr, new N5TreeNode("mixedOrderMultiscales"));
+
+		assertTrue("not parsable", metaOpt.isPresent());
+		final OmeNgffMetadata meta = metaOpt.get();
+		assertTrue("no multiscales found", meta.multiscales.length > 0);
+
+		final String[] expectedNames = new String[] { "z", "y", "x", "c" };
+		assertArrayEquals("names do not match", expectedNames,
+				Arrays.stream(meta.multiscales[0].axes).map(a -> a.getName()).toArray(N -> new String[N]));
+
+		final int[] reversal = new int[] { 3, 2, 1, 0 };
+		final NgffSingleScaleAxesMetadata[] children = meta.getChildrenMetadata();
+		assertEquals("number of scale levels", 4, children.length);
+
+		final long[][] expectedDimensions = new long[][] {
+				{ 1536, 4096, 4096, 1 },	// s0 c-order, reversed by n5-zarr
+				{ 1, 2048, 2048, 768 },		// s1 f-order, as in the JSON shape
+				{ 1, 1024, 1024, 384 },		// s2 f-order, as in the JSON shape
+				{ 192, 512, 512, 1 }		// s3 c-order, reversed by n5-zarr
+		};
+
+		for (int i = 0; i < 4; i++) {
+
+			final String level = "s" + i;
+			final double f = 1 << i;
+
+			// multiscales values, reversed relative to the JSON
+			final double[] expectedScales = new double[] { 13 * f, 12 * f, 11 * f, 1 };
+			final double[] expectedTranslations = new double[] { 3 * f, 2 * f, 1 * f, 0 };
+
+			final CoordinateTransform<?>[] cts = meta.multiscales[0].datasets[i].coordinateTransformations;
+			assertTrue(level + " first coordinate transform not scale", cts[0] instanceof ScaleCoordinateTransform);
+			assertArrayEquals(level + " scales do not match", expectedScales,
+					((ScaleCoordinateTransform)cts[0]).scale, EPS);
+
+			assertTrue(level + " second coordinate transform not translation",
+					cts[1] instanceof TranslationCoordinateTransform);
+			assertArrayEquals(level + " translations do not match", expectedTranslations,
+					((TranslationCoordinateTransform)cts[1]).translation, EPS);
+
+			// f-order children are permuted relative to the multiscales metadata, c-order children are not
+			final boolean fOrder = (i == 1 || i == 2);
+			final int[] expectedPermutation = fOrder ? reversal : null;
+
+			String[] childNames = Arrays.copyOf(expectedNames, expectedNames.length);
+			double[] childScales = expectedScales;
+			double[] childTranslations = expectedTranslations;
+			if (expectedPermutation != null) {
+				AxisUtils.permute(childNames, childNames, expectedPermutation);
+				childScales = AxisUtils.permute(expectedScales, expectedPermutation);
+				childTranslations = AxisUtils.permute(expectedTranslations, expectedPermutation);
+			}
+
+			final NgffSingleScaleAxesMetadata child = children[i];
+			assertArrayEquals(level + " permutation from parent does not match", expectedPermutation,
+					child.getPermutationFromParent());
+			assertArrayEquals(level + " dimensions do not match", expectedDimensions[i],
+					child.getAttributes().getDimensions());
+			assertArrayEquals(level + " child names do not match", childNames, child.getAxisLabels());
+			assertArrayEquals(level + " child scales do not match", childScales, child.getScale(), EPS);
+			assertArrayEquals(level + " child translations do not match", childTranslations,
+					child.getTranslation(), EPS);
+		}
 	}
 
 	@Test
