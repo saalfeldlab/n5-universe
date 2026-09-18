@@ -99,7 +99,7 @@ public class TransformPath {
 				else if( t instanceof IdentityCoordinateTransform) {
 					// no op
 				}
-				else if( t instanceof InverseCoordinateTransform&&
+				else if( t instanceof InverseCoordinateTransform &&
 						((InverseCoordinateTransform)t).getWrappedCoordinateTransform() instanceof IdentityCoordinateTransform ) {
 					// no op
 				}
