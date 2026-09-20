@@ -5,10 +5,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.SpatialMultiscaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.view.Views;
@@ -49,7 +46,7 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 			final double[][] translations) {
 
 		// TODO make this a constructor? (yes, says Caleb, and John)
-
+		
 		assert scalePaths.length == scales.length;
 
 		if( translations != null )
@@ -57,25 +54,22 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 
 		final int numScales = scalePaths.length;
 		final String type = "";
-		final OmeNgffDataset[] datasets = new OmeNgffDataset[numScales];
+
+		final OmeNgffMultiScaleMetadataMutable mut = new OmeNgffMultiScaleMetadataMutable();
 		for( int i = 0; i < numScales; i++ ) {
-
-			final ScaleCoordinateTransform s = new ScaleCoordinateTransform(scales[i]);
-			TranslationCoordinateTransform t = null;
-			if( translations != null && translations[i] != null )
-				t = new TranslationCoordinateTransform(translations[i]);
-
-			datasets[i] = new OmeNgffDataset();
-			datasets[i].path = scalePaths[i];
-			datasets[i].coordinateTransformations = t == null ?
-					new CoordinateTransform[]{ s } :
-					new CoordinateTransform[]{ s, t };
+			
+			final NgffSingleScaleAxesMetadata singleScaleMeta = new NgffSingleScaleAxesMetadata(scalePaths[i], 
+					scales[i], 
+					translations != null && translations[i] != null ? translations[i] : null, 
+					null);
+			
+			mut.addChild(singleScaleMeta);
 		}
 
 		final CoordinateTransform<?>[] cts = null;
 		final OmeNgffMultiScaleMetadata ms = new OmeNgffMultiScaleMetadata(numDimensions,
 				"", name, type, version,
-				axes, datasets, cts, null, null);
+				axes, mut.getDatasets(), cts, null, null);
 
 		return new OmeNgffMetadata("", new OmeNgffMultiScaleMetadata[]{ ms });
 	}
@@ -106,23 +100,7 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 	 * @return the permutation array
 	 */
 	public static int[] findNgffPermutation(final String[] axisLabels) {
-
-		final int[] p = new int[5];
-		p[0] = indexOf(axisLabels, "x");
-		p[1] = indexOf(axisLabels, "y");
-		p[2] = indexOf(axisLabels, "z");
-		p[3] = indexOf(axisLabels, "c");
-		p[4] = indexOf(axisLabels, "t");
-		return p;
-	}
-
-	private static final <T> int indexOf(final T[] arr, final T tgt) {
-
-		for (int i = 0; i < arr.length; i++) {
-			if (arr[i].equals(tgt))
-				return i;
-		}
-		return -1;
+		return AxisUtils.findPermutationByName(axisLabels, "x", "y", "z", "c", "t");
 	}
 
 }
