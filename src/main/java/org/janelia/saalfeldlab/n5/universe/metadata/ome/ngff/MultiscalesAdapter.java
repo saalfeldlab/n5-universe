@@ -143,6 +143,58 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 				coordinateSystems, coordinateTransformations, null, metadata);
 	}
 
+	/**
+	 * Fills in the {@code input} and {@code output} references that OME-Zarr 0.6
+	 * requires on every dataset transform. They are implicit in 0.4 and 0.5, so the
+	 * transform objects themselves do not carry them: a transform maps the array it
+	 * is listed under into the multiscale's coordinate system. Both are written as
+	 * JSON here rather than set on the transforms, so that serializing does not
+	 * mutate the metadata being serialized, and so that every caller writing 0.6
+	 * gets them without setting them itself.
+	 * <p>
+	 * References already present are left alone.
+	 *
+	 * @param datasets the serialized {@code datasets} array
+	 * @param outputName name of the coordinate system the transforms map into
+	 */
+	private static void addTransformReferences(final JsonElement datasets, final String outputName) {
+
+		if (datasets == null || !datasets.isJsonArray())
+			return;
+
+		for (final JsonElement d : datasets.getAsJsonArray()) {
+
+			if (!d.isJsonObject())
+				continue;
+
+			final JsonObject dset = d.getAsJsonObject();
+			final JsonElement path = dset.get("path");
+			final JsonElement cts = dset.get(CoordinateTransform.KEY);
+			if (path == null || cts == null || !cts.isJsonArray())
+				continue;
+
+			for (final JsonElement t : cts.getAsJsonArray()) {
+
+				if (!t.isJsonObject())
+					continue;
+
+				final JsonObject tform = t.getAsJsonObject();
+
+				if (!tform.has(CoordinateTransform.INPUT_KEY)) {
+					final JsonObject input = new JsonObject();
+					input.add("path", path);
+					tform.add(CoordinateTransform.INPUT_KEY, input);
+				}
+
+				if (!tform.has(CoordinateTransform.OUTPUT_KEY)) {
+					final JsonObject output = new JsonObject();
+					output.addProperty("name", outputName);
+					tform.add(CoordinateTransform.OUTPUT_KEY, output);
+				}
+			}
+		}
+	}
+
 	@Override
 	public JsonElement serialize( final OmeNgffMultiScaleMetadata src, final Type typeOfSrc, final JsonSerializationContext context )
 	{
@@ -153,9 +205,12 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 		/*
 		 * We do not support writing to 0.3 or earlier.
 		 * OME-Zarr v0.4 stores version in the multiscales.
-		 * v0.5 puts the version under the "ome" key.
+		 * v0.5 and later put the version under the "ome" key, so it is written by the
+		 * caller (see OmeNgffMetadataParser.writeMetadata) rather than here.
+		 * An empty version means "unknown, or specified elsewhere" and is not written.
 		 */
-		if (src.version.equals("0.4"))
+		if (src.version != null && !src.version.isEmpty()
+				&& !OmeNgffMetadataParser.storesMetadataUnderOmeKey(src.version))
 			obj.addProperty("version", src.version);
 
 		// v0.5+ (RFC-5) stores axes inside named coordinateSystems; older layouts
@@ -174,7 +229,12 @@ public class MultiscalesAdapter implements JsonDeserializer< OmeNgffMultiScaleMe
 			}
 			obj.add("axes", serializedAxes);
 		}
-		obj.add("datasets", context.serialize(src.getDatasets()));
+
+		final JsonElement datasets = context.serialize(src.getDatasets());
+		if (css != null && css.length > 0)
+			addTransformReferences(datasets, css[0].getName());
+
+		obj.add("datasets", datasets);
 
 		CoordinateTransform<?>[] cts = src.getCoordinateTransformations();
 		if( cts != null )
