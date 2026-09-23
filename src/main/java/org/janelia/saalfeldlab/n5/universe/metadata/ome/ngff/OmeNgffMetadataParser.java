@@ -18,9 +18,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5MetadataWriter;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.AxisAdapter;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformationAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v03.OmeNgffV03MetadataProcessor;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransformAdapter;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
@@ -63,7 +63,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 	public GsonBuilder gsonBuilder() {
 
 		return new GsonBuilder()
-				.registerTypeAdapter(CoordinateTransformation.class, new CoordinateTransformationAdapter(reverse))
+				.registerTypeAdapter(CoordinateTransform.class, new CoordinateTransformAdapter(reverse))
 				.registerTypeAdapter(Axis.class, new AxisAdapter())
 				.registerTypeAdapter(OmeNgffMultiScaleMetadata.class, new MultiscalesAdapter(reverse));
 	}
@@ -137,8 +137,8 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 				scaleLevelNodes.put(n.getPath(), n);
 			});
 		}
+		
 
-	
 		/*
 		 * Need to replace all children with new children with the metadata from
 		 * this object
@@ -147,28 +147,62 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 			final OmeNgffMultiScaleMetadata ms = multiscales[j];
 			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffMultiScaleMetadata.buildMetadata(
-					nd, node.getPath(), ms.getDatasets(), attrs, ms.getCoordinateTransformations(), ms.metadata, ms.axes, false);
+					nd, node.getPath(), ms.getDatasets(), attrs, ms.getCoordinateTransformations(), ms.metadata, ms.axes);
 
+			// updates both children of node, and node itself
 			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta, false);
 			multiscales[j] = new OmeNgffMultiScaleMetadata(ms, msChildrenMeta);
 		}
 
 		return Optional.of(new OmeNgffMetadata(node.getPath(), multiscales));
 	}
-
+	
 	@Override
 	public void writeMetadata(final OmeNgffMetadata t, final N5Writer n5, final String groupPath) throws Exception {
 
 		final OmeNgffMultiScaleMetadata[] ms = t.multiscales;
 		final JsonElement jsonElem = gson.toJsonTree(ms);
 
-		if( t.multiscales[0].version.equals("0.5")) {
-			n5.setAttribute(groupPath, OME + "/version", "0.5");
+		// 0.5 and later store the version and multiscales under the "ome" key,
+		// 0.4 and earlier store multiscales at the top level and carry the version
+		// inside the multiscales object itself
+		final String version = t.multiscales[0].version;
+		if (OmeNgffMetadataParser.storesMetadataUnderOmeKey(version)) {
+			n5.setAttribute(groupPath, OME + "/version", version);
 			n5.setAttribute(groupPath, OMEMS, jsonElem);
 			writeZarr3DimensionNames(n5, groupPath, ms);
 		}
 		else
 			n5.setAttribute(groupPath, MS, jsonElem);
+	}
+	
+	/**
+	 * Whether OME-Zarr metadata of the given version is stored under the
+	 * top-level "ome" attribute key.
+	 * <p>
+	 * Versions 0.5 and later store the version at "ome/version" and the
+	 * multiscales at "ome/multiscales". Versions 0.4 and earlier store the
+	 * multiscales at the top level, with the version inside each multiscales
+	 * object.
+	 * <p>
+	 * Returns true for exactly "0.5" and for any version beginning with "0.6",
+	 * including development versions such as "0.6.dev4".
+	 *
+	 * @param version the OME-Zarr version, may be null or empty if unknown
+	 * @return true if the metadata belongs under the "ome" key, false for
+	 *         0.4 and earlier, and for a null or empty version
+	 */
+	public static boolean storesMetadataUnderOmeKey(final String version) {
+
+		if (version == null || version.isEmpty())
+			return false;
+
+		// need to return true for dev versions of 0.6 as well
+		// e.g. 0.6.dev4
+		if( version.equals("0.5") || version.startsWith("0.6"))
+			return true;
+
+		return false;
 	}
 
 	private void writeZarr3DimensionNames(N5Writer n5, final String groupPath, OmeNgffMultiScaleMetadata[] ms) {

@@ -13,10 +13,11 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadata.CosemTransfo
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
@@ -36,6 +37,8 @@ public class MetadataUtils {
 	// duplicate variables in N5ScalePyramidExporter in n5-ij
 	public static final String DOWN_SAMPLE = "Sample";
 	public static final String DOWN_AVERAGE = "Average";
+
+	private static final Gson gson = new Gson();
 
 	public static double[] mul(final double[] a, final double[] b) {
 
@@ -100,7 +103,7 @@ public class MetadataUtils {
 		return factors;
 	}
 
-	public static CoordinateTransformation<?>[] buildScaleTranslationTransformList(final double[] scale, final double[] translation) {
+	public static CoordinateTransform<?>[] buildScaleTranslationTransformList(final double[] scale, final double[] translation) {
 
 		int nTforms = 0;
 		if (scale != null)
@@ -109,19 +112,19 @@ public class MetadataUtils {
 		if (translation != null)
 			nTforms++;
 
-		final CoordinateTransformation<?>[] coordinateTransformations = new CoordinateTransformation<?>[nTforms];
+		final CoordinateTransform<?>[] coordinateTransformations = new CoordinateTransform<?>[nTforms];
 
 		int i = 0;
 		if (scale != null)
-			coordinateTransformations[i++] = new ScaleCoordinateTransformation(scale);
+			coordinateTransformations[i++] = new ScaleCoordinateTransform(scale);
 
 		if (translation != null)
-			coordinateTransformations[i++] = new TranslationCoordinateTransformation(translation);
+			coordinateTransformations[i++] = new TranslationCoordinateTransform(translation);
 
 		return coordinateTransformations;
 	}
 
-	public static ScaleAndTranslation scaleTranslationFromCoordinateTransformations(final CoordinateTransformation<?>[] cts) {
+	public static ScaleAndTranslation scaleTranslationFromCoordinateTransformations(final CoordinateTransform<?>[] cts) {
 
 		if (cts == null || cts.length == 0)
 			return null;
@@ -133,13 +136,13 @@ public class MetadataUtils {
 		return out;
 	}
 
-	public static ScaleAndTranslation coordinateTransformToScaleAndTranslation(CoordinateTransformation<?> ct) {
+	public static ScaleAndTranslation coordinateTransformToScaleAndTranslation(CoordinateTransform<?> ct) {
 
-		if (ct.getType().equals(ScaleCoordinateTransformation.TYPE)) {
-			final double[] s = ((ScaleCoordinateTransformation)ct).getScale();
+		if (ct.getType().equals(ScaleCoordinateTransform.TYPE)) {
+			final double[] s = ((ScaleCoordinateTransform)ct).scale;
 			return new ScaleAndTranslation(s, new double[s.length]);
-		} else if (ct.getType().equals(TranslationCoordinateTransformation.TYPE)) {
-			final double[] t = ((TranslationCoordinateTransformation)ct).getTranslation();
+		} else if (ct.getType().equals(TranslationCoordinateTransform.TYPE)) {
+			final double[] t = ((TranslationCoordinateTransform)ct).translation;
 			final double[] s = new double[t.length];
 			Arrays.fill(s, 1.0);
 			return new ScaleAndTranslation(s, t);
@@ -186,7 +189,7 @@ public class MetadataUtils {
 	public static void updateChildrenMetadata(final N5TreeNode parent, final N5Metadata[] childrenMetadata,
 			final boolean relative) {
 
-		final HashMap<String, N5Metadata> children = new HashMap<>();
+		final HashMap<String, N5Metadata> referenced = new HashMap<>();
 		Arrays.stream(childrenMetadata).forEach(x -> {
 			final String absolutePath;
 			if (relative) {
@@ -194,13 +197,23 @@ public class MetadataUtils {
 			} else {
 				absolutePath = x.getPath();
 			}
-			children.put(absolutePath, x);
+			referenced.put(absolutePath, x);
 		});
+
+		// update children
 		parent.childrenList().forEach(c -> {
-			final N5Metadata m = children.get(MetadataUtils.normalizeGroupPath(c.getPath()));
-			if (m != null)
-				c.setMetadata(m);
+			updateNodeMetadata(c, referenced);
 		});
+
+		// update parent itself
+		updateNodeMetadata(parent, referenced);
+	}
+
+	private static void updateNodeMetadata(final N5TreeNode node, final HashMap<String, N5Metadata> newMetadata) {
+
+		final N5Metadata m = newMetadata.get(MetadataUtils.normalizeGroupPath(node.getPath()));
+		if (m != null)
+			node.setMetadata(m);
 	}
 
 	public static String canonicalPath(final N5TreeNode parent, final String child) {
@@ -430,7 +443,8 @@ public class MetadataUtils {
 				resolution,
 				translation,
 				baseMetadata.getAxes(),
-				baseMetadata.getAttributes());
+				baseMetadata.getAttributes(),
+				baseMetadata.getPermutationFromParent());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -462,12 +476,16 @@ public class MetadataUtils {
 
 		AxisUtils.permute(axesPermuted, axesPermuted, axisPermutation);
 
+		// compose with any existing permutation relative to the parent:
+		// new[i] = old[q[i]] = parent[p[q[i]]]
+		final int[] fromParent = metadata.getPermutationFromParent();
 		return new NgffSingleScaleAxesMetadata(
 				metadata.getPath(),
 				AxisUtils.permute(metadata.getScale(), axisPermutation),
 				AxisUtils.permute(metadata.getTranslation(), axisPermutation),
 				axesPermuted,
-				metadata.getAttributes());
+				metadata.getAttributes(),
+				fromParent == null ? null : AxisUtils.permute(fromParent, axisPermutation));
 	}
 
 	public static N5CosemMetadata permuteCosemMetadata(final N5CosemMetadata metadata, int[] axisPermutation) {
@@ -542,6 +560,10 @@ public class MetadataUtils {
 		for (int i = array.size() - 1; i >= 0; i--)
 			result.add(array.get(i));
 		return result;
+	}
+
+	public static double[][] toMatrix(JsonElement json) {
+		return gson.fromJson(json, double[][].class);
 	}
 
 }
