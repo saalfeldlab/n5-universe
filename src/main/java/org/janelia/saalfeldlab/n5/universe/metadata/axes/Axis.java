@@ -19,8 +19,8 @@ public class Axis {
 	/**
 	 * see https://ngff.openmicroscopy.org/0.4/index.html#axes-md
 	 * 
-	 * @param name must be unique across all name fields (typical: t,c,z,y,x)
 	 * @param type Axis.SPACE, Axis.CHANNEL, Axis.TIME, Axis.DISPLACEMENT or Axis.ARRAY (optional)
+	 * @param name must be unique across all name fields (typical: t,c,z,y,x)
 	 * @param unit must be chosen from a list of allowed units, can otherwise lead to issues down the road, e.g. in Neuroglancer (optional)
 	 * @param discrete not part of the spec yet, DISCRETE means don't interpolate between values (optional)
 	 */
@@ -95,14 +95,14 @@ public class Axis {
 
 	public static Axis defaultArray(final int index) {
 
-		return new Axis(String.format("dim_%d", index), ARRAY, null, true);
+		return new Axis(ARRAY, String.format("dim_%d", index), null, true);
 	}
 
 	public static Axis[] space(final String unit, final String... names) {
 
 		final Axis[] axes = new Axis[names.length];
 		for (int i = 0; i < names.length; i++)
-			axes[i] = new Axis(names[i], SPACE, unit, false);
+			axes[i] = new Axis(SPACE, names[i], unit, false);
 
 		return axes;
 	}

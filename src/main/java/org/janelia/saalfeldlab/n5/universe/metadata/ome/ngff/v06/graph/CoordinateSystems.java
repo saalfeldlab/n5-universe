@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
@@ -146,7 +147,8 @@ public class CoordinateSystems {
 
 	public static Axis makeDefaultAxis( final String name )
 	{
-		return new Axis( name, "", "", false );
+		final String type = AxisUtils.getDefaultType( name );
+		return new Axis( type == null ? "" : type, name, "", false );
 	}
 
 	public CoordinateSystem makeDefaultSpace( final String name, final String... axisLabels ) {

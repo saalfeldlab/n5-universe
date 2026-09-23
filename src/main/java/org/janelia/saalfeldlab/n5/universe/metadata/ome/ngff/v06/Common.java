@@ -266,15 +266,15 @@ public class Common {
 	{
 		return new CoordinateSystem( name,
 				Arrays.stream(labels)
-					.map( x -> new Axis(x, type, unit ))
+					.map( x -> new Axis(type, x, unit ))
 					.toArray( Axis[]::new ));
 	}
 
 	public static CoordinateSystem makeDfieldSpace( final String name, final String type, final String unit, final String... labels)
 	{
 		final Axis[] axes = Stream.concat(
-				Stream.of( new Axis( "d", "displacement", unit)),
-				Arrays.stream(labels).map( x -> new Axis(x, type, unit )))
+				Stream.of( new Axis( Axis.DISPLACEMENT, "d", unit)),
+				Arrays.stream(labels).map( x -> new Axis(type, x, unit )))
 			.toArray( Axis[]::new );
 
 		return new CoordinateSystem( name, axes);
