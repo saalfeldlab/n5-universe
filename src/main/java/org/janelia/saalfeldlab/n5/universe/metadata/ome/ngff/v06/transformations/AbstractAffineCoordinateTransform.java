@@ -51,7 +51,7 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 	protected AbstractAffineCoordinateTransform(final String name, final N5Reader n5, final String path,
 			final String inputSpace, final String outputSpace) {
 		super(TYPE, name, path, inputSpace, outputSpace);
-		buildTransform(getParameters(n5));
+		buildTransform(getParameters());
 	}
 
 	protected AbstractAffineCoordinateTransform(final String name,
@@ -102,19 +102,8 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 			blkSize[i] = (int) img.dimension(i);
 
 		N5Utils.save(img, n5, dataset, blkSize, new RawCompression());
-	}
 
-	@Override
-	public double[][] getParameters(final N5Reader n5) {
-
-		if (n5 == null)
-			return null;
-
-		// TODO JOHN this needs to be transposed!!! 
-		final double[][] affineCOrder = getDoubleArray2(n5, getParameterPath());
-		final double[][] affineCOrderT = TransformUtils.transpose(affineCOrder);
-		final double[][] affineFOrder = TransformUtils.reverseCoordinates(affineCOrderT);
-		return affineFOrder;
+		setParameterSupplier(() -> affine);
 	}
 
 }

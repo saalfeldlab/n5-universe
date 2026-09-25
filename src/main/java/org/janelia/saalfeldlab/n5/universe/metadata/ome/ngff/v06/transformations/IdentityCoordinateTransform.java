@@ -24,10 +24,6 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 		super(TYPE, name, inputRef, outputRef);
 	}
 
-	public IdentityCoordinateTransform( final String name, final int[] inputAxes, final int[] outputAxes ) {
-		super(TYPE, name, inputAxes, outputAxes );
-	}
-
 	public IdentityCoordinateTransform(IdentityCoordinateTransform other) {
 
 		super(other);
@@ -41,10 +37,7 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 	@Override
 	public InvertibleRealTransform getTransform() {
 
-		if (getInputAxes() != null)
-			return new IdentityRealTransform(getInputAxes().length);
-		else
-			return new IdentityRealTransform(0);
+		return new IdentityRealTransform(0);
 	}
 
 	private static class IdentityRealTransform implements InvertibleRealTransform {

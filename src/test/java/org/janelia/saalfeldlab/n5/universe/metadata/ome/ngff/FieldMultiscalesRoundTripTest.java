@@ -17,6 +17,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractParametrizedFieldTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.DisplacementFieldCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.FieldTransformParsing;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform;
 import org.junit.Test;
 
@@ -73,7 +74,7 @@ public class FieldMultiscalesRoundTripTest {
 		try (final N5Reader zarr = new N5Factory().openReader(StorageFormat.ZARR3, root)) {
 
 			// pixel->physical read from multiscales: scale un-reversed to imglib2 [1,2,3]
-			final CoordinateTransform<?> ct = AbstractParametrizedFieldTransform
+			final CoordinateTransform<?> ct = FieldTransformParsing
 					.findPixelToPhysicalFromMultiscales(zarr, GROUP, "field");
 			assertNotNull("pixel->physical from multiscales", ct);
 			assertEquals("scale", ct.getType());
@@ -85,8 +86,8 @@ public class FieldMultiscalesRoundTripTest {
 			// full field read: parseVectorAxisIndex reads coordinateSystems from multiscales
 			final DisplacementFieldCoordinateTransform<FloatType> df =
 					new DisplacementFieldCoordinateTransform<>("df", GROUP, "linear", "field", "world");
-			assertEquals("displacement axis index", 0, df.parseVectorAxisIndex(zarr));
-			assertNotNull("field parameters resolve end-to-end", df.getParameters(zarr));
+			assertEquals("displacement axis index", 0, FieldTransformParsing.parseVectorAxisIndex(zarr, df.getParameterPath(), df.getVectorAxisType()));
+			assertNotNull("field parameters resolve end-to-end", df.getParameters());
 		}
 	}
 }

@@ -5,8 +5,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.function.Supplier;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
@@ -17,6 +21,14 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+
+import net.imglib2.Cursor;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.cache.img.CachedCellImg;
+import net.imglib2.img.cell.CellCursor;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
+import net.imglib2.view.Views;
 
 public class CoordinateTransformAdapter
 	implements JsonDeserializer<CoordinateTransform<?>>, JsonSerializer<CoordinateTransform<?>> {
@@ -69,17 +81,31 @@ public class CoordinateTransformAdapter
 		case("scale"):
 			if (reverse) reverseParameters(jobj, "scale");
 			out = context.deserialize( jobj, ScaleCoordinateTransform.class );
+			final ScaleCoordinateTransform scale = context.deserialize( jobj, ScaleCoordinateTransform.class );
+			if( scale.getParameterPath() != null) {
+				final String path = scale.getParameterPath();
+				scale.setParameterSupplier(() -> doubleArraySupplier(n5, path, reverse));
+			}
+			out = scale;
+
 			break;
 		case("translation"):
+
 			if (reverse) reverseParameters(jobj, "translation");
-			out = context.deserialize( jobj, TranslationCoordinateTransform.class );
+			final TranslationCoordinateTransform tlation = context.deserialize( jobj, TranslationCoordinateTransform.class );
+			if( tlation.getParameterPath() != null) {
+				final String path = tlation.getParameterPath();
+				tlation.setParameterSupplier(() -> doubleArraySupplier(n5, path, reverse));
+			}
+			out = tlation;
+
 			break;
 		case("mapAxis"):
-			final MapAxisCoordinateTransform ct = context.deserialize(jobj, MapAxisCoordinateTransform.class);
+			final MapAxisCoordinateTransform mapAxis = context.deserialize(jobj, MapAxisCoordinateTransform.class);
 			if (reverse) {
-				MapAxisCoordinateTransform.reverseParameters(ct);
+				MapAxisCoordinateTransform.reverseParameters(mapAxis);
 			}
-			out = ct;
+			out = mapAxis;
 			break;
 		case("byDimension"):
 			ByDimensionCoordinateTransform bd = context.deserialize(jobj, ByDimensionCoordinateTransform.class);
@@ -89,19 +115,42 @@ public class CoordinateTransformAdapter
 			out = bd;
 			break;
 		case("affine"):
-			out = new AffineCoordinateTransformAdapter(reverse).deserialize(json, typeOfT, context);
+			AbstractAffineCoordinateTransform affine = new AffineCoordinateTransformAdapter(reverse).deserialize(json, typeOfT, context);
+			if( affine.getParameterPath() != null) {
+				final String path = affine.getParameterPath();
+				affine.setParameterSupplier(() -> affineMatrixSupplier(n5, path, reverse));
+			}
+			out = affine;
 			break;
 		case("rotation"):
-			out = new RotationCoordinateTransformAdapter().deserialize(json, typeOfT, context);
+			RotationCoordinateTransform rotation = new RotationCoordinateTransformAdapter(reverse).deserialize(json, typeOfT, context);
+			if( rotation.getParameterPath() != null) {
+				final String path = rotation.getParameterPath();
+				rotation.setParameterSupplier(() -> rotationMatrixSupplier(n5, path, reverse));
+			}
+			out = rotation;
 			break;
 		case("thin-plate-spline"):
 			out = context.deserialize( jobj, ThinPlateSplineCoordinateTransform.class );
 			break;
 		case(DisplacementFieldCoordinateTransform.TYPE):
-			out = context.deserialize( jobj, DisplacementFieldCoordinateTransform.class );
+			DisplacementFieldCoordinateTransform df = context.deserialize( jobj, DisplacementFieldCoordinateTransform.class );
+			df.setParameterSupplier(() -> {
+				return FieldTransformParsing.getParameters(n5, df.getParameterPath(), 
+						DisplacementFieldCoordinateTransform.vectorAxisType,
+						df.getInput(), df.getInterpolation(), reverse);
+			});
+		
+			out = df;
 			break;
 		case(CoordinateFieldCoordinateTransform.TYPE):
-			out = context.deserialize( jobj, CoordinateFieldCoordinateTransform.class );
+			CoordinateFieldCoordinateTransform cf = context.deserialize( jobj, CoordinateFieldCoordinateTransform.class );
+			cf.setParameterSupplier(() -> {
+				return FieldTransformParsing.getParameters(n5, cf.getParameterPath(), 
+						CoordinateFieldCoordinateTransform.vectorAxisType,
+						cf.getInput(), cf.getInterpolation(), reverse);
+			});
+			out = cf;
 			break;
 		case("bijection"):
 
@@ -151,7 +200,7 @@ public class CoordinateTransformAdapter
 
 		return out;
 	}
-	
+
 	private static void reverseParameters(final JsonObject obj, final String field) {
 		Collections.reverse(obj.get(field).getAsJsonArray().asList());
 	}
@@ -172,7 +221,7 @@ public class CoordinateTransformAdapter
 		if( transform instanceof ParametrizedTransform ) {
 			final ParametrizedTransform pt = (ParametrizedTransform)transform;
 			if( pt.getParameterPath() != null ) {
-				pt.buildTransform( pt.getParameters(n5));
+				pt.buildTransform( pt.getParameters());
 			}
 		}
 		return transform;
@@ -292,5 +341,84 @@ public class CoordinateTransformAdapter
 			json.add(key, arr);
 		}
 	}
+
+	public static <T extends RealType<T> & NativeType<T>> double[] doubleArraySupplier(final N5Reader n5, final String path, final boolean reverse) {
+
+		if (n5 == null)
+			return null;
+
+		if (n5.exists(path)) {
+			try {
+				@SuppressWarnings("unchecked")
+				final CachedCellImg<T, ?> data = (CachedCellImg<T, ?>)N5Utils.open(n5, path);
+				if (data.numDimensions() != 1 || !(data.getType() instanceof RealType))
+					return null;
+
+				final double[] params = new double[(int)data.dimension(0)];
+				final CellCursor<T, ?> c = data.cursor();
+				int i = 0;
+				while (c.hasNext())
+					params[i++] = c.next().getRealDouble();
+
+				if (reverse)
+					ArrayUtils.reverse(params);
+
+				return params;
+			} catch (final N5Exception e) {}
+		}
+		return null;
+	}
+	
+	public static <T extends RealType<T> & NativeType<T>> double[][] affineMatrixSupplier(final N5Reader n5, final String path, final boolean reverse) {
+
+		if (n5 == null || path == null)
+			return null;
+
+		final double[][] affineMatrix = getDoubleArray2d(n5, path);
+		if (reverse) {
+			return TransformUtils.reverseCoordinates(affineMatrix);
+		}
+		return affineMatrix;
+	}
+
+	public static <T extends RealType<T> & NativeType<T>> double[][] rotationMatrixSupplier(final N5Reader n5, final String path, final boolean reverse) {
+		
+		if (n5 == null || path == null)
+			return null;
+
+		final double[][] rotationMatrix = getDoubleArray2d(n5, path);
+		if (reverse) {
+			return TransformUtils.reverseCoordinatesRotation(rotationMatrix);
+		}
+		return rotationMatrix;
+	}
+	
+	public static <T extends RealType<T> & NativeType<T>> double[][] getDoubleArray2d(final N5Reader n5, final String path) {
+
+		assert n5 != null;
+		assert path != null;
+
+		if (n5.exists(path)) {
+			try {
+
+				RandomAccessibleInterval<T> matrix;
+				final CachedCellImg<T, ?> matrixRa = (CachedCellImg<T, ?>)N5Utils.open(n5, path);
+
+				if (matrixRa.numDimensions() != 2 || !(matrixRa.getType() instanceof RealType))
+					return null;
+
+				final double[][] params = new double[(int)matrixRa.dimension(0)][(int)matrixRa.dimension(1)];
+				final Cursor<T> c = Views.flatIterable(matrixRa).cursor();
+				while (c.hasNext()) {
+					c.fwd();
+					params[c.getIntPosition(0)][c.getIntPosition(1)] = c.get().getRealDouble();
+				}
+
+				return params;
+			} catch (final N5Exception e) {}
+		}
+		return null;
+	}
+	
 
 }

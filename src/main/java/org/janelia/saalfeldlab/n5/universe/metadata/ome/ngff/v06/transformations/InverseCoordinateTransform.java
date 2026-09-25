@@ -29,8 +29,6 @@ public class InverseCoordinateTransform<T extends InvertibleRealTransform, C ext
 	public InverseCoordinateTransform( final String name, final C ct ) {
 		// input and output spaces / axes must be swapped
 		super(TYPE, name, ct.getOutput(), ct.getInput());
-		super.inputAxes = ct.getOutputAxes();
-		super.outputAxes = ct.getInputAxes();
 		this.transform = ct;
 	}
 

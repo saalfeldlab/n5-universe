@@ -103,7 +103,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		final CoordinateFieldCoordinateTransform<T> cf = new CoordinateFieldCoordinateTransform<>("",
 				dataset, "linear", input.getName(), output.getName());
 
-		final RandomAccessibleInterval<T> reversedField = AbstractParametrizedFieldTransform.reverseCoordinates(coordinateField);
+		final RandomAccessibleInterval<T> reversedField = FieldTransformParsing.reverseCoordinates(coordinateField);
 		n5.createDataset(dataset, datasetAttributes);
 		N5Utils.saveBlock(reversedField, n5, dataset, datasetAttributes);
 
@@ -124,7 +124,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		final CoordinateFieldCoordinateTransform<T> cf = new CoordinateFieldCoordinateTransform<>("", 
 				dataset, "linear", input.getName(), output.getName());
 
-		final RandomAccessibleInterval<T> reversedField = AbstractParametrizedFieldTransform.reverseCoordinates(coordinateField);
+		final RandomAccessibleInterval<T> reversedField = FieldTransformParsing.reverseCoordinates(coordinateField);
 		N5Utils.save(reversedField, n5, dataset, blockSize, compression);
 		n5.setAttribute(dataset, "ome/" + CoordinateSystem.KEY, new CoordinateSystem[]{pfieldCoordinateSystem});
 		n5.setAttribute(dataset, "ome/" + CoordinateTransform.KEY, transforms);

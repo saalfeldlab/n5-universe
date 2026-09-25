@@ -377,7 +377,6 @@ public class Common {
 		if( transforms == null )
 			transforms = n5.getAttribute(group, "transformations", CoordinateTransform[].class);
 
-//		return new TransformGraph( Arrays.asList( transforms ), Arrays.asList(spaces));
 		return new SpacesTransforms( spaces, transforms ).buildTransformGraph(group, nd);
 	}
 

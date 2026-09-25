@@ -107,7 +107,7 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		final DisplacementFieldCoordinateTransform<T> df = new DisplacementFieldCoordinateTransform<>("",
 				dataset, "linear", input.getName(), output.getName());
 
-		final RandomAccessibleInterval<T> reversedField = AbstractParametrizedFieldTransform.reverseCoordinates(displacementField);
+		final RandomAccessibleInterval<T> reversedField = FieldTransformParsing.reverseCoordinates(displacementField);
 		n5.createDataset(dataset, datasetAttributes);
 		N5Utils.saveBlock(reversedField, n5, dataset, datasetAttributes);
 
@@ -131,7 +131,7 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		final DisplacementFieldCoordinateTransform<T> df = new DisplacementFieldCoordinateTransform<>("", 
 				dataset, "linear", input.getName(), output.getName());
 
-		final RandomAccessibleInterval<T> reversedField = AbstractParametrizedFieldTransform.reverseCoordinates(displacementField);
+		final RandomAccessibleInterval<T> reversedField = FieldTransformParsing.reverseCoordinates(displacementField);
 		N5Utils.save(reversedField, n5, dataset, blockSize, compression);
 
 		N5MetadataUtils.writeDimensionNamesIfZarr3(n5, dataset, axisNames);

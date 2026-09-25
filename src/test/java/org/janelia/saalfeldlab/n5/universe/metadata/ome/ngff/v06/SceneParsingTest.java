@@ -2,9 +2,12 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
@@ -12,12 +15,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.MultiscalesAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffSceneParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.AxisAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
@@ -28,9 +33,12 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph.Transform
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph.TransformPath;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransformAdapter;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.DisplacementFieldCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform;
 import org.junit.Test;
 
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 
 import net.imglib2.realtransform.AffineTransform3D;
 
@@ -270,6 +278,84 @@ public class SceneParsingTest {
 			// "world" is only ever an output with no path, so it is not a
 			// dataset path and resolves to nothing
 			assertTrue(scene.localSpaceNames("world").isEmpty());
+		}
+	}
+
+	@Test
+	public void testWriteSceneRoundTrip() throws Exception {
+
+		final CoordinateSystem world = new CoordinateSystem("world", new Axis[]{
+				new Axis("space", "z", "um"), new Axis("space", "y", "um"), new Axis("space", "x", "um")});
+
+		final double[] translation = new double[]{1, 2, 3};
+		final CoordinateTransform<?>[] cts = new CoordinateTransform[]{
+				new TranslationCoordinateTransform("CBCT_to_world",
+						new OmeNgffReference("physical", "CBCT"), new OmeNgffReference("world"),
+						translation),
+				new DisplacementFieldCoordinateTransform<>("A_to_B", "coordinateTransformations/dfield", "linear",
+						new OmeNgffReference("physical", "A"), new OmeNgffReference("physical", "B"))};
+
+		final File root = Files.createTempDirectory("scene-write-").toFile();
+		root.deleteOnExit();
+
+		// a writer without the ome-ngff type adapters: the scene parser serializes on its own
+		try (final N5Writer zarr = new N5Factory().openWriter(StorageFormat.ZARR3, root.getAbsolutePath())) {
+
+			final OmeNgffSceneParser parser = new OmeNgffSceneParser(zarr);
+			parser.writeMetadata(new NgffSceneMetadata("", new NgffScene(cts, new CoordinateSystem[]{world})), zarr, "");
+
+			assertEquals(OmeNgffSceneParser.VERSION, zarr.getAttribute("", OmeNgffSceneParser.VERSION_KEY, String.class));
+
+			final NgffScene scene = parser.parseMetadata(zarr, "").map(NgffSceneMetadata::getScene).orElse(null);
+			assertNotNull(scene);
+
+			assertEquals(Stream.of("CBCT", "A", "B").collect(Collectors.toSet()),
+					Stream.of(scene.getPaths()).collect(Collectors.toSet()));
+			assertEquals(Arrays.asList("CBCT/physical"), scene.localSpaceNames("CBCT"));
+
+			assertEquals(1, scene.getCoordinateSystems().length);
+			assertEquals("world", scene.getCoordinateSystems()[0].getName());
+			assertArrayEquals(new String[]{"z", "y", "x"}, scene.getCoordinateSystems()[0].getAxisNames());
+
+			final CoordinateTransform<?>[] parsed = scene.getCoordinateTransformations();
+			assertEquals(2, parsed.length);
+
+			assertTrue(parsed[0] instanceof TranslationCoordinateTransform);
+			assertEquals("CBCT_to_world", parsed[0].getName());
+			assertArrayEquals(translation,
+					((TranslationCoordinateTransform)parsed[0]).getTransform().getTranslationCopy(), 1e-9);
+
+			assertTrue(parsed[1] instanceof DisplacementFieldCoordinateTransform);
+			assertEquals("coordinateTransformations/dfield",
+					((DisplacementFieldCoordinateTransform<?>)parsed[1]).getParameterPath());
+			assertEquals("A/physical", parsed[1].getInput().getQualifiedName());
+			assertEquals("B/physical", parsed[1].getOutput().getQualifiedName());
+		}
+	}
+
+	@Test
+	public void testWriteSceneWithoutCoordinateSystems() throws Exception {
+
+		final File root = Files.createTempDirectory("scene-write-").toFile();
+		root.deleteOnExit();
+
+		try (final N5Writer zarr = new N5Factory().openWriter(StorageFormat.ZARR3, root.getAbsolutePath())) {
+
+			// an existing, more specific version is kept
+			zarr.setAttribute("", OmeNgffSceneParser.VERSION_KEY, "0.6.dev4");
+
+			final CoordinateTransform<?>[] cts = new CoordinateTransform[]{
+					new DisplacementFieldCoordinateTransform<>(null, "coordinateTransformations/dfield", "linear",
+							new OmeNgffReference("physical", "A"), new OmeNgffReference("physical", "B"))};
+
+			new OmeNgffSceneParser(zarr).writeMetadata(new NgffSceneMetadata("", new NgffScene(cts)), zarr, "");
+
+			assertEquals("0.6.dev4", zarr.getAttribute("", OmeNgffSceneParser.VERSION_KEY, String.class));
+
+			final JsonObject sceneJson = zarr.getAttribute("", NgffScene.SCENE_KEY, JsonObject.class);
+			assertFalse("null coordinateSystems should be omitted", sceneJson.has("coordinateSystems"));
+			assertFalse("null name should be omitted",
+					sceneJson.getAsJsonArray("coordinateTransformations").get(0).getAsJsonObject().has("name"));
 		}
 	}
 

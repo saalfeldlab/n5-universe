@@ -59,7 +59,7 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 	public TranslationCoordinateTransform( String name, final String inputSpace, final String outputSpace,
 			final N5Reader n5, final String path) {
 		super(TYPE, name, path, inputSpace, outputSpace );
-		this.translation = getParameters( n5 );
+		this.translation = getParameters();
 		buildTransform( translation );
 	}
 
@@ -100,11 +100,5 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 
 		return (TranslationGet) transform;
 	}
-
-	@Override
-	public double[] getParameters(N5Reader n5) {
-		return getDoubleArray( n5 , getParameterPath() );
-	}
-
 
 }

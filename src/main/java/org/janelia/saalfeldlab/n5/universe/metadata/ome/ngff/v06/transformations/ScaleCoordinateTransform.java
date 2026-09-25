@@ -59,7 +59,7 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 	public ScaleCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
 		 final N5Reader n5, final String path ) {
 		super(TYPE, name, path, inputSpace, outputSpace );
-		this.scale = getParameters(n5);
+		this.scale = getParameters();
 		buildTransform( scale );
 	}
 
@@ -115,9 +115,9 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 		return (ScaleGet) transform;
 	}
 
-	@Override
-	public double[] getParameters(N5Reader n5) {
-		return getDoubleArray( n5 , getParameterPath() );
-	}
+//	@Override
+//	public double[] getParameters() {
+//		return getDoubleArray( n5 , getParameterPath() );
+//	}
 
 }

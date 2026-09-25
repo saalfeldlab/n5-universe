@@ -128,7 +128,6 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	@Override
 	public OmeNgffReference getInput() {
 		return input;
-
 	}
 
 	@Override

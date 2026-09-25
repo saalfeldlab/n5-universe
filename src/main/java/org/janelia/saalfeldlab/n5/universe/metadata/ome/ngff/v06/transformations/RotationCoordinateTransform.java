@@ -7,10 +7,7 @@ import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
-import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
-
-import com.google.gson.JsonElement;
 
 import net.imglib2.img.array.ArrayImg;
 import net.imglib2.img.array.ArrayImgs;
@@ -25,9 +22,7 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 
 	public static final String TYPE = "rotation";
 
-	public JsonElement rotation;
-	
-	public transient double[] affineFlat;
+	public double[][] rotation;
 
 	public transient AffineGet transform;
 
@@ -41,47 +36,67 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 		super( ct );
 	}
 
-	public RotationCoordinateTransform( final double[] affine) {
+	public RotationCoordinateTransform(final double[] affineFlat) {
 		super(TYPE);
-		this.affineFlat = affine;
-		buildTransform();
+		this.rotation = TransformUtils.toRotationMatrix(affineFlat);
+		buildTransform(affineFlat);
 	}
 
-	public RotationCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
-			final double[] affine) {
+	public RotationCoordinateTransform(final String name, final String inputSpace, final String outputSpace,
+			final double[] affineFlat) {
 		super(TYPE, name, inputSpace, outputSpace);
-		this.affineFlat = affine;
-		buildTransform();
+		this.rotation = TransformUtils.toRotationMatrix(affineFlat);
+		buildTransform(affineFlat);
 	}
 
-	public RotationCoordinateTransform( final String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final double[] affine) {
+	public RotationCoordinateTransform(final String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef,
+			final double[] affineFlat) {
 		super(TYPE, name, inputRef, outputRef);
-		this.affineFlat = affine;
-		buildTransform();
+		this.rotation = TransformUtils.toRotationMatrix(affineFlat);
+		buildTransform(affineFlat);
 	}
 
 	public RotationCoordinateTransform(final String name, final N5Reader n5, final String path,
 			final String inputSpace, final String outputSpace) {
-
 		super(TYPE, name, path, inputSpace, outputSpace );
-		buildTransform(getParameters(n5));
+		buildTransform(getParameters());
 	}
 
-	public RotationCoordinateTransform( final String name, 
+	public RotationCoordinateTransform(final String name,
 			final int[] inputAxes, final int[] outputAxes,
-			final double[] affine ) {
+			final double[] affineFlat) {
 		super(TYPE, name, null, inputAxes, outputAxes);
-		this.affineFlat = affine;
+		this.rotation = TransformUtils.toRotationMatrix(affineFlat);
+		buildTransform(affineFlat);
 	}
 
-	public RotationCoordinateTransform( final String name, 
+	public RotationCoordinateTransform(final double[][] affine) {
+		super(TYPE);
+		buildTransform(affine);
+	}
+
+	public RotationCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
+			final double[][] affine) {
+		super(TYPE, name, inputSpace, outputSpace);
+		buildTransform(affine);
+	}
+
+	public RotationCoordinateTransform(final String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef,
+			final double[][] affine) {
+		super(TYPE, name, inputRef, outputRef);
+		buildTransform(affine);
+	}
+
+	public RotationCoordinateTransform(final String name,
+			final int[] inputAxes, final int[] outputAxes,
+			final double[][] affine) {
+		super(TYPE, name, null, inputAxes, outputAxes);
+		buildTransform(affine);
+	}
+
+	public RotationCoordinateTransform(final String name,
 			final String inputSpace, final String outputSpace, final String path) {
-		super(TYPE, name, path, inputSpace, outputSpace );
-	}
-
-	public JsonElement getJsonParameter() {
-		return rotation;
+		super(TYPE, name, path, inputSpace, outputSpace);
 	}
 
 	@Override
@@ -89,19 +104,9 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 		return transform;
 	}
 
-//	protected void buildJsonParameter() {
-//
-//		if (affineFlat != null) {
-//			final double[][] affineFOrder = TransformUtils.toAffineMatrix(affineFlat);
-//			final double[][] affineCOrder = TransformUtils.reverseCoordinates(affineFOrder);
-//			affine = (new Gson()).toJsonTree(affineCOrder);
-//		}
-//	}
-
 	public void write(final N5Writer n5, final String dataset) {
 
-		final double[][] affineMtx = TransformUtils.toAffineMatrix(affineFlat);
-		final double[][] affineCorder = TransformUtils.reverseCoordinates(affineMtx);
+		final double[][] affineCorder = TransformUtils.reverseCoordinates(rotation);
 		ArrayImg<DoubleType, DoubleArray> img = ArrayImgs.doubles(
 				TransformUtils.flatten(affineCorder),
 				 affineCorder[0].length, affineCorder.length);
@@ -116,18 +121,28 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 
 	public AffineGet buildTransform(double[][] params) {
 
-		affineFlat = TransformUtils.flattenRotation(params);
-		return buildTransform();
+		return buildTransform(TransformUtils.flattenRotation(params));
 	}
 
-	public AffineGet buildTransform() {
+	/**
+	 * Creates an imglib2 AffineGet from a flattened representation.
+	 * <p>
+	 * This flat array must be compatible with the imglib2 classes, and
+	 * is more general than a rotation. For example, the transform
+	 * that is returned has a translation component that
+	 * is not allowed by a rotation. It's there so that we can 
+	 * use the imglib2 classes.
+	 * 
+	 * @param affineFlat 
+	 *		flat affine in homogeneous coordinates 
+	 * @return
+	 * 	an imglib2 AffineGet
+	 */
+	public AffineGet buildTransform( final double[] affineFlat) {
 
 		if (affineFlat == null) {
-			if (rotation == null)
-				return null;
-			else
-				return buildTransform(MetadataUtils.toMatrix(rotation));
-		}		
+			return null;
+		}
 
 		if (affineFlat.length == 6) {
 			AffineTransform2D tmp = new AffineTransform2D();
@@ -144,18 +159,6 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 			transform = tmp;
 		}
 		return transform;
-	}
-
-	@Override
-	public double[][] getParameters(N5Reader n5) {
-
-		if (n5 == null)
-			return null;
-
-		final double[][] rotCOrder = getDoubleArray2(n5, getParameterPath());
-		final double[][] rotCOrderT = TransformUtils.transpose(rotCOrder);
-		final double[][] rotFOrder = TransformUtils.reverseCoordinatesRotation(rotCOrderT);
-		return rotFOrder;
 	}
 
 	private static void validate(AffineGet affine, double eps) {

@@ -1,7 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -11,8 +10,9 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import java.lang.reflect.Type;
-import java.util.Collections;
+import java.util.function.Supplier;
 
+import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
 public class AffineCoordinateTransformAdapter implements 
@@ -97,4 +97,6 @@ public class AffineCoordinateTransformAdapter implements
 		// rows = numTarget, cols = numSource + 1; square iff numTarget == numSource
 		return affine != null && affine.length > 0 && affine.length == affine[0].length - 1;
 	}
+
+	
 }
