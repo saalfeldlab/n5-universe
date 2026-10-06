@@ -41,7 +41,7 @@ public abstract class Zarr2AmazonS3FactoryTest extends ZarrStorageTests.Zarr2Fac
 	public static void before() {
 
 		MockS3Factory.getOrCreateS3();
-		assumeTrue("mock s3 server not running", MockS3Factory.isMinioServerRunning());
+		assumeTrue("mock s3 server not running", MockS3Factory.isMockServerRunning());
 	}
 
 	@Override public Class<?> getBackendTargetClass() {
