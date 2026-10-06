@@ -23,8 +23,6 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 
 	protected transient PositionFieldTransform transform;
 
-	protected transient int positionAxisIndex = 0;
-
 	protected static final transient String vectorAxisType = "coordinate";
 
 	public CoordinateFieldCoordinateTransform() {
@@ -66,12 +64,6 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		this( null, path, interpolation, (String)null, (String)null );
 	}
 
-
-	@Override
-	public int getVectorAxisIndex() {
-		return positionAxisIndex;
-	}
-
 	@Override
 	public String getVectorAxisType() {
 		return vectorAxisType;
@@ -80,15 +72,25 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 	@Override
 	public PositionFieldTransform buildTransform(final RealRandomAccessible<RealComposite<T>> field) {
 
-		return new PositionFieldTransform(field);
+		this.field = field;
+		if (field == null)
+			return null;
+
+		transform = new PositionFieldTransform(field);
+		return transform;
 	}
 
 	@Override
 	public PositionFieldTransform getTransform() {
-		if( field != null && transform == null )
-			buildTransform(field);
 
-		return transform;
+		if (transform != null)
+			return transform;
+		else if (field != null)
+			return buildTransform(field);
+		else if (path != null)
+			return buildTransform(getParameters());
+
+		return null;
 	}
 
 	public static <T extends RealType<T> & NativeType<T>> CoordinateFieldCoordinateTransform<?> writeCoordinateField(

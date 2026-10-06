@@ -97,7 +97,9 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 	public ScaleGet buildTransform( double[] parameters )
 	{
 		this.scale = parameters;
-		if( parameters.length == 2 )
+		if( parameters == null )
+			return null;
+		else if( parameters.length == 2 )
 			transform = new Scale2D(parameters);
 		else if( parameters.length == 3 )
 			transform = new Scale3D(parameters);
@@ -109,10 +111,15 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 
 	@Override
 	public ScaleGet getTransform() {
-		if( transform == null && scale != null )
-			buildTransform(scale);
 
-		return (ScaleGet) transform;
+		if (transform != null)
+			return (ScaleGet) transform;
+		else if (scale != null)
+			return buildTransform(scale);
+		else if (path != null)
+			return buildTransform(getParameters());
+
+		return null;
 	}
 
 //	@Override

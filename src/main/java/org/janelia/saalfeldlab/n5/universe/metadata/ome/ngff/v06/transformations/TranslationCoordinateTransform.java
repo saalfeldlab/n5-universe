@@ -83,7 +83,9 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 	public TranslationGet buildTransform( double[] parameters )
 	{
 		this.translation = parameters;
-		if( parameters.length == 2 )
+		if( parameters == null )
+			return null;
+		else if( parameters.length == 2 )
 			transform = new Translation2D(parameters);
 		else if( parameters.length == 3 )
 			transform = new Translation3D(parameters);
@@ -95,10 +97,15 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 
 	@Override
 	public TranslationGet getTransform() {
-		if( transform == null && translation != null )
-			buildTransform(translation);
 
-		return (TranslationGet) transform;
+		if (transform != null)
+			return (TranslationGet) transform;
+		else if (translation != null)
+			return buildTransform(translation);
+		else if (path != null)
+			return buildTransform(getParameters());
+
+		return null;
 	}
 
 }

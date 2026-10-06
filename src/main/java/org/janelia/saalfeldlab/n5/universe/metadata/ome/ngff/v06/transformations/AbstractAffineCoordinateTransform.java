@@ -72,7 +72,13 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 
 	@Override
 	public T getTransform() {
-		return transform;
+
+		if (transform != null)
+			return transform;
+		else if (path != null)
+			return buildTransform(getParameters());
+
+		return null;
 	}
 
 	public final T buildTransform(final double[][] params) {
@@ -102,8 +108,6 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 			blkSize[i] = (int) img.dimension(i);
 
 		N5Utils.save(img, n5, dataset, blkSize, new RawCompression());
-
-		setParameterSupplier(() -> affine);
 	}
 
 }

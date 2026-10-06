@@ -23,8 +23,6 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 
 	protected transient DisplacementFieldTransform transform;
 
-	protected transient int positionAxisIndex = 0;
-
 	protected static final transient String vectorAxisType = "displacement";
 	
 	public DisplacementFieldCoordinateTransform() {
@@ -72,26 +70,32 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 	}
 
 	@Override
-	public int getVectorAxisIndex() {
-		return positionAxisIndex;
-	}
-
-	@Override
 	public String getVectorAxisType() {
 		return vectorAxisType;
 	}
 
 	@Override
 	public DisplacementFieldTransform buildTransform( final RealRandomAccessible<RealComposite<T>> field ) {
-		return new DisplacementFieldTransform(field);
+
+		this.field = field;
+		if (field == null)
+			return null;
+
+		transform = new DisplacementFieldTransform(field);
+		return transform;
 	}
 
 	@Override
 	public DisplacementFieldTransform getTransform() {
-		if( field != null && transform == null )
-			buildTransform(field);
 
-		return transform;
+		if (transform != null)
+			return transform;
+		else if (field != null)
+			return buildTransform(field);
+		else if (path != null)
+			return buildTransform(getParameters());
+
+		return null;
 	}
 
 	public static <T extends RealType<T> & NativeType<T>> DisplacementFieldCoordinateTransform<?> writeDisplacementField(

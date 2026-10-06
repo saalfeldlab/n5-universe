@@ -101,7 +101,15 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 
 	@Override
 	public AffineGet getTransform() {
-		return transform;
+
+		if (transform != null)
+			return transform;
+		else if (rotation != null)
+			return buildTransform(rotation);
+		else if (path != null)
+			return buildTransform(getParameters());
+
+		return null;
 	}
 
 	public void write(final N5Writer n5, final String dataset) {
@@ -120,6 +128,10 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 	}
 
 	public AffineGet buildTransform(double[][] params) {
+
+		this.rotation = params;
+		if (params == null)
+			return null;
 
 		return buildTransform(TransformUtils.flattenRotation(params));
 	}

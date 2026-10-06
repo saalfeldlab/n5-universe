@@ -56,10 +56,6 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		return interpolation;
 	}
 
-	public int getVectorAxisIndex() {
-		return vectorAxisIndex;
-	}
-
 	public abstract String getVectorAxisType();
 
 	public RealRandomAccessible<RealComposite<S>> getField() {
