@@ -3,6 +3,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes;
 import java.lang.reflect.Type;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
+import org.janelia.saalfeldlab.n5.universe.metadata.axes.Orientation;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
@@ -30,7 +31,15 @@ public class AxisAdapter implements JsonSerializer<Axis>, JsonDeserializer<Axis>
 		final String type = jobj.has("type") ? nullSafeString(jobj.get("type")) : "";
 		final String unit = jobj.has("unit") ? nullSafeString(jobj.get("unit")) : "";
 
-		return new Axis(type, name, unit);
+		// Ignore orientations that are missing or not permitted on this axis
+		Orientation orientation = null;
+		if (jobj.has("orientation") && jobj.get("orientation").isJsonObject()) {
+			orientation = context.deserialize(jobj.get("orientation"), Orientation.class);
+			if (!Axis.isOrientationPermitted(type, orientation))
+				orientation = null;
+		}
+
+		return new Axis(type, name, unit, false, orientation);
 	}
 	
 
@@ -58,6 +67,8 @@ public class AxisAdapter implements JsonSerializer<Axis>, JsonDeserializer<Axis>
 		obj.addProperty("type", src.getType());
 		obj.addProperty("name", src.getName());
 		obj.addProperty("unit", src.getUnit());
+		if (src.getOrientation() != null)
+			obj.add("orientation", context.serialize(src.getOrientation()));
 
 		return obj;
 	}
