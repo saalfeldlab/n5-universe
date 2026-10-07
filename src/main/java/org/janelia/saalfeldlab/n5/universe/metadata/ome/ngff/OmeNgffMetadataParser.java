@@ -55,6 +55,17 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		return n5 instanceof ZarrV3KeyValueReader || n5 instanceof ZarrKeyValueReader;
 	}
 
+	/**
+	 * Whether the storage format records array dimensions in the reverse of
+	 * imglib2 order. True for zarr, whose shape is C-order; false for n5.
+	 *
+	 * @param n5 the reader
+	 * @return true if on-disk dimensions are reversed relative to imglib2
+	 */
+	public static boolean storesDimensionsReversed(final N5Reader n5) {
+		return n5 instanceof ZarrV3KeyValueReader || n5 instanceof ZarrKeyValueReader;
+	}
+
 	public OmeNgffMetadataParser() {
 
 		this(true);

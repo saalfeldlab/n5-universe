@@ -2,6 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformation
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.Translation;
@@ -59,6 +60,7 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 	public TranslationCoordinateTransform( String name, final String inputSpace, final String outputSpace,
 			final N5Reader n5, final String path) {
 		super(TYPE, name, path, inputSpace, outputSpace );
+		bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
 		this.translation = getParameters();
 		buildTransform( translation );
 	}
@@ -77,6 +79,12 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 	public TranslationCoordinateTransform(TranslationCoordinateTransform other, int[] inputAxes, int[] outputAxes) {
 		super(other, inputAxes, outputAxes);
 		this.translation = other.translation;
+	}
+
+	@Override
+	protected double[] readParameters(final N5Reader n5, final String path, final boolean reverse) {
+
+		return CoordinateTransformAdapter.doubleArraySupplier(n5, path, reverse);
 	}
 
 	@Override

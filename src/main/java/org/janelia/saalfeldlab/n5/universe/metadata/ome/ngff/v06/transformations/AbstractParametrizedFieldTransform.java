@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations;
 
+import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import net.imglib2.RealRandomAccessible;
@@ -57,6 +58,12 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 	}
 
 	public abstract String getVectorAxisType();
+
+	@Override
+	protected RealRandomAccessible<RealComposite<S>> readParameters(final N5Reader n5, final String path, final boolean reverse) {
+
+		return FieldTransformParsing.getParameters(n5, path, getVectorAxisType(), getInput(), getInterpolation(), reverse);
+	}
 
 	public RealRandomAccessible<RealComposite<S>> getField() {
 

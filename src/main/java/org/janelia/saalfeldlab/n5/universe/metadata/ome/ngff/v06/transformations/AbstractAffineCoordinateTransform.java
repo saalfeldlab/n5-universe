@@ -2,16 +2,11 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformation
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.RawCompression;
-import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
-import net.imglib2.img.array.ArrayImg;
-import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.img.basictypeaccess.array.DoubleArray;
 import net.imglib2.realtransform.RealTransform;
-import net.imglib2.type.numeric.real.DoubleType;
 
 public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 		extends AbstractParametrizedTransform<T, double[][]> {
@@ -51,6 +46,7 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 	protected AbstractAffineCoordinateTransform(final String name, final N5Reader n5, final String path,
 			final String inputSpace, final String outputSpace) {
 		super(TYPE, name, path, inputSpace, outputSpace);
+		bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
 		buildTransform(getParameters());
 	}
 
@@ -81,6 +77,12 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 		return null;
 	}
 
+	@Override
+	protected double[][] readParameters(final N5Reader n5, final String path, final boolean reverse) {
+
+		return CoordinateTransformAdapter.affineMatrixSupplier(n5, path, reverse);
+	}
+
 	public final T buildTransform(final double[][] params) {
 		this.affine = params;
 		return buildTransform();
@@ -97,17 +99,10 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 
 	public void write(final N5Writer n5, final String dataset) {
 
-		final double[][] affineCorder = TransformUtils.reverseCoordinates(affine);
-		ArrayImg<DoubleType, DoubleArray> img = ArrayImgs.doubles(
-				TransformUtils.flatten(affineCorder),
-				affineCorder[0].length, affineCorder.length);
-
-		final int nd = img.numDimensions();
-		final int[] blkSize = new int[nd];
-		for (int i = 0; i < nd; i++)
-			blkSize[i] = (int) img.dimension(i);
-
-		N5Utils.save(img, n5, dataset, blkSize, new RawCompression());
+		final double[][] stored = OmeNgffMetadataParser.reverse(n5)
+				? TransformUtils.reverseCoordinates(affine)
+				: affine;
+		CoordinateTransformAdapter.writeDoubleArray2d(n5, dataset, stored);
 	}
 
 }

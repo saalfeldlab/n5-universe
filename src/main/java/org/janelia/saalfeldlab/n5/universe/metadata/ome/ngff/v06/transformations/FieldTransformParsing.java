@@ -347,19 +347,6 @@ public class FieldTransformParsing {
 	 */
 	private static final class ResolvedField {
 
-		public static <T extends RealType<T>> RandomAccessibleInterval<T> reverseCoordinates(
-				final RandomAccessibleInterval<T> dfield) {
-
-			final long numCoordinates = dfield.dimension(0);
-
-			if (numCoordinates == 1)
-				return dfield;
-
-			final int[] reversePermutation = IntStream.iterate((int)numCoordinates - 1, x -> x - 1).limit(numCoordinates)
-					.toArray();
-			return Views.permuteCoordinates(dfield, reversePermutation, 0);
-		}
-
 		/**
 		 * Returns the first coordinate transformation found at this group that
 		 * is either not a {@link ParametrizedTransform}, or is a

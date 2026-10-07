@@ -24,7 +24,7 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 
 	protected transient String absolutePath;
 
-	private Supplier<P> parameterSupplier;
+	private transient Supplier<P> parameterSupplier;
 
 	public AbstractParametrizedTransform() {
 		super();
@@ -70,12 +70,44 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 	{
 		super( other );
 		this.path = other.getParameterPath();
+		this.parameterSupplier = other.parameterSupplier;
 	}
 
 	public AbstractParametrizedTransform( AbstractParametrizedTransform<T,P> other, int[] inputAxes, int[] outputAxes )
 	{
 		super( other, inputAxes, outputAxes );
 		this.path = other.getParameterPath();
+		this.parameterSupplier = other.parameterSupplier;
+	}
+
+	/**
+	 * Reads this transform's parameters.
+	 *
+	 * @param n5
+	 *            the reader, never null
+	 * @param path
+	 *            the parameter path, never null
+	 * @param reverse
+	 *            whether to reverse the order of coordinates
+	 * @return the parameters, or null if they could not be read
+	 */
+	protected abstract P readParameters(final N5Reader n5, final String path, final boolean reverse);
+
+	/**
+	 * Reads parameters lazily from the given reader, at this transform's
+	 * {@link #getParameterPath() parameter path} at the time of reading.
+	 *
+	 * @param n5
+	 *            the reader
+	 * @param reverse
+	 *            whether to reverse the order of coordinates
+	 */
+	public void bindParameters(final N5Reader n5, final boolean reverse) {
+
+		parameterSupplier = () -> {
+			final String parameterPath = getParameterPath();
+			return (n5 == null || parameterPath == null) ? null : readParameters(n5, parameterPath, reverse);
+		};
 	}
 	
 	/**
@@ -89,8 +121,11 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 		this.parameterSupplier = parameterSupplier;
 	}
 
+	/**
+	 * @return the parameters, or null if no parameter source is bound
+	 */
 	public P getParameters() {
-		return parameterSupplier.get();
+		return parameterSupplier == null ? null : parameterSupplier.get();
 	}
 
 	@Override

@@ -5,18 +5,13 @@ import org.ejml.dense.row.CommonOps_DDRM;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
-import org.janelia.saalfeldlab.n5.RawCompression;
-import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
-import net.imglib2.img.array.ArrayImg;
-import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.img.basictypeaccess.array.DoubleArray;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform;
 import net.imglib2.realtransform.AffineTransform2D;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.type.numeric.real.DoubleType;
 
 public class RotationCoordinateTransform extends AbstractParametrizedTransform<AffineGet,double[][]> implements InvertibleCoordinateTransform<AffineGet> {
 
@@ -59,6 +54,7 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 	public RotationCoordinateTransform(final String name, final N5Reader n5, final String path,
 			final String inputSpace, final String outputSpace) {
 		super(TYPE, name, path, inputSpace, outputSpace );
+		bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
 		buildTransform(getParameters());
 	}
 
@@ -114,17 +110,16 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 
 	public void write(final N5Writer n5, final String dataset) {
 
-		final double[][] affineCorder = TransformUtils.reverseCoordinates(rotation);
-		ArrayImg<DoubleType, DoubleArray> img = ArrayImgs.doubles(
-				TransformUtils.flatten(affineCorder),
-				 affineCorder[0].length, affineCorder.length);
-		
-		final int nd = img.numDimensions();
-		final int[] blkSize = new int[nd];
-		for (int i = 0; i < nd; i++)
-			blkSize[i] = (int) img.dimension(i);
+		final double[][] stored = OmeNgffMetadataParser.reverse(n5)
+				? TransformUtils.reverseCoordinatesRotation(rotation)
+				: rotation;
+		CoordinateTransformAdapter.writeDoubleArray2d(n5, dataset, stored);
+	}
 
-		N5Utils.save(img, n5, dataset, blkSize, new RawCompression());
+	@Override
+	protected double[][] readParameters(final N5Reader n5, final String path, final boolean reverse) {
+
+		return CoordinateTransformAdapter.rotationMatrixSupplier(n5, path, reverse);
 	}
 
 	public AffineGet buildTransform(double[][] params) {

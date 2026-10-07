@@ -9,6 +9,7 @@ import org.janelia.saalfeldlab.n5.universe.N5MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
@@ -49,6 +50,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 	public CoordinateFieldCoordinateTransform(final String name, final N5Reader n5, final String path, final String interpolation,
 			final String input, final String output) {
 		super(TYPE, name, path, interpolation, input, output);
+		bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
 	}
 
 	public CoordinateFieldCoordinateTransform( final String name, final String path, final String interpolation,
@@ -105,9 +107,11 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		final CoordinateFieldCoordinateTransform<T> cf = new CoordinateFieldCoordinateTransform<>("",
 				dataset, "linear", input.getName(), output.getName());
 
-		final RandomAccessibleInterval<T> reversedField = FieldTransformParsing.reverseCoordinates(coordinateField);
+		final RandomAccessibleInterval<T> storedField = OmeNgffMetadataParser.reverse(n5)
+				? FieldTransformParsing.reverseCoordinates(coordinateField)
+				: coordinateField;
 		n5.createDataset(dataset, datasetAttributes);
-		N5Utils.saveBlock(reversedField, n5, dataset, datasetAttributes);
+		N5Utils.saveBlock(storedField, n5, dataset, datasetAttributes);
 
 		N5MetadataUtils.writeDimensionNamesIfZarr3(n5, dataset, axisNames);
 		n5.setAttribute(dataset, "ome/" + CoordinateSystem.KEY, new CoordinateSystem[]{pfieldCoordinateSystem});
@@ -126,8 +130,10 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		final CoordinateFieldCoordinateTransform<T> cf = new CoordinateFieldCoordinateTransform<>("", 
 				dataset, "linear", input.getName(), output.getName());
 
-		final RandomAccessibleInterval<T> reversedField = FieldTransformParsing.reverseCoordinates(coordinateField);
-		N5Utils.save(reversedField, n5, dataset, blockSize, compression);
+		final RandomAccessibleInterval<T> storedField = OmeNgffMetadataParser.reverse(n5)
+				? FieldTransformParsing.reverseCoordinates(coordinateField)
+				: coordinateField;
+		N5Utils.save(storedField, n5, dataset, blockSize, compression);
 		n5.setAttribute(dataset, "ome/" + CoordinateSystem.KEY, new CoordinateSystem[]{pfieldCoordinateSystem});
 		n5.setAttribute(dataset, "ome/" + CoordinateTransform.KEY, transforms);
 

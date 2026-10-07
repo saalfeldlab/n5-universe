@@ -8,7 +8,10 @@ import java.util.function.Supplier;
 import org.apache.commons.lang3.ArrayUtils;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
+import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
@@ -25,9 +28,13 @@ import com.google.gson.JsonSerializer;
 import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.img.CachedCellImg;
+import net.imglib2.img.array.ArrayImg;
+import net.imglib2.img.array.ArrayImgs;
+import net.imglib2.img.basictypeaccess.array.DoubleArray;
 import net.imglib2.img.cell.CellCursor;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
 
 public class CoordinateTransformAdapter
@@ -401,14 +408,18 @@ public class CoordinateTransformAdapter
 		if (n5.exists(path)) {
 			try {
 
-				RandomAccessibleInterval<T> matrix;
 				final CachedCellImg<T, ?> matrixRa = (CachedCellImg<T, ?>)N5Utils.open(n5, path);
 
 				if (matrixRa.numDimensions() != 2 || !(matrixRa.getType() instanceof RealType))
 					return null;
 
-				final double[][] params = new double[(int)matrixRa.dimension(0)][(int)matrixRa.dimension(1)];
-				final Cursor<T> c = Views.flatIterable(matrixRa).cursor();
+				// the on-disk shape is [rows, cols] for every format (see writeDoubleArray2d)
+				final RandomAccessibleInterval<T> matrix = OmeNgffMetadataParser.storesDimensionsReversed(n5)
+						? Views.permute(matrixRa, 0, 1)
+						: matrixRa;
+
+				final double[][] params = new double[(int)matrix.dimension(0)][(int)matrix.dimension(1)];
+				final Cursor<T> c = Views.flatIterable(matrix).cursor();
 				while (c.hasNext()) {
 					c.fwd();
 					params[c.getIntPosition(0)][c.getIntPosition(1)] = c.get().getRealDouble();
@@ -419,6 +430,30 @@ public class CoordinateTransformAdapter
 		}
 		return null;
 	}
-	
+
+	/**
+	 * Writes a matrix so that its on-disk shape is [rows, cols] for every format.
+	 *
+	 * @param n5 the writer
+	 * @param dataset the dataset path
+	 * @param matrix the matrix, indexed [row][col]
+	 */
+	public static void writeDoubleArray2d(final N5Writer n5, final String dataset, final double[][] matrix) {
+
+		// imglib2 dimensions (cols, rows), which zarr stores as shape [rows, cols]
+		final ArrayImg<DoubleType, DoubleArray> img = ArrayImgs.doubles(
+				TransformUtils.flatten(matrix), matrix[0].length, matrix.length);
+
+		// n5 stores imglib2 dimensions as they are, so swap them to (rows, cols)
+		final RandomAccessibleInterval<DoubleType> toSave = OmeNgffMetadataParser.storesDimensionsReversed(n5)
+				? img
+				: Views.permute(img, 0, 1);
+
+		final int[] blkSize = new int[toSave.numDimensions()];
+		for (int i = 0; i < blkSize.length; i++)
+			blkSize[i] = (int)toSave.dimension(i);
+
+		N5Utils.save(toSave, n5, dataset, blkSize, new RawCompression());
+	}
 
 }

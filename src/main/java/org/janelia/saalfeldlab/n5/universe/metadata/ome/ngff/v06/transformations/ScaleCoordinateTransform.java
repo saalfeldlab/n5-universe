@@ -2,6 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformation
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
 import net.imglib2.realtransform.Scale;
 import net.imglib2.realtransform.Scale2D;
@@ -59,6 +60,7 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 	public ScaleCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
 		 final N5Reader n5, final String path ) {
 		super(TYPE, name, path, inputSpace, outputSpace );
+		bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
 		this.scale = getParameters();
 		buildTransform( scale );
 	}
@@ -91,6 +93,12 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 
 		super(other, inputAxes, outputAxes);
 		this.scale = other.scale;
+	}
+
+	@Override
+	protected double[] readParameters(final N5Reader n5, final String path, final boolean reverse) {
+
+		return CoordinateTransformAdapter.doubleArraySupplier(n5, path, reverse);
 	}
 
 	@Override

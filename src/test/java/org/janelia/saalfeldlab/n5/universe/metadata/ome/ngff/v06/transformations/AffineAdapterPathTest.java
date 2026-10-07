@@ -7,6 +7,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
@@ -92,6 +95,8 @@ public class AffineAdapterPathTest {
 
 	private N5Writer n5;
 
+	private String root;
+
 	public AffineAdapterPathTest(final StorageFormat format) {
 		this.format = format;
 		this.reverse = format != StorageFormat.N5;
@@ -100,7 +105,7 @@ public class AffineAdapterPathTest {
 	@Before
 	public void before() throws IOException {
 		final String ext = reverse ? "test.zarr" : "test.n5";
-		final String root = tmp.newFolder().toPath().resolve(ext).toString();
+		root = tmp.newFolder().toPath().resolve(ext).toString();
 		n5 = new N5Factory()
 				.options(opts -> { opts.gsonBuilder(gsonBuilder(reverse)); })
 				.openWriter(format, root);
@@ -171,6 +176,41 @@ public class AffineAdapterPathTest {
 
 		final GeneralAffineCoordinateTransform ct = new GeneralAffineCoordinateTransform("aff", "in", "out", "affine");
 		assertMatrixEquals("non-square affine parameters", G, ct.getParameters());
+	}
+
+	/**
+	 * The on-disk shape of a written matrix is [rows, cols] for every format: zarr's "shape" and
+	 * n5's "dimensions" are both [2, 4] for the 2x4 matrix G.
+	 */
+	@Test
+	public void writtenShapeIsRowsCols() throws IOException {
+
+		new GeneralAffineCoordinateTransform("aff", "in", "out", G).write(n5, "affine");
+
+		final String file;
+		final String key;
+		switch (format) {
+		case ZARR2:
+			file = ".zarray";
+			key = "shape";
+			break;
+		case ZARR3:
+			file = "zarr.json";
+			key = "shape";
+			break;
+		case N5:
+			file = "attributes.json";
+			key = "dimensions";
+			break;
+		default:
+			throw new AssertionError("unexpected format " + format);
+		}
+
+		final JsonObject meta = JsonParser.parseString(
+				new String(Files.readAllBytes(Paths.get(root, "affine", file)), StandardCharsets.UTF_8))
+				.getAsJsonObject();
+		final long[] shape = new Gson().fromJson(meta.get(key), long[].class);
+		assertArrayEquals("on-disk " + key + " of " + file, new long[] { G.length, G[0].length }, shape);
 	}
 
 	/**
