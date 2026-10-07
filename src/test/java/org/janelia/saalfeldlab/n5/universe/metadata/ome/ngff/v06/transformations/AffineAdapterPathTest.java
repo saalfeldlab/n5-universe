@@ -165,7 +165,7 @@ public class AffineAdapterPathTest {
 
 		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
 
-		final InvertibleAffineCoordinateTransform ct = new InvertibleAffineCoordinateTransform("aff", "in", "out", "affine");
+		final InvertibleAffineCoordinateTransform ct = new InvertibleAffineCoordinateTransform("aff", n5, "affine", "in", "out");
 		assertMatrixEquals("square affine parameters", A, ct.getParameters());
 	}
 
@@ -174,7 +174,7 @@ public class AffineAdapterPathTest {
 
 		new GeneralAffineCoordinateTransform("aff", "in", "out", G).write(n5, "affine");
 
-		final GeneralAffineCoordinateTransform ct = new GeneralAffineCoordinateTransform("aff", "in", "out", "affine");
+		final GeneralAffineCoordinateTransform ct = new GeneralAffineCoordinateTransform("aff", n5, "affine", "in", "out");
 		assertMatrixEquals("non-square affine parameters", G, ct.getParameters());
 	}
 
@@ -227,7 +227,7 @@ public class AffineAdapterPathTest {
 		N5Utils.save(ArrayImgs.doubles(TransformUtils.flatten(A_CORDER), 4, 3),
 				n5, "affine", new int[] { 4, 3 }, new RawCompression());
 
-		final InvertibleAffineCoordinateTransform ct = new InvertibleAffineCoordinateTransform("aff", "in", "out", "affine");
+		final InvertibleAffineCoordinateTransform ct = new InvertibleAffineCoordinateTransform("aff", n5, "affine", "in", "out");
 		assertMatrixEquals("affine parameters from a C-order zarr array", A, ct.getParameters());
 	}
 
@@ -279,7 +279,8 @@ public class AffineAdapterPathTest {
 	}
 
 	/**
-	 * An inline square affine deserializes as invertible; one read from a path should too.
+	 * An inline square affine deserializes as invertible; one read from a path should be
+	 * invertible too: the graph can go from its output back to its input.
 	 */
 	@Test
 	public void deserializedSquarePathAffineIsInvertible() {
@@ -288,9 +289,36 @@ public class AffineAdapterPathTest {
 
 		final CoordinateTransform<?> ct = gson().fromJson(pathAffineJson("affine"), CoordinateTransform.class);
 		assertNotNull("deserialized", ct);
-		ct.getTransform(n5);
-		assertTrue("square path affine is invertible, got " + ct.getClass().getSimpleName(),
-				ct instanceof InvertibleCoordinateTransform);
+		// the graph builds inverse edges when it is built, which reads the matrix
+		ParameterBinding.bindUnbound(ct, n5);
+
+		final TransformGraph graph = new TransformGraph(
+				Arrays.<CoordinateTransform<?>>asList(ct),
+				new CoordinateSystems(Arrays.asList(new CoordinateSystem("in", 3), new CoordinateSystem("out", 3))));
+
+		final Optional<TransformPath> inverse = graph.path("out", "in");
+		assertTrue("path out -> in", inverse.isPresent());
+		assertArrayEquals(P, apply(inverse.get().totalTransform(n5, graph), apply(A, P)), EPS);
+	}
+
+	/**
+	 * A sequence holding a square path affine is invertible.
+	 */
+	@Test
+	public void pathAffineInSequenceIsInvertible() {
+
+		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+
+		final CoordinateTransform<?> ct = gson().fromJson(sequenceJson("affine"), CoordinateTransform.class);
+		ParameterBinding.bindUnbound(ct, n5);
+
+		final TransformGraph graph = new TransformGraph(
+				Arrays.<CoordinateTransform<?>>asList(ct),
+				new CoordinateSystems(Arrays.asList(new CoordinateSystem("a", 3), new CoordinateSystem("b", 3))));
+
+		final Optional<TransformPath> inverse = graph.path("b", "a");
+		assertTrue("path b -> a", inverse.isPresent());
+		assertArrayEquals(P, apply(inverse.get().totalTransform(n5, graph), apply(A, scaledP())), EPS);
 	}
 
 	/**
@@ -299,7 +327,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void missingParametersReturnNull() {
 
-		final GeneralAffineCoordinateTransform ct = new GeneralAffineCoordinateTransform("aff", "in", "out", "doesNotExist");
+		final GeneralAffineCoordinateTransform ct = new GeneralAffineCoordinateTransform("aff", n5, "doesNotExist", "in", "out");
 		assertNull(ct.getParameters());
 	}
 

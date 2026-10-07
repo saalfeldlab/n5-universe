@@ -85,7 +85,7 @@ public class FieldMultiscalesRoundTripTest {
 
 			// full field read: parseVectorAxisIndex reads coordinateSystems from multiscales
 			final DisplacementFieldCoordinateTransform<FloatType> df =
-					new DisplacementFieldCoordinateTransform<>("df", GROUP, "linear", "field", "world");
+					new DisplacementFieldCoordinateTransform<>("df", zarr, GROUP, "linear", "field", "world");
 			assertEquals("displacement axis index", 0, FieldTransformParsing.parseVectorAxisIndex(zarr, df.getParameterPath(), df.getVectorAxisType()));
 			assertNotNull("field parameters resolve end-to-end", df.getParameters());
 		}
