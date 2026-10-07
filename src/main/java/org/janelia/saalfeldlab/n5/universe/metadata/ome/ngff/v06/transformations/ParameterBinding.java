@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations;
 
+import java.util.function.Consumer;
+
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
@@ -21,25 +23,10 @@ public class ParameterBinding {
 	 */
 	public static void bind(final CoordinateTransform<?> ct, final N5Reader n5, final String group) {
 
-		if (ct == null)
-			return;
-
-		if (ct instanceof AbstractParametrizedTransform) {
-			final AbstractParametrizedTransform<?, ?> pt = (AbstractParametrizedTransform<?, ?>)ct;
-			if (pt.getParameterPath() != null) {
-				pt.resolveAbsoluePath(group);
-				pt.bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
-			}
-		} else if (ct instanceof SequenceCoordinateTransform) {
-			bindAll(((SequenceCoordinateTransform)ct).getTransformations(), n5, group);
-		} else if (ct instanceof ByDimensionCoordinateTransform) {
-			bindAll(((ByDimensionCoordinateTransform)ct).getTransformations(), n5, group);
-		} else if (ct instanceof BijectionCoordinateTransform) {
-			bind(((BijectionCoordinateTransform)ct).getForward(), n5, group);
-			bind(((BijectionCoordinateTransform)ct).getInverse(), n5, group);
-		} else if (ct instanceof InverseCoordinateTransform) {
-			bind(((InverseCoordinateTransform<?, ?>)ct).getWrappedCoordinateTransform(), n5, group);
-		}
+		forEachParametrized(ct, pt -> {
+			pt.resolveAbsoluePath(group);
+			pt.bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
+		});
 	}
 
 	public static void bindAll(final CoordinateTransform<?>[] cts, final N5Reader n5, final String group) {
@@ -47,5 +34,45 @@ public class ParameterBinding {
 		if (cts != null)
 			for (final CoordinateTransform<?> ct : cts)
 				bind(ct, n5, group);
+	}
+
+	/**
+	 * Binds every parametrized transform in {@code ct} that is not bound yet to
+	 * {@code n5}, without resolving its path. For callers that have a reader but
+	 * not the group the metadata came from.
+	 *
+	 * @param ct the transform, may be null
+	 * @param n5 the reader to read parameters from
+	 */
+	public static void bindUnbound(final CoordinateTransform<?> ct, final N5Reader n5) {
+
+		forEachParametrized(ct, pt -> {
+			if (!pt.isBound())
+				pt.bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
+		});
+	}
+
+	private static void forEachParametrized(final CoordinateTransform<?> ct,
+			final Consumer<AbstractParametrizedTransform<?, ?>> action) {
+
+		if (ct == null)
+			return;
+
+		if (ct instanceof AbstractParametrizedTransform) {
+			final AbstractParametrizedTransform<?, ?> pt = (AbstractParametrizedTransform<?, ?>)ct;
+			if (pt.getParameterPath() != null)
+				action.accept(pt);
+		} else if (ct instanceof SequenceCoordinateTransform) {
+			for (final CoordinateTransform<?> t : ((SequenceCoordinateTransform)ct).getTransformations())
+				forEachParametrized(t, action);
+		} else if (ct instanceof ByDimensionCoordinateTransform) {
+			for (final CoordinateTransform<?> t : ((ByDimensionCoordinateTransform)ct).getTransformations())
+				forEachParametrized(t, action);
+		} else if (ct instanceof BijectionCoordinateTransform) {
+			forEachParametrized(((BijectionCoordinateTransform)ct).getForward(), action);
+			forEachParametrized(((BijectionCoordinateTransform)ct).getInverse(), action);
+		} else if (ct instanceof InverseCoordinateTransform) {
+			forEachParametrized(((InverseCoordinateTransform<?, ?>)ct).getWrappedCoordinateTransform(), action);
+		}
 	}
 }
