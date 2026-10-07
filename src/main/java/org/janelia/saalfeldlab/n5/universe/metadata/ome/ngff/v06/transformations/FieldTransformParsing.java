@@ -40,6 +40,11 @@ public class FieldTransformParsing {
 			final String interpolator,
 			final boolean reverse) {
 
+		// missing parameters give null, like the other parametrized transforms;
+		// a field that exists but is malformed still throws below
+		if (n5 == null || path == null || !n5.exists(path))
+			return null;
+
 		final int vectorAxisIndex = parseVectorAxisIndex( n5, path, vectorAxisType );
 
 		// We allow the transform's path may be the field array itself (self-referencing shortcut) or a

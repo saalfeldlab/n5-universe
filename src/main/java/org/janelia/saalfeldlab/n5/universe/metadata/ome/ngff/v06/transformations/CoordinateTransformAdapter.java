@@ -382,10 +382,10 @@ public class CoordinateTransformAdapter
 			return null;
 
 		final double[][] affineMatrix = getDoubleArray2d(n5, path);
-		if (reverse) {
-			return TransformUtils.reverseCoordinates(affineMatrix);
-		}
-		return affineMatrix;
+		if (affineMatrix == null)
+			return null;
+
+		return reverse ? TransformUtils.reverseCoordinates(affineMatrix) : affineMatrix;
 	}
 
 	public static <T extends RealType<T> & NativeType<T>> double[][] rotationMatrixSupplier(final N5Reader n5, final String path, final boolean reverse) {
@@ -394,10 +394,10 @@ public class CoordinateTransformAdapter
 			return null;
 
 		final double[][] rotationMatrix = getDoubleArray2d(n5, path);
-		if (reverse) {
-			return TransformUtils.reverseCoordinatesRotation(rotationMatrix);
-		}
-		return rotationMatrix;
+		if (rotationMatrix == null)
+			return null;
+
+		return reverse ? TransformUtils.reverseCoordinatesRotation(rotationMatrix) : rotationMatrix;
 	}
 	
 	public static <T extends RealType<T> & NativeType<T>> double[][] getDoubleArray2d(final N5Reader n5, final String path) {
