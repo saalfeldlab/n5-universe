@@ -7,6 +7,7 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.Common;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ParameterBinding;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.IdentityCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.InverseCoordinateTransform;
@@ -85,6 +86,7 @@ public class TransformPath {
 
 	public RealTransform totalTransform( final N5Reader n5, final TransformGraph g )
 	{
+		flatTransforms().forEach( t -> ParameterBinding.bindUnbound( t, n5 ));
 		final RealTransformSequence total = new RealTransformSequence();
 		flatTransforms().forEach( t ->  {
 				if( t instanceof SequenceCoordinateTransform) {
@@ -113,6 +115,7 @@ public class TransformPath {
 
 	public RealTransform totalTransform( final N5Reader n5 )
 	{
+		flatTransforms().forEach( t -> ParameterBinding.bindUnbound( t, n5 ));
 		final RealTransformSequence total = new RealTransformSequence();
 		flatTransforms().forEach( t -> total.add( ((RealTransform)t.getTransform( n5 ))));
 		return total;

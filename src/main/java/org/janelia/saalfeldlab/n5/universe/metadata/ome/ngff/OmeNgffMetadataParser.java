@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ParameterBinding;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -119,6 +120,10 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		for (int j = 0; j < multiscales.length; j++) {
 
 			final OmeNgffMultiScaleMetadata ms = multiscales[j];
+			ParameterBinding.bindAll(ms.coordinateTransformations, n5, node.getPath());
+			if (ms.getDatasets() != null)
+				for (final OmeNgffDataset d : ms.getDatasets())
+					ParameterBinding.bindAll(d.coordinateTransformations, n5, node.getPath());
 			nd = ms.getAxes().length;
 
 			final int numScales = ms.getDatasets().length;

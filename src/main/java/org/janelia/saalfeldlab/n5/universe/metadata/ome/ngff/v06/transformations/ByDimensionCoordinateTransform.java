@@ -172,17 +172,24 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		return transforms;
 	}
 
+	/**
+	 * @return true if every transformation is invertible (may read parameters)
+	 */
 	public boolean isInvertible() {
-		return Arrays.stream(transforms).allMatch(t -> t instanceof InvertibleCoordinateTransform);
+		return inverse() != null;
 	}
 
+	/**
+	 * @return the inverse, or null if any transformation is not invertible
+	 */
 	public ByDimensionCoordinateTransform inverse() {
-		if (!isInvertible())
-			return null;
 
-		final CoordinateTransform<?>[] invTransforms = Arrays.stream(transforms)
-				.map(ct -> new InverseCoordinateTransform((InvertibleCoordinateTransform<?>) ct))
-				.toArray(CoordinateTransform<?>[]::new);
+		final CoordinateTransform<?>[] invTransforms = new CoordinateTransform<?>[transforms.length];
+		for (int i = 0; i < transforms.length; i++) {
+			invTransforms[i] = CoordinateTransform.inverseOf(transforms[i]);
+			if (invTransforms[i] == null)
+				return null;
+		}
 
 		return new ByDimensionCoordinateTransform(
 				getName() == null ? null : getName() + "-inv",

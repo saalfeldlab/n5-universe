@@ -12,6 +12,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.AxisAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformationAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.scene.NgffScene;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ParameterBinding;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.scene.NgffSceneMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransformAdapter;
@@ -59,6 +60,7 @@ public class OmeNgffSceneParser implements N5MetadataParser<NgffSceneMetadata>, 
 			final NgffScene scene = gson.fromJson(sceneEl, NgffScene.class);
 			if (scene == null)
 				return Optional.empty();
+			ParameterBinding.bindAll(scene.getCoordinateTransformations(), n5, node.getPath());
 			return Optional.of(new NgffSceneMetadata(node.getPath(), scene));
 		} catch (final Exception e) {
 			return Optional.empty();

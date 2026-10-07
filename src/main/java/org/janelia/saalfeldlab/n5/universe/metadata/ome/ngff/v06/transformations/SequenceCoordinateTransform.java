@@ -147,24 +147,25 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		return transformations;
 	}
 
+	/**
+	 * @return true if every transformation is invertible (may read parameters)
+	 */
 	public boolean isInvertible() {
 
-		return Arrays.stream(getTransformations()).allMatch(t -> {
-			return t instanceof InvertibleCoordinateTransform;
-		});
+		return inverse() != null;
 	}
-	
-	@SuppressWarnings({"rawtypes", "unchecked"})
-	public SequenceCoordinateTransform inverse() { 
-		
-		if( !isInvertible()) {
-			return null;
-		}
+
+	/**
+	 * @return the inverse, or null if any transformation is not invertible
+	 */
+	public SequenceCoordinateTransform inverse() {
 
 		final ArrayList<CoordinateTransform<?>> invTransforms = new ArrayList<CoordinateTransform<?>>();
 		for( CoordinateTransform<?> ct : getTransformations()) {
-			InvertibleCoordinateTransform<?> ict = (InvertibleCoordinateTransform<?>)ct;
-			invTransforms.add(new InverseCoordinateTransform(ict));
+			final CoordinateTransform<?> inv = CoordinateTransform.inverseOf(ct);
+			if( inv == null )
+				return null;
+			invTransforms.add(inv);
 		}
 
 		// the inverse of a sequence needs to apply the inverse transformations in reverse order

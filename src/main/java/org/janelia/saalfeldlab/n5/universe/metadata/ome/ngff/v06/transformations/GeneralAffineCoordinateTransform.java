@@ -76,17 +76,25 @@ public class GeneralAffineCoordinateTransform extends AbstractAffineCoordinateTr
 	 */
 	public InverseCoordinateTransform<AffineGet, InvertibleAffineCoordinateTransform> tryInverse() {
 
-		if (numSourceDimensions() != numTargetDimensions())
+		// a path affine's shape is only known once its parameters are read
+		final double[][] params = affine != null ? affine : getParameters();
+		if (params == null)
+			throw new N5Exception("Cannot invert affine: no parameters"
+					+ (getParameterPath() != null ? " at \"" + getParameterPath() + "\"" : ""));
+
+		final int nSource = params[0].length - 1;
+		final int nTarget = params.length;
+		if (nSource != nTarget)
 			throw new N5Exception(String.format(
 					"Cannot invert affine with different source dimensions (%d) and target dimensions (%d).",
-					numSourceDimensions(), numTargetDimensions()));;
+					nSource, nTarget));
 
 		try {
-			if (affine != null)
-				return new InverseCoordinateTransform(new InvertibleAffineCoordinateTransform(getName(), getInput(), getOutput(), affine));
-			else
-				return new InverseCoordinateTransform(new InvertibleAffineCoordinateTransform(getName(), getInput(), getOutput(), getParameterPath()));
-
+			final InvertibleAffineCoordinateTransform invertible =
+					new InvertibleAffineCoordinateTransform(getName(), getInput(), getOutput(), params);
+			invertible.setInputAxes(getInputAxes());
+			invertible.setOutputAxes(getOutputAxes());
+			return new InverseCoordinateTransform(invertible);
 		} catch (RuntimeException e) {
 			throw new N5Exception("Affine not invertible: matrix is singular");
 		}

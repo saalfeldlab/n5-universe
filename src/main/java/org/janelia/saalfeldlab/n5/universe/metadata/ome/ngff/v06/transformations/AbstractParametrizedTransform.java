@@ -6,6 +6,7 @@ import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 
@@ -121,6 +122,26 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 	 */
 	public void setParameterSupplier(Supplier<P> parameterSupplier) {
 		this.parameterSupplier = parameterSupplier;
+	}
+
+	/**
+	 * @return true if this transform has a parameter source
+	 */
+	public boolean isBound() {
+		return parameterSupplier != null;
+	}
+
+	/**
+	 * Binds this transform to {@code n5} if it has a parameter path and is not
+	 * bound yet, then returns its transform.
+	 */
+	@Override
+	public T getTransform(final N5Reader n5) {
+
+		if (n5 != null && !isBound() && getParameterPath() != null)
+			bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
+
+		return getTransform();
 	}
 
 	/**
