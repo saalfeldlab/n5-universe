@@ -75,6 +75,31 @@ public interface CoordinateTransform<T extends RealTransform> {
 		return Objects.equals(out, otherOut);
 	}
 
+	/**
+	 * Returns the inverse of {@code ct}, or null if it is not invertible. A
+	 * {@link GeneralAffineCoordinateTransform} is invertible if its matrix is
+	 * square.
+	 *
+	 * @param ct the transform
+	 * @return the inverse, or null
+	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public static CoordinateTransform<?> inverseOf(final CoordinateTransform<?> ct) {
+
+		try {
+			if (ct instanceof InvertibleCoordinateTransform)
+				return new InverseCoordinateTransform((InvertibleCoordinateTransform)ct);
+			else if (ct instanceof GeneralAffineCoordinateTransform)
+				return ((GeneralAffineCoordinateTransform)ct).tryInverse();
+			else if (ct instanceof SequenceCoordinateTransform)
+				return ((SequenceCoordinateTransform)ct).inverse();
+			else if (ct instanceof ByDimensionCoordinateTransform)
+				return ((ByDimensionCoordinateTransform)ct).inverse();
+		} catch (final Exception e) {}
+
+		return null;
+	}
+
 	public static CoordinateTransform<?> create(CoordinateTransform<?> ct) {
 		if (ct instanceof CoordinateTransform) {
 			return (CoordinateTransform<?>) ct;
