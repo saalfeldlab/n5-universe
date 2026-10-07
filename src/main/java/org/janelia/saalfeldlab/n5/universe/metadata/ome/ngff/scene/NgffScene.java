@@ -14,6 +14,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph.Coordinat
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph.TransformGraph;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ParameterBinding;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -148,8 +149,10 @@ public class NgffScene {
 
 		final ArrayList<CoordinateTransform<?>> allCts = new ArrayList<>();
 		if (coordinateTransformations != null)
-			for (final CoordinateTransform<?> ct : coordinateTransformations)
+			for (final CoordinateTransform<?> ct : coordinateTransformations) {
+				ParameterBinding.bind(ct, n5, basePath);
 				allCts.add(ct);
+			}
 
 		for (final String extPath : getPaths()) {
 			final String resolvedPath = (basePath == null || basePath.isEmpty())
@@ -163,8 +166,10 @@ public class NgffScene {
 
 				final CoordinateTransform<?>[] cts = ms.getCoordinateTransformations();
 				if (cts != null)
-					for (final CoordinateTransform<?> ct : cts)
+					for (final CoordinateTransform<?> ct : cts) {
+						ParameterBinding.bind(ct, n5, resolvedPath);
 						allCts.add(qualify(ct, resolvedPath));
+					}
 			}
 		}
 

@@ -69,14 +69,16 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 	public AbstractParametrizedTransform( AbstractParametrizedTransform<T,P> other )
 	{
 		super( other );
-		this.path = other.getParameterPath();
+		this.path = other.path;
+		this.absolutePath = other.absolutePath;
 		this.parameterSupplier = other.parameterSupplier;
 	}
 
 	public AbstractParametrizedTransform( AbstractParametrizedTransform<T,P> other, int[] inputAxes, int[] outputAxes )
 	{
 		super( other, inputAxes, outputAxes );
-		this.path = other.getParameterPath();
+		this.path = other.path;
+		this.absolutePath = other.absolutePath;
 		this.parameterSupplier = other.parameterSupplier;
 	}
 
@@ -137,7 +139,14 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 	@Override
 	public void resolveAbsoluePath(final String groupPath) {
 
-		absolutePath = N5URI.normalizeGroupPath(groupPath + "/" + path);
+		if (path == null)
+			return;
+
+		// a relative path is relative to the group holding the metadata,
+		// a path starting with "/" is relative to the container root
+		absolutePath = path.startsWith("/") || groupPath == null
+				? N5URI.normalizeGroupPath(path)
+				: N5URI.normalizeGroupPath(groupPath + "/" + path);
 	}
 
 }
