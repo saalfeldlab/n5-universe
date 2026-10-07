@@ -53,6 +53,16 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
 	}
 
+	/**
+	 * A transform whose parameters are at {@code path}, with its transform already built,
+	 * e.g. from the field that was just written there.
+	 */
+	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation,
+			final String input, final String output, final DisplacementFieldTransform transform ) {
+		super(TYPE, name, path, interpolation, input, output);
+		this.transform = transform;
+	}
+
 	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation,
 			final String input, final String output) {
 		super(TYPE, name, path, interpolation, input, output);
@@ -110,8 +120,7 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 
 		String[] axisNames = dfieldCoordinateSystem.getAxisNames();
 
-		final DisplacementFieldCoordinateTransform<T> df = new DisplacementFieldCoordinateTransform<>("",
-				dataset, "linear", input.getName(), output.getName());
+		final DisplacementFieldCoordinateTransform<T> df = writtenTransform(dataset, displacementField, input, output, transforms);
 
 		final RandomAccessibleInterval<T> storedField = OmeNgffMetadataParser.reverse(n5)
 				? FieldTransformParsing.reverseCoordinates(displacementField)
@@ -136,8 +145,7 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		CoordinateSystem dfieldCoordinateSystem = createVectorFieldCoordinateSystem(input);
 		String[] axisNames = dfieldCoordinateSystem.getAxisNames();
 
-		final DisplacementFieldCoordinateTransform<T> df = new DisplacementFieldCoordinateTransform<>("", 
-				dataset, "linear", input.getName(), output.getName());
+		final DisplacementFieldCoordinateTransform<T> df = writtenTransform(dataset, displacementField, input, output, transforms);
 
 		final RandomAccessibleInterval<T> storedField = OmeNgffMetadataParser.reverse(n5)
 				? FieldTransformParsing.reverseCoordinates(displacementField)
@@ -149,6 +157,23 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		n5.setAttribute(dataset, "ome/" + CoordinateTransform.KEY, transforms);
 
 		return df;
+	}
+
+	/**
+	 * Builds the transform for a field written to {@code dataset}, from the field in memory.
+	 * It is built the same way as when the field is read back
+	 * (see {@link FieldTransformParsing#buildField}).
+	 */
+	private static <T extends RealType<T>> DisplacementFieldCoordinateTransform<T> writtenTransform(final String dataset,
+			final RandomAccessibleInterval<T> displacementField, final CoordinateSystem input, final CoordinateSystem output,
+			final CoordinateTransform<?>[] transforms) {
+
+		final String interpolation = LINEAR_INTERPOLATION;
+		final RealRandomAccessible<RealComposite<T>> field = FieldTransformParsing.buildField(
+				displacementField, 0, interpolation, FieldTransformParsing.selectPixelToPhysical(transforms, input.getName()));
+
+		return new DisplacementFieldCoordinateTransform<>("", dataset, interpolation, input.getName(), output.getName(),
+				new DisplacementFieldTransform(field));
 	}
 
 	public static CoordinateSystem createVectorFieldCoordinateSystem(final CoordinateSystem output) {

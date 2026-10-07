@@ -65,13 +65,6 @@ public class FieldTransformParsing {
 				? reverseCoordinates(fieldRaw)
 				: fieldRaw;
 
-		final CompositeIntervalView< S, RealComposite< S > >  collapsedFirst =
-				Views.collapseReal(
-						Views.moveAxis(fieldRev, 0, fieldRev.numDimensions() - 1 ) );
-
-		final RealRandomAccessible<RealComposite<S>> fieldInterp = Views.interpolate(
-				Views.extendBorder(collapsedFirst), getInterpolator(interpolator));
-
 		// pixel->physical: prefer the transform resolved from multiscales, then the flat attributes.
 		CoordinateTransform<?> pixelToPhysicalCt = resolved != null ? resolved.pixelToPhysical : null;
 		if( pixelToPhysicalCt == null ) {
@@ -81,33 +74,73 @@ public class FieldTransformParsing {
 			pixelToPhysicalCt = findPixelToPhysicalTransformCheckSelfRef( n5, path, inputName );
 		}
 
-		RealRandomAccessible<RealComposite<S>> field;
-		if( pixelToPhysicalCt == null ) {
-			field = fieldInterp;
-			return field;
+		try {
+			return buildField(fieldRev, vectorAxisIndex, interpolator, pixelToPhysicalCt);
+		} catch (final N5Exception e) {
+			throw new N5Exception(String.format("field at \"%s\" (transform path \"%s\"): %s",
+					arrayPath, path, e.getMessage()), e);
 		}
+	}
+
+	/**
+	 * Builds the field a displacement or coordinate field transform evaluates, from its array.
+	 * Both reading a field and writing one use this, so the two agree on interpolation,
+	 * boundary extension, and the pixel to physical transform.
+	 *
+	 * @param <S>
+	 *            the value type
+	 * @param field
+	 *            the field array in imglib2 order, with the vector axis at dimension 0
+	 * @param vectorAxisIndex
+	 *            the index of the vector axis, used to drop that dimension from an
+	 *            (n+1)D pixel to physical transform
+	 * @param interpolation
+	 *            the interpolation, see {@link AbstractParametrizedFieldTransform}
+	 * @param pixelToPhysical
+	 *            the pixel to physical transform, or null for none
+	 * @return the interpolated field in physical coordinates
+	 * @throws N5Exception
+	 *             if the pixel to physical transform is not affine, or its
+	 *             dimensionality does not match the field
+	 */
+	public static <S extends RealType<S>> RealRandomAccessible<RealComposite<S>> buildField(
+			final RandomAccessibleInterval<S> field,
+			final int vectorAxisIndex,
+			final String interpolation,
+			final CoordinateTransform<?> pixelToPhysical) {
+
+		// TODO this will need generalizing if vectorAxisIndex != 0
+		final CompositeIntervalView< S, RealComposite< S > >  collapsedFirst =
+				Views.collapseReal(
+						Views.moveAxis(field, 0, field.numDimensions() - 1 ) );
+
+		final RealRandomAccessible<RealComposite<S>> fieldInterp = Views.interpolate(
+				Views.extendBorder(collapsedFirst), getInterpolator(interpolation));
+
+		if( pixelToPhysical == null )
+			return fieldInterp;
 
 		// TODO is this general enough?
-		final AffineGet storedAffine = TransformUtils.toAffine(pixelToPhysicalCt, fieldRev.numDimensions());
+		final AffineGet storedAffine = TransformUtils.toAffine(pixelToPhysical, field.numDimensions());
 		if( storedAffine == null )
 			throw new N5Exception("Warning: only invertible affine pixel to physical transforms are currently supported");
 
 		/*
 		 * Make sure to handle the case when the field's coordinate transforms
-		 * are both nD and (n+1)D. Since earlier versions of the spec had 
+		 * are both nD and (n+1)D. Since earlier versions of the spec had
 		 * the coordinate transforms apply to the vector dimension.
-		 * Ignore that component of the transformation, if present. 
+		 * Ignore that component of the transformation, if present.
 		 */
-		final int spatialNd = fieldRev.numDimensions() - 1;
-		final AffineGet affine = storedAffine.numSourceDimensions() == fieldRev.numDimensions()
+		final int spatialNd = field.numDimensions() - 1;
+		final AffineGet affine = storedAffine.numSourceDimensions() == field.numDimensions()
 				? Common.removeDimension(vectorAxisIndex, storedAffine)
 				: storedAffine;
 
 		// fail here rather than hand back an under-dimensioned field
 		if( affine.numSourceDimensions() != spatialNd )
 			throw new N5Exception(String.format(
-					"pixel to physical transform at \"%s\" is %dD; the field at \"%s\" is %dD (%dD once its vector axis is collapsed)",
-					path, storedAffine.numSourceDimensions(), arrayPath, fieldRev.numDimensions(), spatialNd));
+					"pixel to physical transform is %dD; the field is %dD (%dD once its vector axis is collapsed)",
+					storedAffine.numSourceDimensions(), field.numDimensions(), spatialNd));
 
 		return RealViews.affine(fieldInterp, affine);
 	}
@@ -254,6 +287,20 @@ public class FieldTransformParsing {
 	public static CoordinateTransform<?> findPixelToPhysicalTransformStrict(final N5Reader n5, final String group, final String output ) {
 
 		final CoordinateTransform<?>[] transforms = n5.getAttribute(group, "ome/"+CoordinateTransform.KEY, CoordinateTransform[].class);
+		return selectPixelToPhysical(transforms, output);
+	}
+
+	/**
+	 * Selects a field's pixel to physical transform from the transforms stored with
+	 * the field. Both reading a field and writing one use this.
+	 *
+	 * @param transforms the transforms stored with the field, may be null
+	 * @param output the name of the field's input coordinate system, or null
+	 * @return the first transform whose output is {@code output}, the first transform
+	 *         if {@code output} is null, or null if none matches
+	 */
+	public static CoordinateTransform<?> selectPixelToPhysical(final CoordinateTransform<?>[] transforms, final String output) {
+
 		if (transforms == null)
 			return null;
 
