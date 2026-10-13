@@ -82,7 +82,7 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.name = other.getName();
 		this.type = other.getType();
 		this.input = other.getInput();
-		this.input = other.getOutput();
+		this.output = other.getOutput();
 		this.inputAxes = other.getInputAxes();
 		this.outputAxes = other.getOutputAxes();
 	}
