@@ -4,121 +4,155 @@ import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.universe.factory.spi.AmazonS3Provider;
 import org.janelia.saalfeldlab.n5.universe.factory.spi.GoogleCloudProvider;
 import org.janelia.saalfeldlab.n5.universe.factory.spi.Hdf5Provider;
-import org.janelia.saalfeldlab.n5.universe.kvr.split.DefaultAmazonS3Provider;
-import org.janelia.saalfeldlab.n5.universe.kvr.split.DefaultGoogleCloudProvider;
-import org.janelia.saalfeldlab.n5.universe.kvr.split.DefaultHdf5Provider;
 
-import javax.annotation.Nullable;
-import java.util.function.Supplier;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
 
 /**
  * The service implementations (aws-s3, google-cloud, hdf5) that are available.
  * <p>
+ * The implementations are in {@code n5-aws-s3}, {@code n5-google-cloud} and
+ * {@code n5-hdf5}, and are discovered through {@link ServiceLoader}. A backend
+ * whose artifact is not on the classpath is simply absent: {@code has*()}
+ * returns {@code false}, and the accessor throws an {@link N5Exception} naming
+ * the artifact to add.
+ * <p>
  * Each backend is resolved independently and lazily, on first use, by its own
- * holder class. That isolation is deliberate: resolution can fail (a malformed
- * {@code META-INF/services} file, a provider that cannot be instantiated), and
- * one failing backend must not take the others down with it — which is exactly
- * what would happen if both were resolved in this class's own static
- * initializer.
+ * holder class (to avoid instantiation failure of one provider to affect the
+ * others).
  */
-public final class Providers {
+final class Providers {
 
 	private Providers() {}
 
 	/**
 	 * @return whether the S3 backend is available
 	 */
-	public static boolean hasAmazonS3() {
+	static boolean hasAmazonS3() {
 
-		return AmazonS3Holder.INSTANCE != null;
+		return AmazonS3Holder.LOOKUP.provider != null;
 	}
 
 	/**
 	 * @return the S3 backend
 	 * @throws N5Exception if none is available
 	 */
-	public static AmazonS3Provider amazonS3() {
+	static AmazonS3Provider amazonS3() {
 
-		return require(AmazonS3Holder.INSTANCE, "S3", "n5-aws-s3");
+		return AmazonS3Holder.LOOKUP.require("S3", "n5-aws-s3");
 	}
 
 	/**
 	 * @return whether the Google Cloud Storage backend is available
 	 */
-	public static boolean hasGoogleCloud() {
+	static boolean hasGoogleCloud() {
 
-		return GoogleCloudHolder.INSTANCE != null;
+		return GoogleCloudHolder.LOOKUP.provider != null;
 	}
 
 	/**
 	 * @return the Google Cloud Storage backend
 	 * @throws N5Exception if none is available
 	 */
-	public static GoogleCloudProvider googleCloud() {
+	static GoogleCloudProvider googleCloud() {
 
-		return require(GoogleCloudHolder.INSTANCE, "Google Cloud Storage", "n5-google-cloud");
+		return GoogleCloudHolder.LOOKUP.require("Google Cloud Storage", "n5-google-cloud");
 	}
 
 	/**
 	 * @return whether the HDF5 format is available
 	 */
-	public static boolean hasHdf5() {
+	static boolean hasHdf5() {
 
-		return Hdf5Holder.INSTANCE != null;
+		return Hdf5Holder.LOOKUP.provider != null;
 	}
 
 	/**
 	 * @return the HDF5 format
 	 * @throws N5Exception if none is available
 	 */
-	public static Hdf5Provider hdf5() {
+	static Hdf5Provider hdf5() {
 
-		return require(Hdf5Holder.INSTANCE, "HDF5", "n5-hdf5");
+		return Hdf5Holder.LOOKUP.require("HDF5", "n5-hdf5");
 	}
 
 	private static final class AmazonS3Holder {
 
-		static final AmazonS3Provider INSTANCE = find(AmazonS3Provider.class, DefaultAmazonS3Provider::new);
+		static final Lookup<AmazonS3Provider> LOOKUP = find(AmazonS3Provider.class);
 	}
 
 	private static final class GoogleCloudHolder {
 
-		static final GoogleCloudProvider INSTANCE = find(GoogleCloudProvider.class, DefaultGoogleCloudProvider::new);
+		static final Lookup<GoogleCloudProvider> LOOKUP = find(GoogleCloudProvider.class);
 	}
 
 	private static final class Hdf5Holder {
 
-		static final Hdf5Provider INSTANCE = find(Hdf5Provider.class, DefaultHdf5Provider::new);
+		static final Lookup<Hdf5Provider> LOOKUP = find(Hdf5Provider.class);
 	}
 
-	/*
-	 * SPLIT: the single seam. Today the implementations ship in this artifact,
-	 * so we just instantiate the one we know. When they move to
-	 * n5-aws-s3 / n5-google-cloud / n5-hdf5 this becomes a ServiceLoader lookup and
-	 * the `bundled` argument goes away:
-	 *
-	 *     final Iterator<T> it = ServiceLoader
-	 *             .load(service, service.getClassLoader())   // never the TCCL
-	 *             .iterator();
-	 *     return it.hasNext() ? it.next() : null;
-	 *
-	 * Verified against real discovery before being reduced to this: with
-	 * META-INF/services entries in place, the providers were found through
-	 * ServiceLoader from the same artifact. See CLAUDE.md.
-	 *
-	 * Open decision for then: what two providers claiming one service means.
-	 * Throwing beats letting classpath order pick silently.
+	/**
+	 * The outcome of looking up one service: a provider, or nothing, and if
+	 * nothing then possibly why.
 	 */
-	@Nullable
-	private static <T> T find(final Class<T> service, final Supplier<T> bundled) {
+	private static final class Lookup<T> {
 
-		return bundled.get();
+		final T provider;
+
+		/** why the lookup failed, or {@code null} if there simply is no provider */
+		final N5Exception failure;
+
+		Lookup(final T provider, final N5Exception failure) {
+
+			this.provider = provider;
+			this.failure = failure;
+		}
+
+		T require(final String what, final String artifact) {
+
+			if (provider != null)
+				return provider;
+			if (failure != null) // a fresh exception, so the stack trace shows this caller
+				throw new N5Exception(failure.getMessage(), failure.getCause());
+			throw new N5Exception("No " + what + " support on the classpath. Add the " + artifact + " artifact.");
+		}
 	}
 
-	private static <T> T require(final T provider, final String what, final String artifact) {
+	/**
+	 * Load through the {@code service} type's class loader, not the
+	 * thread-context class loader: a wrong ClassLoader may silently
+	 * find nothing.
+	 * <p>
+	 * Currently, finding more than one implementation of a service is
+	 * treated as an error. Randomly using the first one might be
+	 * dangerous. (ServiceLoader already ignores a provider class named
+	 * more than once (e.g. the same jar on the classpath twice.)
+	 */
+	private static <T> Lookup<T> find(final Class<T> service) {
 
-		if (provider == null)
-			throw new N5Exception("No " + what + " support on the classpath. Add the " + artifact + " artifact.");
-		return provider;
+		try {
+			final Iterator<T> it = ServiceLoader.load(service, service.getClassLoader()).iterator();
+			final List<T> found = new ArrayList<>();
+			while (it.hasNext())
+				found.add(it.next());
+
+			if (found.isEmpty())
+				return new Lookup<>(null, null);
+			if (found.size() > 1) {
+				final List<String> names = new ArrayList<>();
+				for (final T provider : found)
+					names.add(provider.getClass().getName());
+				return new Lookup<>(null, new N5Exception(
+						"Found " + found.size() + " implementations of " + service.getName() + " on the classpath: "
+								+ String.join(", ", names) + ". Remove all but one."));
+			}
+			return new Lookup<>(found.get(0), null);
+
+		} catch (final ServiceConfigurationError | LinkageError | RuntimeException e) {
+			return new Lookup<>(null, new N5Exception("Could not load an implementation of " + service.getName(), e));
+		}
 	}
 }
