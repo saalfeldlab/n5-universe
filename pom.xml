@@ -121,6 +121,7 @@
 		<n5-zstandard.version>2.0.0</n5-zstandard.version>
 
 		<n5-factory-spi.version>1.0.0-SNAPSHOT</n5-factory-spi.version>
+		<n5-factory.version>1.0.0-SNAPSHOT</n5-factory.version>
 		<jackson-jq.version>1.0.0-preview.20191208</jackson-jq.version>
 		<alphanumeric-comparator.version>1.4.1</alphanumeric-comparator.version>
 
@@ -142,6 +143,11 @@
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5-factory-spi</artifactId>
 			<version>${n5-factory-spi.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-factory</artifactId>
+			<version>${n5-factory.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
