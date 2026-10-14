@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.imglib2.img.Img;
 import net.imglib2.test.ImgLib2Assert;
@@ -13,6 +14,7 @@ import net.imglib2.type.numeric.integer.UnsignedByteType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.RawCompression;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
 import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.junit.After;
@@ -126,6 +128,37 @@ public class Hdf5TranslatedN5Tests {
 		assertEquals("img", n5Xlated.originalPath("data"));
 
 		ImgLib2Assert.assertImageEquals(img, N5Utils.open(n5Xlated, "data"));
+	}
+
+	/**
+	 * The view owns its delegate, and an {@code N5HDF5Reader} holds native
+	 * resources (the JHDF5 reader and open data sets) that only {@code close()}
+	 * releases. Closing the view has to close the delegate.
+	 */
+	@Test
+	public void testCloseClosesDelegate() {
+
+		// NB: Close the fixture's writer, so that the reader below is the only
+		// open handle on the file.
+		final String path = n5.getFilename().getPath();
+		n5.close();
+
+		final AtomicBoolean delegateClosed = new AtomicBoolean();
+		final N5HDF5Reader delegate = new N5HDF5Reader(path) {
+
+			@Override
+			public void close() {
+				delegateClosed.set(true);
+				super.close();
+			}
+		};
+
+		final TranslatedN5Reader n5Xlated = new TranslatedN5Reader(delegate, ".", ".");
+		ImgLib2Assert.assertImageEquals(img, N5Utils.open(n5Xlated, "img"));
+		assertFalse("delegate still open while the view is in use", delegateClosed.get());
+
+		n5Xlated.close();
+		assertTrue("closing the view closes the delegate", delegateClosed.get());
 	}
 
 	/**

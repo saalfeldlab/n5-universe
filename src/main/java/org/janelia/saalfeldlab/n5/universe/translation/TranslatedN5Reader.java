@@ -52,6 +52,19 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	}
 
 	/**
+	 * Close the delegate container.
+	 * <p>
+	 * The translated view owns its delegate: chunks are read from the delegate
+	 * for as long as the view is in use, so this is the only point at which it
+	 * can be closed. This matters for delegates holding native resources, such
+	 * as an {@code N5HDF5Reader} (its JHDF5 reader and open data sets).
+	 */
+	@Override
+	public void close() {
+		delegate.close();
+	}
+
+	/**
 	 * Called after every modification of the translated hierarchy made through
 	 * {@link #getContainerDialect()}.
 	 * <p>
