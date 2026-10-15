@@ -18,11 +18,10 @@ import org.janelia.saalfeldlab.n5.N5FSReader;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
-import org.janelia.saalfeldlab.n5.codec.transpose.TransposeCodecInfo;
 import org.janelia.saalfeldlab.n5.universe.N5DatasetDiscoverer;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
-import org.janelia.saalfeldlab.n5.universe.StorageFormat;
+import org.janelia.saalfeldlab.n5.universe.factory.StorageFormat;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadata.CosemTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.NgffMultiScaleGroupAttributes.MultiscaleDataset;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
@@ -35,7 +34,10 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMe
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform;
+import org.janelia.saalfeldlab.n5.zarr.DType;
+import org.janelia.saalfeldlab.n5.zarr.ZarrDatasetAttributes;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
+import org.janelia.saalfeldlab.n5.zarr.codec.transpose.TransposeCodecInfo;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 import org.junit.Assert;
@@ -48,6 +50,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import net.imglib2.realtransform.AffineTransform3D;
+
 
 public class NgffTests {
 
@@ -137,9 +140,9 @@ public class NgffTests {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
-	 * Checks that the reverse boolean argument to OmeNgffMetadataParser behaves as expected. 
+	 * Checks that the reverse boolean argument to OmeNgffMetadataParser behaves as expected.
 	 */
 	@Test
 	public void testNgffN5ParameterOrder() {
@@ -497,6 +500,54 @@ public class NgffTests {
 		zarr.setAttribute(base, "multiscales", new OmeNgffMultiScaleMetadata[]{meta});
 	}
 
+	/**
+	 * Create a dataset whose elements are stored in C (row-major) or F
+	 * (column-major) order, for testing how C- and F-order zarr arrays are read.
+	 * <p>
+	 * {@code dimensions} and {@code blockSize} are always in N5 order, the order
+	 * of {@link DatasetAttributes#getDimensions()}, which is the reverse of a
+	 * zarr {@code shape}. {@code cOrder} does <em>not</em> say how the arguments
+	 * are ordered. It selects the storage order of the array that is written.
+	 * <p>
+	 * In both zarr versions, the {@code shape} written to the zarr metadata is
+	 * {@code reverse(dimensions)} for C-order and {@code dimensions} itself for
+	 * F-order. What differs is the N5 dimensions the array then has. For example,
+	 * with {@code dimensions = [6,5,4]}:
+	 * <table>
+	 * <caption>resulting arrays</caption>
+	 * <tr><th>writer</th><th>cOrder</th><th>zarr metadata</th><th>N5 dimensions</th></tr>
+	 * <tr><td>any</td><td>true</td><td>{@code "shape": [4,5,6]} (zarr)</td><td>[6,5,4]</td></tr>
+	 * <tr><td>Zarr v2</td><td>false</td><td>{@code "shape": [6,5,4], "order": "F"}</td><td>[6,5,4]</td></tr>
+	 * <tr><td>Zarr v3</td><td>false</td><td>{@code "shape": [6,5,4]}, transpose codec</td><td>[4,5,6]</td></tr>
+	 * </table>
+	 * So for Zarr v2, F-order keeps the N5 dimensions. Only the layout of the
+	 * elements within each chunk changes. Zarr v3 has no {@code "order"}: the
+	 * array is created with reversed dimensions and a transpose codec that
+	 * reverses the axes, so its N5 dimensions are reversed.
+	 * <p>
+	 * NB: n5-zarr 2.0.0 does not write the transpose codec to {@code
+	 * zarr.json}, while still applying it to the chunks it writes. With that
+	 * version, the Zarr v3 F-order array reads back as a C-order array with
+	 * reversed dimensions and transposed chunk data.
+	 *
+	 * @param zarr
+	 * 		the writer; must be a Zarr v2 or v3 writer unless {@code cOrder}
+	 * @param cOrder
+	 * 		whether to store the elements in C order (the default) or in F order
+	 * @param datasetPath
+	 * 		the dataset path
+	 * @param dimensions
+	 * 		the dimensions, in N5 order
+	 * @param blockSize
+	 * 		the block size, in N5 order
+	 * @param dataType
+	 * 		the data type
+	 * @param compression
+	 * 		the compression; ignored for Zarr v3 F-order
+	 *
+	 * @throws IllegalArgumentException
+	 * 		if {@code cOrder} is false and {@code zarr} is not a Zarr writer
+	 */
 	public static void createDataset(
 			final N5Writer zarr,
 			final boolean cOrder,
@@ -508,33 +559,28 @@ public class NgffTests {
 
 		if (cOrder) {
 			zarr.createDataset(datasetPath, dimensions, blockSize, dataType, compression);
-		}
-		else {
+		} else if (zarr instanceof ZarrV3KeyValueWriter) {
+			// Zarr v3 has no "order". Store the reversed shape, with a transpose codec.
 			final long[] dimsRev = ArrayUtils.clone(dimensions);
 			final int[] blkSizeRev = ArrayUtils.clone(blockSize);
-
-			if( zarr instanceof ZarrV3KeyValueWriter ) {
-
-				ArrayUtils.reverse(dimsRev);
-				ArrayUtils.reverse(blkSizeRev);
-
-				final int nd = dimsRev.length;
-				final int[] revOrder = new int[nd];
-				for( int i = 0; i < nd; i++ ) {
-					revOrder[i] = nd - i - 1;
-				}
-
-				final ZarrV3DatasetAttributes attrs = ZarrV3DatasetAttributes.builder(dimsRev, dataType)
+			ArrayUtils.reverse(dimsRev);
+			ArrayUtils.reverse(blkSizeRev);
+			final int nd = dimsRev.length;
+			final int[] revOrder = new int[nd];
+			for (int i = 0; i < nd; i++)
+				revOrder[i] = nd - i - 1;
+			zarr.createDataset(datasetPath, ZarrV3DatasetAttributes.builder(dimsRev, dataType)
 					.blockSize(blkSizeRev)
 					.datasetCodecInfos(new TransposeCodecInfo(revOrder))
-					.build();
-				zarr.createDataset(datasetPath, attrs);
-
-			} else if( zarr instanceof ZarrKeyValueWriter ) {
-				zarr.createDataset(datasetPath, dimsRev, blkSizeRev, dataType, compression);
-				zarr.setAttribute(datasetPath, "order", "F");
-			}
-
+					.build());
+		} else if (zarr instanceof ZarrKeyValueWriter) {
+			// Zarr v2 "order": "F". Same dimensions, column-major chunks.
+			zarr.createDataset(datasetPath, new ZarrDatasetAttributes(
+					dimensions, blockSize, new DType(dataType), compression,
+					false, // isRowMajor
+					null)); // fill_value
+		} else {
+			throw new IllegalArgumentException("F-order requires a zarr writer");
 		}
 	}
 
