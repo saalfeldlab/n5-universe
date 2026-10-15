@@ -75,7 +75,9 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements GsonN5Writ
 	 */
 	@Override
 	void onModified() {
-		Directory.writeTo(inverse.translate(translated.getRoot()), delegateWriter);
+		final Directory inverted = inverse.translate(translated.getRoot());
+		Directory.writeTo(inverted, delegateWriter);
+		original = inverted;
 	}
 
 	/**

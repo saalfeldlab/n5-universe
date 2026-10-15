@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.translation;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -7,6 +9,7 @@ import org.janelia.saalfeldlab.n5.ContainerDialect;
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.GsonN5Reader;
+import org.janelia.saalfeldlab.n5.GsonN5Writer;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
 import org.janelia.saalfeldlab.n5.N5Reader;
@@ -14,6 +17,20 @@ import org.janelia.saalfeldlab.n5.N5Reader;
 public class TranslatedN5Reader implements GsonN5Reader {
 
 	private final GsonN5Reader delegate;
+
+	/**
+	 * The original hierarchy, initially harvested from the delegate.
+	 * <p>
+	 * {@link TranslatedN5Writer} modifies this when translating
+	 * changes back and writing them to the delegate container.
+	 * <p>
+	 * NB: This is a snapshot that doesn't reflect external changes (by
+	 * other writers) to the delegate.
+	 * (TODO) Also, currently {@link Directory#writeTo(Directory, GsonN5Writer)}
+	 *   does not do deletions so there may be more in the delegate than
+	 *   is reflected here.
+	 */
+	Directory original;
 
 	/**
 	 * The translated hierarchy. Used by {@link #containerDialect}.
@@ -60,13 +77,14 @@ public class TranslatedN5Reader implements GsonN5Reader {
 			final Executor executor ) {
 
 		delegate = (GsonN5Reader) n5Base;
+		original = Directory.collectFrom(delegate, executor);
 		final DialectInfo dialect = DialectInfo.of(delegate);
 
 		// NB: The forward translation is applied once, here. After this the
 		// translated hierarchy is the one that gets modified, and `inverse`
 		// derives the delegate's hierarchy from it.
 		final JqTranslation forward = new JqTranslation(dialect, fwdTranslation);
-		translated = new DirectoryStore(forward.translate(Directory.collectFrom(delegate, executor)));
+		translated = new DirectoryStore(forward.translate(original));
 		inverse = new JqTranslation(dialect, invTranslation);
 
 		containerDialect = new NotifyingDialect(
@@ -77,6 +95,28 @@ public class TranslatedN5Reader implements GsonN5Reader {
 	@Override
 	public ContainerDialect getContainerDialect() {
 		return containerDialect;
+	}
+
+	/**
+	 * The delegate's hierarchy, in the form a jq translation sees it: one
+	 * {@code {"attributes": {…}, "children": {…}}} object per directory, with
+	 * {@code attributes} keyed by attribute file name ({@code attributes.json},
+	 * {@code .zattrs}, {@code zarr.json}, …). Recursion stops at datasets.
+	 *
+	 * @return the original hierarchy as json
+	 */
+	public JsonElement getOriginalHierarchy() {
+		return original == null ? JsonNull.INSTANCE : original.toJson();
+	}
+
+	/**
+	 * The translated hierarchy, in the same form as {@link #getOriginalHierarchy()}
+	 *
+	 * @return the translated hierarchy as json
+	 */
+	public JsonElement getTranslatedHierarchy() {
+		final Directory root = translated.getRoot();
+		return root == null ? JsonNull.INSTANCE : root.toJson();
 	}
 
 	/**
