@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.translation;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -28,7 +29,29 @@ public class TranslatedN5Writer extends TranslatedN5Reader implements GsonN5Writ
 	public TranslatedN5Writer(final N5Writer n5Base,
 			final String fwdTranslation,
 			final String invTranslation) {
-		super(requireWritableDialect(n5Base), fwdTranslation, invTranslation);
+		this(n5Base, fwdTranslation, invTranslation, null);
+	}
+
+	/**
+	 * See {@link TranslatedN5Reader#TranslatedN5Reader(org.janelia.saalfeldlab.n5.N5Reader,
+	 * String, String, Executor)}. {@code executor} is used only to harvest the
+	 * hierarchy of {@code n5Base} during construction, not for writing.
+	 *
+	 * @param n5Base
+	 * 		the container to translate
+	 * @param fwdTranslation
+	 * 		jq expression translating the hierarchy of {@code n5Base}
+	 * @param invTranslation
+	 * 		jq expression translating it back
+	 * @param executor
+	 * 		executor to harvest the hierarchy of {@code n5Base} with, or {@code
+	 * 		null} to harvest it sequentially
+	 */
+	public TranslatedN5Writer(final N5Writer n5Base,
+			final String fwdTranslation,
+			final String invTranslation,
+			final Executor executor) {
+		super(requireWritableDialect(n5Base), fwdTranslation, invTranslation, executor);
 		delegateWriter = (GsonN5Writer) n5Base;
 	}
 

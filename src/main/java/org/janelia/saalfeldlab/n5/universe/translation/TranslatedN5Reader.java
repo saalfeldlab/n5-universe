@@ -2,6 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.translation;
 
 import java.net.URI;
 import java.util.List;
+import java.util.concurrent.Executor;
 import org.janelia.saalfeldlab.n5.ContainerDialect;
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -31,6 +32,33 @@ public class TranslatedN5Reader implements GsonN5Reader {
 			final String fwdTranslation,
 			final String invTranslation ) {
 
+		this(n5Base, fwdTranslation, invTranslation, null);
+	}
+
+	/**
+	 * The delegate's hierarchy is harvested once, here, and with {@code
+	 * executor} in parallel. That is worth it where every request to the
+	 * delegate is a network round trip (cloud backends): the harvest makes a
+	 * few requests per group or dataset.
+	 * <p>
+	 * {@code executor} is used only during construction. The caller keeps
+	 * ownership, and may shut it down once this constructor returns.
+	 *
+	 * @param n5Base
+	 * 		the container to translate
+	 * @param fwdTranslation
+	 * 		jq expression translating the hierarchy of {@code n5Base}
+	 * @param invTranslation
+	 * 		jq expression translating it back
+	 * @param executor
+	 * 		executor to harvest the hierarchy of {@code n5Base} with, or {@code
+	 * 		null} to harvest it sequentially
+	 */
+	public TranslatedN5Reader( final N5Reader n5Base,
+			final String fwdTranslation,
+			final String invTranslation,
+			final Executor executor ) {
+
 		delegate = (GsonN5Reader) n5Base;
 		final DialectInfo dialect = DialectInfo.of(delegate);
 
@@ -38,7 +66,7 @@ public class TranslatedN5Reader implements GsonN5Reader {
 		// translated hierarchy is the one that gets modified, and `inverse`
 		// derives the delegate's hierarchy from it.
 		final JqTranslation forward = new JqTranslation(dialect, fwdTranslation);
-		translated = new DirectoryStore(forward.translate(Directory.collectFrom(delegate)));
+		translated = new DirectoryStore(forward.translate(Directory.collectFrom(delegate, executor)));
 		inverse = new JqTranslation(dialect, invTranslation);
 
 		containerDialect = new NotifyingDialect(
