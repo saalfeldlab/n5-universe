@@ -61,7 +61,8 @@ public class OmeNgffMetadata extends SpatialMultiscaleMetadata<NgffSingleScaleAx
 			final NgffSingleScaleAxesMetadata singleScaleMeta = new NgffSingleScaleAxesMetadata(scalePaths[i], 
 					scales[i], 
 					translations != null && translations[i] != null ? translations[i] : null, 
-					null);
+					version,
+					null, null, null);
 			
 			mut.addChild(singleScaleMeta);
 		}

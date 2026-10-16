@@ -22,6 +22,8 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 	public static final String AXIS_KEY = "axes";
 
 	public static final String COORDINATETRANSFORMATIONS_KEY = "coordinateTransformations";
+	
+	public static String defaultVersion = "0.5";
 
 	private final String path;
 
@@ -61,6 +63,16 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 
 		this(path, scale, translation, axes, datasetAttributes, null);
 	}
+	
+	public NgffSingleScaleAxesMetadata(final String path,
+			final double[] scale,
+			final double[] translation,
+			final Axis[] axes,
+			final DatasetAttributes datasetAttributes,
+			final int[] permutationFromParent) {
+
+		this(path, scale, translation, defaultVersion, axes, datasetAttributes, permutationFromParent);
+	}
 
 	/**
 	 * @param permutationFromParent
@@ -70,26 +82,38 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 	public NgffSingleScaleAxesMetadata(final String path,
 			final double[] scale,
 			final double[] translation,
+			final String version,
 			final Axis[] axes,
 			final DatasetAttributes datasetAttributes,
 			final int[] permutationFromParent) {
 
 		this.path = MetadataUtils.normalizeGroupPath(path);
 		this.permutationFromParent = permutationFromParent == null ? null : permutationFromParent.clone();
-
-		this.scale = scale != null ? scale : ones(axes.length);
-		this.translation = translation != null ? translation : new double[axes.length];
 		this.axes = axes;
 
-		this.datasetAttributes = datasetAttributes;
+		this.scale = scale != null ? scale : ones(axes.length);
+		
+		// use null if the passed translation is null, or full of zeros
+		this.translation = translation != null ? 
+				(allZeros(translation) ? null : translation)
+				: null;
 
+
+		this.datasetAttributes = datasetAttributes;
 		coordinateTransformations = MetadataUtils.buildScaleTranslationTransformList(this.scale, this.translation);
+
+
 		if (Arrays.stream(axes).allMatch(x -> x.getType().equals(Axis.SPACE))) {
 			this.transform = MetadataUtils.scaleTranslationTransforms(this.scale, this.translation);
 		} else {
 			final int[] spaceIndexes = AxisUtils.indexes(axes, x -> x.getType().equals(Axis.SPACE));
 			final double[] spaceScale = AxisUtils.permute(this.scale, spaceIndexes);
-			final double[] spaceTranslation = AxisUtils.permute(this.translation, spaceIndexes);
+			// this.translation is null when it was absent or all-zeros; leave it null
+			// (scaleTranslationTransforms then yields a scale-only transform) rather
+			// than permuting a null array
+			final double[] spaceTranslation = this.translation == null
+					? null
+					: AxisUtils.permute(this.translation, spaceIndexes);
 			this.transform = MetadataUtils.scaleTranslationTransforms(spaceScale, spaceTranslation);
 		}
 	}
@@ -99,6 +123,15 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 		final double[] ones = new double[N];
 		Arrays.fill(ones, 1);
 		return ones;
+	}
+
+	private static boolean allZeros(final double[] vals) {
+
+		for (int i = 0; i < vals.length; i++) {
+			if (vals[i] != 0)
+				return false;
+		}
+		return true;
 	}
 
 	@Override

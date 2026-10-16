@@ -77,6 +77,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		return new GsonBuilder()
 				.registerTypeAdapter(CoordinateTransform.class, new CoordinateTransformAdapter(reverse))
 				.registerTypeAdapter(Axis.class, new AxisAdapter())
+				.registerTypeAdapter(OmeNgffReference.class, new OmeNgffReferenceAdapter())
 				.registerTypeAdapter(OmeNgffMultiScaleMetadata.class, new MultiscalesAdapter(reverse));
 	}
 
@@ -163,7 +164,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 			final OmeNgffMultiScaleMetadata ms = multiscales[j];
 			final NgffSingleScaleAxesMetadata[] msChildrenMeta = OmeNgffMultiScaleMetadata.buildMetadata(
-					nd, node.getPath(), ms.getDatasets(), attrs, ms.getCoordinateTransformations(), ms.metadata, ms.axes);
+					nd, node.getPath(), ms.version, ms.getDatasets(), attrs, ms.getCoordinateTransformations(), ms.metadata, ms.axes);
 
 			// updates both children of node, and node itself
 			MetadataUtils.updateChildrenMetadata(node, msChildrenMeta, false);

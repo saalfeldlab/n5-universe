@@ -13,8 +13,10 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadata.CosemTransfo
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.SequenceCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform;
 
 import com.google.gson.Gson;
@@ -124,6 +126,94 @@ public class MetadataUtils {
 		return coordinateTransformations;
 	}
 
+	/**
+	 * Builds the dataset {@code coordinateTransformations} for OME-Zarr 0.6.
+	 *
+	 * @param scale the scale, or null
+	 * @param translation the translation, or null
+	 * @param inputPath path of the array the transforms apply to, relative to the
+	 *            multiscales group and matching {@code datasets[i].path}, e.g.
+	 *            {@code "s0"}
+	 * @param outputName name of the coordinate system the transforms map into,
+	 *            e.g. {@code "physical"}
+	 * @return the transformations, empty when both scale and translation are null
+	 */
+	public static CoordinateTransform<?>[] buildScaleTranslationTransformListV06(
+			final double[] scale, final double[] translation,
+			final String inputPath, final String outputName) {
+
+		final OmeNgffReference input = OmeNgffReference.DUMMY;
+		final OmeNgffReference output = new OmeNgffReference(outputName, null);
+
+		if (scale != null && translation != null)
+			return new CoordinateTransform<?>[]{
+					new SequenceCoordinateTransform(null, input, output,
+							new ScaleCoordinateTransform(scale),
+							new TranslationCoordinateTransform((String)null, translation))};
+
+		if (scale != null)
+			return new CoordinateTransform<?>[]{
+					new ScaleCoordinateTransform(null, input, output, scale)};
+
+		if (translation != null)
+			return new CoordinateTransform<?>[]{
+					new TranslationCoordinateTransform(null, input, output, translation)};
+
+		return new CoordinateTransform<?>[0];
+	}
+
+	/**
+	 * Returns {@code cts} with the endpoint references that OME-Zarr 0.6 requires:
+	 * the array the transforms apply to, and the coordinate system they produce.
+	 * <p>
+	 * A single scale or translation carries the references itself. Anything else -
+	 * several transforms, which compose rather than describing separate edges, or a
+	 * type this cannot copy - is wrapped in a {@code sequence} that carries them,
+	 * leaving the originals untouched.
+	 * <p>
+	 * The input transforms are never modified. They are typically shared with the
+	 * {@link NgffSingleScaleAxesMetadata} the dataset was built from, which may be
+	 * serialized at a version that must not carry references.
+	 *
+	 * @param cts the transforms, or null
+	 * @param inputPath path of the array, relative to the multiscales group
+	 * @param outputName name of the coordinate system the transforms map into
+	 * @return the referenced transforms, or {@code cts} when there is nothing to do
+	 */
+	public static CoordinateTransform<?>[] withReferences(final CoordinateTransform<?>[] cts,
+			final String inputPath, final String outputName) {
+
+		if (cts == null || cts.length == 0)
+			return cts;
+
+		final OmeNgffReference input = new OmeNgffReference(null, inputPath);
+		final OmeNgffReference output = new OmeNgffReference(outputName, null);
+
+		if (cts.length == 1) {
+
+			final CoordinateTransform<?> ct = cts[0];
+
+			if (ct instanceof ScaleCoordinateTransform)
+				return new CoordinateTransform<?>[]{new ScaleCoordinateTransform(
+						ct.getName(), input, output, ((ScaleCoordinateTransform)ct).scale)};
+
+			if (ct instanceof TranslationCoordinateTransform)
+				return new CoordinateTransform<?>[]{new TranslationCoordinateTransform(
+						ct.getName(), input, output, ((TranslationCoordinateTransform)ct).translation)};
+
+			// already a sequence (e.g. a composed scale+translation): restamp its
+			// input/output references rather than wrapping it in another sequence,
+			// which would nest a sequence inside a sequence and defeat the
+			// affine flattening in TransformUtils.toAffine.
+			if (ct instanceof SequenceCoordinateTransform)
+				return new CoordinateTransform<?>[]{new SequenceCoordinateTransform(
+						ct.getName(), input, output, ((SequenceCoordinateTransform)ct).getTransformations())};
+		}
+
+		return new CoordinateTransform<?>[]{
+				new SequenceCoordinateTransform(null, input, output, cts)};
+	}
+
 	public static ScaleAndTranslation scaleTranslationFromCoordinateTransformations(final CoordinateTransform<?>[] cts) {
 
 		if (cts == null || cts.length == 0)
@@ -146,6 +236,10 @@ public class MetadataUtils {
 			final double[] s = new double[t.length];
 			Arrays.fill(s, 1.0);
 			return new ScaleAndTranslation(s, t);
+		} else if (ct instanceof SequenceCoordinateTransform) {
+			// 0.6 composes a dataset's scale and translation into one sequence
+			return scaleTranslationFromCoordinateTransformations(
+					((SequenceCoordinateTransform)ct).getTransformations());
 		}
 		return null;
 	}

@@ -36,6 +36,7 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
+import software.amazon.awssdk.annotations.NotNull;
 
 public class CoordinateTransformAdapter
 	implements JsonDeserializer<CoordinateTransform<?>>, JsonSerializer<CoordinateTransform<?>> {
@@ -298,11 +299,15 @@ public class CoordinateTransformAdapter
 	private static void serializeReference(final JsonSerializationContext context, JsonObject json, final String key, Supplier<OmeNgffReference> getter) {
 
 		final OmeNgffReference val = getter.get();
-		if( val != null ) {
+		if (val != null && val != OmeNgffReference.DUMMY && notNullNotEmpty(val.getName())) {
 			json.add(key, context.serialize(val));
 		}
 	}
-	
+
+	private static boolean notNullNotEmpty( String s ) {
+		return s != null && !s.isEmpty();
+	}
+
 	private static void serializeString(JsonObject json, final String key, Supplier<String> getter) {
 
 		final String val = getter.get();
