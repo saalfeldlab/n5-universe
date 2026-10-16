@@ -183,7 +183,7 @@ public class N5DatasetDiscoverer {
 
 		this.n5 = n5;
 		this.executor = executor;
-		this.comparator = comparator.orElseGet(null);
+		this.comparator = comparator.orElse(null);
 		this.filter = filter;
 		this.metadataParsers = metadataParsers;
 		this.groupParsers = groupParsers;
