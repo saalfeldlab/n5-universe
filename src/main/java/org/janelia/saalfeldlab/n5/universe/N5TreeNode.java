@@ -205,7 +205,7 @@ public class N5TreeNode {
 	}
 
 	/**
-	 * Generates a tree based on the output of {@link N5Reader#deepList}, returning
+	 * Generates a tree based on the output of {@link N5Reader#deepList(String)}, returning
 	 * the root node.
 	 *
 	 * @param base           the path used to call deepList
@@ -221,7 +221,7 @@ public class N5TreeNode {
 	}
 
 	/**
-	 * Generates a tree based on the output of {@link N5Reader#deepList}, returning
+	 * Generates a tree based on the output of {@link N5Reader#deepList(String)}, returning
 	 * the root node.
 	 *
 	 * @param root           the root node corresponding to the base
