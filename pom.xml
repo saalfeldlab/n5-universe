@@ -112,7 +112,7 @@
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
 		<n5.version>4.0.3-SNAPSHOT</n5.version>
-		<n5-aws-s3.version>5.0.2-SNAPSHOT</n5-aws-s3.version>
+		<n5-aws-s3.version>5.1.1-SNAPSHOT</n5-aws-s3.version>
 		<n5-blosc.version>2.0.0</n5-blosc.version>
 		<n5-google-cloud.version>6.0.2-SNAPSHOT</n5-google-cloud.version>
 		<n5-hdf5.version>3.0.1-SNAPSHOT</n5-hdf5.version>

@@ -25,12 +25,21 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Start MinIO Server
+      - name: Start SeaweedFS S3 server
         if: matrix.os == 'ubuntu-latest'
-        uses: comfuture/minio-action@v1
-        with:
-          access_key: minioadmin
-          secret_key: minioadmin
+        run: |
+          mkdir -p /tmp/seaweedfs && chmod 777 /tmp/seaweedfs
+          docker run -d -p 9000:9000 --name seaweedfs \
+            -v /tmp/seaweedfs:/data \
+            -e "AWS_ACCESS_KEY_ID=n5test" \
+            -e "AWS_SECRET_ACCESS_KEY=n5testsecret" \
+            chrislusf/seaweedfs:4.48 mini -dir=/data -s3.port=9000 -master.telemetry=false
+          # wait until it's ready
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:9000/status && exit 0
+            sleep 1
+          done
+          echo "SeaweedFS did not become ready"; docker logs seaweedfs; exit 1
       - name: Install blosc (Windows)
         if: matrix.os == 'windows-latest'
         run: |

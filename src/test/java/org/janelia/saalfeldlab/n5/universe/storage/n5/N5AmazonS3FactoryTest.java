@@ -44,7 +44,7 @@ public abstract class N5AmazonS3FactoryTest extends N5StorageTests.N5FactoryTest
 	public static void before() {
 
 		MockS3Factory.getOrCreateS3();
-		assumeTrue("mock s3 server not running", MockS3Factory.isMinioServerRunning());
+		assumeTrue("mock s3 server not running", MockS3Factory.isMockServerRunning());
 	}
 
 
