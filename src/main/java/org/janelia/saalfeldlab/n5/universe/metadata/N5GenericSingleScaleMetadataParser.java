@@ -43,7 +43,6 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
   public boolean unitKeyStrict = false;
   public boolean downsamplingFactorsKeyStrict = false;
 
-	private boolean allDefault;
 
   public N5GenericSingleScaleMetadataParser() {
 	  minKey = DEFAULT_MIN;
@@ -184,7 +183,8 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 	@Override
 	public Optional<N5SingleScaleMetadata> parseMetadata(final N5Reader n5, final N5TreeNode node) {
 
-		allDefault = true;
+		// per call, not a field: one parser instance may parse several nodes concurrently
+		final boolean[] allDefault = {true};
 		try {
 			final DatasetAttributes attributes = n5.getDatasetAttributes(node.getPath());
 			if (attributes == null)
@@ -195,29 +195,29 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 
 			final double[] resolution = getAttribute(n5, path, resolutionKey, double[].class, resolutionKeyStrict,
 					x -> x.length == nd,
-					() -> DoubleStream.generate(() -> 1.0).limit(nd).toArray());
+					() -> DoubleStream.generate(() -> 1.0).limit(nd).toArray(), allDefault);
 
 			final double[] downsamplingFactors = getAttribute(n5, path, downsamplingFactorsKey, double[].class,
 					downsamplingFactorsKeyStrict,
 					x -> x.length == nd,
-					() -> DoubleStream.generate(() -> 1.0).limit(nd).toArray());
+					() -> DoubleStream.generate(() -> 1.0).limit(nd).toArray(), allDefault);
 
 			final String unit = getAttribute(n5, path, unitKey, String.class, unitKeyStrict,
-					x -> true, () -> "pixel");
+					x -> true, () -> "pixel", allDefault);
 
 			final double min = getAttribute(n5, path, minKey, double.class, minKeyStrict,
-					x -> true, () -> 0.0);
+					x -> true, () -> 0.0, allDefault);
 
 			final double max = getAttribute(n5, path, maxKey, double.class, maxKeyStrict,
 					x -> true,
-					() -> IntensityMetadata.maxForDataType(attributes.getDataType()));
+					() -> IntensityMetadata.maxForDataType(attributes.getDataType()), allDefault);
 
 			final Boolean isLabelMultiset = N5LabelMultisets.isLabelMultisetType(n5, node.getPath());
 			final AffineTransform3D transform = N5SingleScaleMetadataParser.buildTransform(downsamplingFactors, resolution, Optional.empty());
 
 			final double[] offset = getAttribute(n5, path, offsetKey, double[].class, offsetKeyStrict,
 					x -> x.length == nd,
-					() -> DoubleStream.generate(() -> Double.NaN).limit(nd).toArray());
+					() -> DoubleStream.generate(() -> Double.NaN).limit(nd).toArray(), allDefault);
 
 			final int N = nd > 3 ? 3 : nd;
 			if (Double.isNaN(offset[0])) {
@@ -229,7 +229,7 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 			}
 
 			final N5SingleScaleMetadata metadata;
-			if (allDefault)
+			if (allDefault[0])
 				metadata = new N5DefaultSingleScaleMetadata(path, transform, downsamplingFactors,
 						resolution, offset, unit, attributes, min, max, isLabelMultiset);
 			else
@@ -251,13 +251,13 @@ public class N5GenericSingleScaleMetadataParser implements N5MetadataParser<N5Si
 		}
 	}
 
-	private <T> T getAttribute(final N5Reader n5, final String path, final String key, final Class<T> clazz,
+	private static <T> T getAttribute(final N5Reader n5, final String path, final String key, final Class<T> clazz,
 			final boolean strict, final Predicate<T> filter,
-			final Supplier<T> defaultValue) {
+			final Supplier<T> defaultValue, final boolean[] allDefault) {
 
 		return getAttributeOptional(n5, path, key, clazz).filter(filter).map(x -> {
 			// this will be triggered if there exists a value, therefore not all values are default
-			allDefault = false;
+			allDefault[0] = false;
 			return x;
 		}).orElseGet(() -> {
 			if (strict)

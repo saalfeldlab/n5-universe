@@ -1,161 +1,130 @@
 package org.janelia.saalfeldlab.n5.universe.translation;
 
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-
 import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.GsonN5Reader;
 import org.janelia.saalfeldlab.n5.GsonN5Writer;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataNode;
-import org.janelia.saalfeldlab.n5.universe.container.ContainerMetadataWriter;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-
+/**
+ * A writable {@link TranslatedN5Reader}.
+ * <p>
+ * Metadata is written to the translated hierarchy, which is then translated
+ * back and flushed to the delegate container. This needs no per-method
+ * overriding: the inherited {@link GsonN5Writer} methods are all routed through
+ * {@link #getContainerDialect()}, a {@link NotifyingDialect} that calls {@link
+ * #onModified()} after every modification.
+ * <p>
+ * Chunks are not translated, so they go straight to the delegate, at the
+ * {@link #originalPath} of the dataset.
+ */
 public class TranslatedN5Writer extends TranslatedN5Reader implements GsonN5Writer {
 
-	protected GsonN5Writer writer;
+	private final GsonN5Writer delegateWriter;
 
-	protected ContainerMetadataWriter containerWriter;
-
-	public TranslatedN5Writer( GsonN5Writer n5Base, Gson gson, String fwdTranslation, String invTranslation) {
-		super(n5Base, gson, fwdTranslation, invTranslation);
-
-		this.writer = n5Base;
-		containerWriter = new ContainerMetadataWriter( n5Base, translation.getTranslated() );
+	public TranslatedN5Writer(final N5Writer n5Base,
+			final String fwdTranslation,
+			final String invTranslation) {
+		this(n5Base, fwdTranslation, invTranslation, null);
 	}
 
-	public N5Writer getBaseWriter() {
-		return writer;
+	/**
+	 * See {@link TranslatedN5Reader#TranslatedN5Reader(org.janelia.saalfeldlab.n5.N5Reader,
+	 * String, String, Executor)}. {@code executor} is used only to harvest the
+	 * hierarchy of {@code n5Base} during construction, not for writing.
+	 *
+	 * @param n5Base
+	 * 		the container to translate
+	 * @param fwdTranslation
+	 * 		jq expression translating the hierarchy of {@code n5Base}
+	 * @param invTranslation
+	 * 		jq expression translating it back
+	 * @param executor
+	 * 		executor to harvest the hierarchy of {@code n5Base} with, or {@code
+	 * 		null} to harvest it sequentially
+	 */
+	public TranslatedN5Writer(final N5Writer n5Base,
+			final String fwdTranslation,
+			final String invTranslation,
+			final Executor executor) {
+		super(requireWritableDialect(n5Base), fwdTranslation, invTranslation, executor);
+		delegateWriter = (GsonN5Writer) n5Base;
+	}
+
+	/**
+	 * Refuse a delegate whose dialect cannot be written back to (before {@link
+	 * TranslatedN5Reader} harvests and translates its hierarchy).
+	 *
+	 * @return {@code n5Base}, if its dialect supports writing
+	 */
+	private static N5Writer requireWritableDialect(final N5Writer n5Base) {
+
+		final DialectInfo dialect = DialectInfo.of((GsonN5Reader) n5Base);
+		if (!dialect.supportsWriting())
+			throw new N5Exception("Translated writing is not supported for " + dialect);
+		return n5Base;
+	}
+
+	/**
+	 * Translate the (just modified) hierarchy back, and write it to the delegate
+	 * container.
+	 */
+	@Override
+	void onModified() {
+		final Directory inverted = inverse.translate(translated.getRoot());
+		Directory.writeTo(inverted, delegateWriter);
+		original = inverted;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>
+	 * NB: Removing needs more than {@link #onModified()}, which only creates and
+	 * overwrites: the group or dataset has to be deleted from the delegate
+	 * explicitly.
+	 */
+	@Override
+	public boolean remove(final String path) throws N5Exception {
+		final String originalPath = originalPath(path);
+		return GsonN5Writer.super.remove(path) && delegateWriter.remove(originalPath);
+	}
+
+
+	// NB: Chunks are not translated: only the dataset path is.
+
+	@Override
+	public <T> void writeChunk(final String datasetPath, final DatasetAttributes datasetAttributes, final DataBlock<T> chunk) throws N5Exception {
+		delegateWriter.writeChunk(originalPath(datasetPath), datasetAttributes, chunk);
 	}
 
 	@Override
-	public <T> void setAttribute( final String pathName, final String key, final T attribute) {
-		translation.setTranslatedAttribute( pathName, key, attribute );
-		containerWriter.setMetadataTree(translation.getOrig());
-		containerWriter.writeAllAttributes();
+	public <T> void writeBlock(final String datasetPath, final DatasetAttributes datasetAttributes, final DataBlock<T> dataBlock) throws N5Exception {
+		delegateWriter.writeBlock(originalPath(datasetPath), datasetAttributes, dataBlock);
 	}
 
 	@Override
-	public void setAttributes(String pathName, Map<String, ?> attributes) {
-		translation.setTranslatedAttributes(pathName, attributes);
-		containerWriter.setMetadataTree(translation.getOrig());
-		containerWriter.writeAllAttributes();
-	}
-	
-	@Override
-	public void setAttributes(String groupPath, JsonElement attributes) throws N5Exception {
-
-		translation.setTranslatedAttributes(groupPath, attributes);
-		containerWriter.setMetadataTree(translation.getOrig());
-		containerWriter.writeAllAttributes();
+	public <T> void writeRegion(final String datasetPath, final DatasetAttributes datasetAttributes, final long[] min, final long[] size,
+			final DataBlockSupplier<T> chunkSupplier, final boolean writeFully) throws N5Exception {
+		delegateWriter.writeRegion(originalPath(datasetPath), datasetAttributes, min, size, chunkSupplier, writeFully);
 	}
 
 	@Override
-	public void createGroup(String pathName) {
-		translation.getTranslated().createGroup(pathName);
-		translation.updateOriginal();
-		writer.createGroup(originalPath(pathName));
+	public <T> void writeRegion(final String datasetPath, final DatasetAttributes datasetAttributes, final long[] min, final long[] size,
+			final DataBlockSupplier<T> chunkSupplier, final boolean writeFully, final ExecutorService exec) throws N5Exception, InterruptedException, ExecutionException {
+		delegateWriter.writeRegion(originalPath(datasetPath), datasetAttributes, min, size, chunkSupplier, writeFully, exec);
 	}
 
 	@Override
-	public boolean remove(String pathName) {
-		final boolean success = writer.remove(originalPath(pathName));
-		if( success ) {
-			translation.getTranslated().remove(pathName);
-			translation.updateOriginal();
-		}
-		return success;
+	public boolean deleteChunk(final String datasetPath, final DatasetAttributes datasetAttributes, final long... gridPosition) throws N5Exception {
+		return delegateWriter.deleteChunk(originalPath(datasetPath), datasetAttributes, gridPosition);
 	}
 
 	@Override
-	public boolean remove() {
-		final boolean success = writer.remove();
-		if( success ) {
-			translation.rootOrig = new ContainerMetadataNode();
-			translation.rootTranslated = new ContainerMetadataNode();
-		}
-		return success;
+	public boolean deleteBlock(final String datasetPath, final DatasetAttributes datasetAttributes, final long... gridPosition) throws N5Exception {
+		return delegateWriter.deleteBlock(originalPath(datasetPath), datasetAttributes, gridPosition);
 	}
-
-	@Override
-	public boolean removeAttribute(String pathName, String key) {
-
-		final ContainerMetadataNode tlated = translation.getTranslated();
-		if (tlated.removeAttribute(pathName, key)) {
-			translation.updateOriginal();
-			return true;
-		}
-		return false;
-	}
-
-	@Override
-	public <T> T removeAttribute(String pathName, String key, Class<T> clazz) {
-
-		final ContainerMetadataNode tlated = translation.getTranslated();
-		final T t = tlated.removeAttribute(pathName, key, clazz);
-		if (t != null) {
-			translation.updateOriginal();
-			return t;
-		}
-		return null;
-	}
-
-	@Override
-	public boolean removeAttributes(String pathName, List<String> attributes) {
-
-		final ContainerMetadataNode tlated = translation.getTranslated();
-		if (tlated.removeAttributes(pathName, attributes)) {
-			translation.updateOriginal();
-			return true;
-		}
-		return false;
-	}
-
-	@Override
-	public <T> void writeChunk(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
-		writer.writeChunk(originalPath(pathName), datasetAttributes, dataBlock);
-	}
-
-	@Override
-	public <T> void writeBlock(String pathName, DatasetAttributes datasetAttributes, DataBlock<T> dataBlock) {
-		writer.writeBlock(originalPath(pathName), datasetAttributes, dataBlock);
-	}
-
-	@Override
-	public <T> void writeRegion(String datasetPath, DatasetAttributes datasetAttributes, long[] min, long[] size, DataBlockSupplier<T> dataBlocks,
-			boolean writeFully) throws N5Exception {
-		writer.writeRegion(datasetPath, datasetAttributes, min, size, dataBlocks, writeFully);
-	}
-
-	@Override
-	public <T> void writeRegion(String datasetPath, DatasetAttributes datasetAttributes, long[] min, long[] size, DataBlockSupplier<T> dataBlocks,
-			boolean writeFully, ExecutorService exec) throws N5Exception, InterruptedException, ExecutionException {
-		writer.writeRegion(datasetPath, datasetAttributes, min, size, dataBlocks, writeFully, exec);
-	}
-
-	@Override
-	public boolean deleteChunk(String pathName, long... gridPosition) {
-		return writer.deleteChunk(originalPath(pathName), gridPosition);
-	}
-
-	@Override
-	public boolean deleteChunk(String datasetPath, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
-		return writer.deleteChunk(originalPath(datasetPath), datasetAttributes, gridPosition);
-	}
-
-	@Override
-	public boolean deleteBlock(String pathName, long... gridPosition) {
-		return writer.deleteBlock(originalPath(pathName), gridPosition);
-	}
-
-	@Override
-	public boolean deleteBlock(String datasetPath, DatasetAttributes datasetAttributes, long... gridPosition) throws N5Exception {
-		return writer.deleteBlock(originalPath(datasetPath), datasetAttributes, gridPosition);
-	}
-
 }
