@@ -37,7 +37,8 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 	@Override
 	public InvertibleRealTransform getTransform() {
 
-		return new IdentityRealTransform(0);
+		final int nd = getInputAxes() != null ? getInputAxes().length : 0;
+		return new IdentityRealTransform(nd);
 	}
 
 	private static class IdentityRealTransform implements InvertibleRealTransform {
