@@ -36,7 +36,6 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.view.Views;
-import software.amazon.awssdk.annotations.NotNull;
 
 public class CoordinateTransformAdapter
 	implements JsonDeserializer<CoordinateTransform<?>>, JsonSerializer<CoordinateTransform<?>> {
@@ -107,7 +106,6 @@ public class CoordinateTransformAdapter
 		case("byDimension"):
 			ByDimensionCoordinateTransform bd = context.deserialize(jobj, ByDimensionCoordinateTransform.class);
 			bd.setTransformsAfterDeserialization();
-			bd.buildTransform();
 			if (reverse) ByDimensionCoordinateTransform.reverseParameters(bd.getTransformations());
 			out = bd;
 			break;

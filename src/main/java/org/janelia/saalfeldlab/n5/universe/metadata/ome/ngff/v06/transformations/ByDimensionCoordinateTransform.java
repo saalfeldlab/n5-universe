@@ -77,24 +77,22 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 				.toArray(RealTransform[]::new);
 
 	    final StackedRealTransform stackedTransform = new StackedRealTransform(transformArray);
-	    final CoordinateSystem inputCs = getInputCoordinateSystem();
-	    final CoordinateSystem outputCs = getOutputCoordinateSystem();
 
-	    if (inputCs == null || outputCs == null) {
-	        return null;
-	    }
-
-	    final RealTransform preTransform = createPreTransform(inputCs);
-	    final RealTransform postTransform = createPostTransform(outputCs);
+	    // the axis routing is intrinsic to the sub-transforms' declared axes, so it does not
+	    // depend on the input/output coordinate systems being resolved. deriving the
+	    // dimensionality from the axes lets this transform build standalone (e.g. opened
+	    // directly by bigwarp), not only when resolved through the scene graph.
+	    final RealTransform preTransform = createPreTransform();
+	    final RealTransform postTransform = createPostTransform();
 
 	    totalTransform = combineTransforms(stackedTransform, preTransform, postTransform);
 	    return totalTransform;
 	}
 
-	private RealTransform createPreTransform(CoordinateSystem inputCoordinateSystem) {
+	private RealTransform createPreTransform() {
 
-		final int n = inputCoordinateSystem.numDimensions();
 		final int[] transformInputAxes = inputAxesFromTransforms();
+		final int n = transformInputAxes.length;
 
 		for (int i = 0; i < n; i++) {
 			if (transformInputAxes[i] != i)
@@ -104,10 +102,10 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		return null;
 	}
 
-	private RealTransform createPostTransform(CoordinateSystem outputCoordinateSystem) {
+	private RealTransform createPostTransform() {
 
-		final int n = outputCoordinateSystem.numDimensions();
 		final int[] transformOutputAxes = outputAxesFromTransforms();
+		final int n = transformOutputAxes.length;
 
 		// build inverse permutation: invPerm[outputAxis] = stackedPosition
 		final int[] invPerm = new int[n];
@@ -207,7 +205,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 	/**
 	 * Sets this objects CoordinateTransformations from its internal
 	 * deserialized TransformWithIndexes.
-	 * 
+	 *
 	 * Generally not appropriate to call this manually.
 	 */
 	public void setTransformsAfterDeserialization() {
@@ -234,7 +232,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 			ti.transformation = t;
 			ti.inputAxes = t.getInputAxes();
 			ti.outputAxes = t.getOutputAxes();
-			transformations[i] = new TransformWithIndexes();
+			transformations[i] = ti;
 		}
 
 	}
@@ -278,8 +276,8 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 					+ "The axis indices\n[" + outputsNotPresent.stream().map(String::valueOf).collect(Collectors.joining(","))
 					+ "]\nwere not present.");
 	}
-	
-	public static void reverseParameters(CoordinateTransform<?>[] transforms) { 
+
+	public static void reverseParameters(CoordinateTransform<?>[] transforms) {
 
 		int inMax = -1;
 		int outMax = -1;
@@ -293,7 +291,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 			indexReversal(outMax, t.getOutputAxes());
 		}
 	}
-	
+
 	private static int updateMax(int current, int[] values) {
 
 		int max = current;
@@ -302,7 +300,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 				max = v;
 
 		return max;
-	}	
+	}
 
 	private static void indexReversal(int max, int[] indexes) {
 
@@ -313,9 +311,8 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		}
 		System.arraycopy(tmp, 0, indexes, 0, N);
 	}
-	
+
 	private static class TransformWithIndexes {
-		
 		CoordinateTransform<?> transformation;
 		int[] inputAxes;
 		int[] outputAxes;
