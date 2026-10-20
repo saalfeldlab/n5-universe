@@ -47,12 +47,6 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		this.interpolation = interpolation;
 	}
 
-	public AbstractParametrizedFieldTransform( final String type, final String name, final String parameterPath, final String interpolation,
-			final int[] inputAxes, final int[] outputAxes ) {
-		super( type, name, parameterPath, inputAxes, outputAxes );
-		this.interpolation = interpolation;
-	}
-
 	public String getInterpolation() {
 		return interpolation;
 	}

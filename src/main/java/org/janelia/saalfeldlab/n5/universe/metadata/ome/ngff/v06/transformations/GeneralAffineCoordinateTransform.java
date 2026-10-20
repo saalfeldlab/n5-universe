@@ -38,11 +38,6 @@ public class GeneralAffineCoordinateTransform extends AbstractAffineCoordinateTr
 	}
 
 	public GeneralAffineCoordinateTransform(final String name,
-			final int[] inputAxes, final int[] outputAxes, final double[][] affine) {
-		super(name, inputAxes, outputAxes, affine);
-	}
-
-	public GeneralAffineCoordinateTransform(final String name,
 			final String inputSpace, final String outputSpace, final String path) {
 		super(name, inputSpace, outputSpace, path);
 	}
@@ -92,8 +87,6 @@ public class GeneralAffineCoordinateTransform extends AbstractAffineCoordinateTr
 		try {
 			final InvertibleAffineCoordinateTransform invertible =
 					new InvertibleAffineCoordinateTransform(getName(), getInput(), getOutput(), params);
-			invertible.setInputAxes(getInputAxes());
-			invertible.setOutputAxes(getOutputAxes());
 			return new InverseCoordinateTransform(invertible);
 		} catch (RuntimeException e) {
 			throw new N5Exception("Affine not invertible: matrix is singular");

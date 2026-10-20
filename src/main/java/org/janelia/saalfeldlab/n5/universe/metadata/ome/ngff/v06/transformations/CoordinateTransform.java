@@ -37,14 +37,6 @@ public interface CoordinateTransform<T extends RealTransform> {
 
 	public void setOutput(final CoordinateSystem outputCoordinateSystem);
 
-	public int[] getInputAxes();
-
-	public int[] getOutputAxes();
-
-	public void setInputAxes(final int[] inputAxes);
-
-	public void setOutputAxes(final int[] outputAxes);
-
 	/**
 	 * Is the other {@code other} the same graph edge as this transform.
 	 * <p>

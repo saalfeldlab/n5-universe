@@ -74,6 +74,11 @@ public class AffineAdapterPathTest {
 			{ 2.0, 0.1, 0.2, 100.0 },
 			{ 0.3, 3.0, 0.4, 200.0 } };
 
+	// 2D square affine, acts on two of the three dimensions in the byDimension tests
+	private static final double[][] B = {
+			{ 2.0, 0.1, 10.0 },
+			{ 0.3, 3.0, 20.0 } };
+
 	private static final double[] P = { 1.5, -2.0, 7.0 };
 
 	private static final double EPS = 1e-9;
@@ -397,6 +402,129 @@ public class AffineAdapterPathTest {
 
 		final RealTransform t = path.get().totalTransform(n5, graph);
 		assertArrayEquals(apply(A, P), apply(t, P), EPS);
+	}
+
+	/**
+	 * A path affine nested in a byDimension is built by
+	 * {@link ByDimensionCoordinateTransform#getTransform(org.janelia.saalfeldlab.n5.N5Reader)}.
+	 */
+	@Test
+	public void pathAffineInByDimension() {
+
+		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
+
+		final CoordinateTransform<?> ct = gson().fromJson(byDimensionJson("affine"), CoordinateTransform.class);
+		assertTrue("is a byDimension", ct instanceof ByDimensionCoordinateTransform);
+
+		final RealTransform t = ct.getTransform(n5);
+		assertNotNull(t);
+		assertArrayEquals(byDimensionExpected(), apply(t, P), EPS);
+	}
+
+	/**
+	 * A path affine nested in a byDimension is built by
+	 * {@link TransformPath#totalTransform(org.janelia.saalfeldlab.n5.N5Reader, TransformGraph)}.
+	 */
+	@Test
+	public void pathAffineInByDimensionThroughGraph() {
+
+		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
+
+		final CoordinateTransform<?> ct = gson().fromJson(byDimensionJson("affine"), CoordinateTransform.class);
+		final TransformGraph graph = new TransformGraph(
+				Arrays.<CoordinateTransform<?>>asList(ct),
+				new CoordinateSystems(Arrays.asList(new CoordinateSystem("a", 3), new CoordinateSystem("b", 3))));
+
+		final Optional<TransformPath> path = graph.path("a", "b");
+		assertTrue("path a -> b", path.isPresent());
+
+		final RealTransform t = path.get().totalTransform(n5, graph);
+		assertArrayEquals(byDimensionExpected(), apply(t, P), EPS);
+	}
+
+	/**
+	 * A byDimension made with constructors, holding a path affine that is not bound yet, is built by
+	 * {@link ByDimensionCoordinateTransform#getTransform(org.janelia.saalfeldlab.n5.N5Reader)}.
+	 */
+	@Test
+	public void constructedPathAffineInByDimension() {
+
+		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
+
+		final GeneralAffineCoordinateTransform affine = new GeneralAffineCoordinateTransform("aff", "in", "out", "affine");
+		final ByDimensionCoordinateTransform ct = constructedByDimension(affine);
+
+		final RealTransform t = ct.getTransform(n5);
+		assertNotNull(t);
+		assertArrayEquals(byDimensionExpected(), apply(t, P), EPS);
+	}
+
+	/**
+	 * As {@link #constructedPathAffineInByDimension()}, with the affine bound to the reader by its
+	 * constructor.
+	 */
+	@Test
+	public void constructedReaderAffineInByDimension() {
+
+		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
+
+		final GeneralAffineCoordinateTransform affine = new GeneralAffineCoordinateTransform("aff", n5, "affine", "in", "out");
+		final ByDimensionCoordinateTransform ct = constructedByDimension(affine);
+
+		final RealTransform t = ct.getTransform(n5);
+		assertNotNull(t);
+		assertArrayEquals(byDimensionExpected(), apply(t, P), EPS);
+	}
+
+	/**
+	 * As {@link #constructedPathAffineInByDimension()}, built through the graph.
+	 */
+	@Test
+	public void constructedPathAffineInByDimensionThroughGraph() {
+
+		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
+
+		final GeneralAffineCoordinateTransform affine = new GeneralAffineCoordinateTransform("aff", "in", "out", "affine");
+		final ByDimensionCoordinateTransform ct = constructedByDimension(affine);
+
+		final TransformGraph graph = new TransformGraph(
+				Arrays.<CoordinateTransform<?>>asList(ct),
+				new CoordinateSystems(Arrays.asList(new CoordinateSystem("a", 3), new CoordinateSystem("b", 3))));
+
+		final Optional<TransformPath> path = graph.path("a", "b");
+		assertTrue("path a -> b", path.isPresent());
+
+		final RealTransform t = path.get().totalTransform(n5, graph);
+		assertArrayEquals(byDimensionExpected(), apply(t, P), EPS);
+	}
+
+	// axes are given directly in imglib2 order (nothing is reversed outside of deserialization):
+	// scale on dim 2, the affine on dims 0 and 1
+	private static ByDimensionCoordinateTransform constructedByDimension(final GeneralAffineCoordinateTransform affine) {
+
+		final ScaleCoordinateTransform scale = new ScaleCoordinateTransform("scale", new double[] { 2.0 });
+		return new ByDimensionCoordinateTransform("bd", "a", "b",
+				new SubAxisTransformation(scale, new int[] { 2 }, new int[] { 2 }),
+				new SubAxisTransformation(affine, new int[] { 0, 1 }, new int[] { 0, 1 }));
+	}
+
+	// byDimension: scale by 2 on one axis, the path affine B on the other two. Axis indices in the
+	// json are in the storage order of the format, so for zarr (reversed) they name the same
+	// imglib2 dimensions as the n5 indices: scale on imglib2 dim 2, affine on dims 0 and 1.
+	private String byDimensionJson(final String affinePath) {
+
+		final String scaleAxes = reverse ? "[0]" : "[2]";
+		final String affineAxes = reverse ? "[1,2]" : "[0,1]";
+		return "{\"type\":\"byDimension\",\"name\":\"bd\",\"input\":{\"name\":\"a\"},\"output\":{\"name\":\"b\"},"
+				+ "\"transformations\":["
+				+ "{\"transformation\":{\"type\":\"scale\",\"scale\":[2.0]},\"inputAxes\":" + scaleAxes + ",\"outputAxes\":" + scaleAxes + "},"
+				+ "{\"transformation\":{\"type\":\"affine\",\"path\":\"" + affinePath + "\"},\"inputAxes\":" + affineAxes + ",\"outputAxes\":" + affineAxes + "}]}";
+	}
+
+	private static double[] byDimensionExpected() {
+
+		final double[] xy = apply(B, new double[] { P[0], P[1] });
+		return new double[] { xy[0], xy[1], 2 * P[2] };
 	}
 
 	// sequence: uniform scale by 2 (unaffected by axis reversal), then the path affine

@@ -61,23 +61,9 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 		this.path = parameterPath;
 	}
 
-	public AbstractParametrizedTransform( String type, String name, String parameterPath,
-			int[] inputAxes, int[] outputAxes ) {
-		super( type, name, inputAxes, outputAxes );
-		this.path = parameterPath;
-	}
-
 	public AbstractParametrizedTransform( AbstractParametrizedTransform<T,P> other )
 	{
 		super( other );
-		this.path = other.path;
-		this.absolutePath = other.absolutePath;
-		this.parameterSupplier = other.parameterSupplier;
-	}
-
-	public AbstractParametrizedTransform( AbstractParametrizedTransform<T,P> other, int[] inputAxes, int[] outputAxes )
-	{
-		super( other, inputAxes, outputAxes );
 		this.path = other.path;
 		this.absolutePath = other.absolutePath;
 		this.parameterSupplier = other.parameterSupplier;

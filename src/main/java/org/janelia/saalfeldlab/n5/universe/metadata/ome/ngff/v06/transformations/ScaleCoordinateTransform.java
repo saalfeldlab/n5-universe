@@ -35,14 +35,6 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 		buildTransform( scale );
 	}
 
-	public ScaleCoordinateTransform(String name,
-			final int[] inputAxes, int[] outputAxes,
-			final double[] scale) {
-		super(TYPE, name, null, inputAxes, outputAxes );
-		this.scale = scale;
-		buildTransform( scale );
-	}
-
 	public ScaleCoordinateTransform( String name, final String inputSpace, final String outputSpace,
 			final double[] scale) {
 		super(TYPE, name, inputSpace, outputSpace );
@@ -86,12 +78,6 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 	public ScaleCoordinateTransform(ScaleCoordinateTransform other) {
 
 		super(other);
-		this.scale = other.scale;
-	}
-
-	public ScaleCoordinateTransform(ScaleCoordinateTransform other, int[] inputAxes, int[] outputAxes) {
-
-		super(other, inputAxes, outputAxes);
 		this.scale = other.scale;
 	}
 

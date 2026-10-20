@@ -106,7 +106,7 @@ public class CoordinateTransformAdapter
 		case("byDimension"):
 			ByDimensionCoordinateTransform bd = context.deserialize(jobj, ByDimensionCoordinateTransform.class);
 			bd.setTransformsAfterDeserialization();
-			if (reverse) ByDimensionCoordinateTransform.reverseParameters(bd.getTransformations());
+			if (reverse) ByDimensionCoordinateTransform.reverseParameters(bd.getEntries());
 			out = bd;
 			break;
 		case("affine"):
@@ -158,16 +158,6 @@ public class CoordinateTransformAdapter
 			}
 
 			break;
-		}
-
-		// populate input_axes / output_axes on any transform that declares them
-		if( out instanceof AbstractCoordinateTransform )
-		{
-			final AbstractCoordinateTransform<?> act = (AbstractCoordinateTransform<?>) out;
-			if( jobj.has("input_axes") )
-				act.setInputAxes( context.deserialize( jobj.get("input_axes"), int[].class ));
-			if( jobj.has("output_axes") )
-				act.setOutputAxes( context.deserialize( jobj.get("output_axes"), int[].class ));
 		}
 
 		// parameter paths are bound where the group is known (parsers, NgffScene.getGraph);
@@ -280,13 +270,6 @@ public class CoordinateTransformAdapter
 		serializeString(json, CoordinateTransform.TYPE_KEY, ct::getType);
 		serializeString(json, CoordinateTransform.NAME_KEY, ct::getName);
 
-
-		final int[] inputAxes = ct.getInputAxes();
-		final int[] outputAxes = ct.getInputAxes();
-		if( inputAxes != null && outputAxes != null ) {
-			serializeIntArray(json, CoordinateTransform.INPUT_AXES_KEY, inputAxes);
-			serializeIntArray(json, CoordinateTransform.OUTPUT_AXES_KEY, outputAxes);
-		}
 
 		serializeReference(context, json, CoordinateTransform.INPUT_KEY, ct::getInput);
 		serializeReference(context, json, CoordinateTransform.OUTPUT_KEY, ct::getOutput);

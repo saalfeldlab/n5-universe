@@ -58,16 +58,4 @@ public class ReferencedCoordinateTransform<T extends RealTransform> extends Abst
 		return ct.getOutput();
 	}
 
-	@Override
-	public int[] getInputAxes() {
-
-		return ct.getInputAxes();
-	}
-
-	@Override
-	public int[] getOutputAxes() {
-
-		return ct.getOutputAxes();
-	}
-
 }

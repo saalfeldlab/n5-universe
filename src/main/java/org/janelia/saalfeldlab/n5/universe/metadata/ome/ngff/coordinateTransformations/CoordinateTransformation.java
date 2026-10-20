@@ -51,32 +51,12 @@ public interface CoordinateTransformation<T extends AffineGet> extends Coordinat
 	}
 
 	@Override
-	default int[] getInputAxes() {
-		return null;
-	}
-
-	@Override
-	default int[] getOutputAxes() {
-		return null;
-	}
-
-	@Override
 	default void setInput(CoordinateSystem inputCoordinateSystem) {
 		// no op
 	}
 
 	@Override
 	default void setOutput(CoordinateSystem outputCoordinateSystem) {
-		// no op
-	}
-
-	@Override
-	default void setInputAxes(int[] inputAxes) {
-		// no op
-	}
-
-	@Override
-	default void setOutputAxes(int[] outputAxes) {
 		// no op
 	}
 

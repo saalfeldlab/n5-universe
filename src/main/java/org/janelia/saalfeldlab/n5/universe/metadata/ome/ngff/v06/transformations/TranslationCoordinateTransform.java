@@ -35,14 +35,6 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 		buildTransform( translation );
 	}
 
-	public TranslationCoordinateTransform( String name,
-			final int[] inputAxes, int[] outputAxes,
-			final double[] translation) {
-		super(TYPE, name, null, inputAxes, outputAxes );
-		this.translation = translation;
-		buildTransform( translation );
-	}
-
 	public TranslationCoordinateTransform( String name, final String inputSpace, final String outputSpace,
 			final double[] translation) {
 		super(TYPE, name, inputSpace, outputSpace );
@@ -73,11 +65,6 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 
 	public TranslationCoordinateTransform(TranslationCoordinateTransform other) {
 		super(other);
-		this.translation = other.translation;
-	}
-
-	public TranslationCoordinateTransform(TranslationCoordinateTransform other, int[] inputAxes, int[] outputAxes) {
-		super(other, inputAxes, outputAxes);
 		this.translation = other.translation;
 	}
 

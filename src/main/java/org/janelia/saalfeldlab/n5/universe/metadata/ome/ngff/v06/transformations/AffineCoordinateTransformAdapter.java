@@ -74,12 +74,8 @@ public class AffineCoordinateTransformAdapter implements
 			final AbstractAffineCoordinateTransform tf;
 			if (affine != null && sourceDimsEqualTargetDims(affine)) {
 				tf = new InvertibleAffineCoordinateTransform(base.getName(), base.getInput(), base.getOutput(), affine);
-				tf.setInputAxes(base.getInputAxes());
-				tf.setOutputAxes(base.getOutputAxes());
 			} else {
 				tf = new GeneralAffineCoordinateTransform(base.getName(), base.getInput(), base.getOutput(), affine);
-				tf.setInputAxes(base.getInputAxes());
-				tf.setOutputAxes(base.getOutputAxes());
 			}
 			return tf;
 		} else {

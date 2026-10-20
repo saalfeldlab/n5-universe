@@ -51,12 +51,6 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 	}
 
 	protected AbstractAffineCoordinateTransform(final String name,
-			final int[] inputAxes, final int[] outputAxes, final double[][] affine) {
-		super(TYPE, name, null, inputAxes, outputAxes);
-		this.affine = affine;
-	}
-
-	protected AbstractAffineCoordinateTransform(final String name,
 			final String inputSpace, final String outputSpace, final String path) {
 		super(TYPE, name, path, inputSpace, outputSpace);
 	}

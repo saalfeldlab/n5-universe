@@ -58,14 +58,6 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 		buildTransform(getParameters());
 	}
 
-	public RotationCoordinateTransform(final String name,
-			final int[] inputAxes, final int[] outputAxes,
-			final double[] affineFlat) {
-		super(TYPE, name, null, inputAxes, outputAxes);
-		this.rotation = TransformUtils.toRotationMatrix(affineFlat);
-		buildTransform(affineFlat);
-	}
-
 	public RotationCoordinateTransform(final double[][] affine) {
 		super(TYPE);
 		buildTransform(affine);
@@ -80,13 +72,6 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 	public RotationCoordinateTransform(final String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef,
 			final double[][] affine) {
 		super(TYPE, name, inputRef, outputRef);
-		buildTransform(affine);
-	}
-
-	public RotationCoordinateTransform(final String name,
-			final int[] inputAxes, final int[] outputAxes,
-			final double[][] affine) {
-		super(TYPE, name, null, inputAxes, outputAxes);
 		buildTransform(affine);
 	}
 

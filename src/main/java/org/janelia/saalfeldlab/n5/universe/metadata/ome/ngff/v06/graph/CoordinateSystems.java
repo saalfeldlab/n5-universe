@@ -251,22 +251,6 @@ public class CoordinateSystems {
 		return getSpace(name);
 	}
 
-	public int[] getInputAxes( final CoordinateTransform<?> t )
-	{
-		if( t.getInputAxes() != null )
-			return t.getInputAxes();
-
-		return null;
-	}
-
-	public int[] getOutputAxes( final CoordinateTransform<?>  t )
-	{
-		if( t.getOutputAxes() != null )
-			return t.getOutputAxes();
-
-		return null;
-	}
-
 	public boolean inputIsSubspace( final CoordinateTransform<?>  t, final CoordinateSystem s ) {
 		return s.isSubspaceOf( getSpace(t.getInput().getQualifiedName()));
 	}

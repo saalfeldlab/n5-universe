@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -9,6 +10,7 @@ import java.util.stream.Collectors;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.SpacesTransforms;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.SubAxisTransformation;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.IdentityCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.StackedCoordinateTransform;
 
@@ -158,7 +160,8 @@ public class TransformGraph
 		}
 
 		final StackedCoordinateTransform totalTransform = new StackedCoordinateTransform(
-				from.getName() + " > " + to.getName(), from.getName(), to.getName(), tList);
+				from.getName() + " > " + to.getName(), from.getName(), to.getName(),
+				stackedEntries(tList, from, to));
 
 		totalTransform.setSpaces(spaces);
 		totalTransform.buildTransform();
@@ -179,9 +182,30 @@ public class TransformGraph
 		}
 
 		final StackedCoordinateTransform totalTransform = new StackedCoordinateTransform(
-				"name", from.getName(), to.getName(), tList);
+				"name", from.getName(), to.getName(), stackedEntries(tList, from, to));
 
 		return totalTransform;
+	}
+
+	/**
+	 * Pairs each transform with the indexes of its input axes in {@code from}
+	 * and of its output axes in {@code to}, found by axis name.
+	 */
+	private List<SubAxisTransformation> stackedEntries( final List<CoordinateTransform<?>> tList,
+			final CoordinateSystem from, final CoordinateSystem to )
+	{
+		final List<String> fromAxes = Arrays.asList( from.getAxisNames() );
+		final List<String> toAxes = Arrays.asList( to.getAxisNames() );
+
+		return tList.stream().map( t -> new SubAxisTransformation( t,
+				axisIndexes( spaces.getSpace( t.getInput().getQualifiedName() ), fromAxes ),
+				axisIndexes( spaces.getSpace( t.getOutput().getQualifiedName() ), toAxes )))
+			.collect( Collectors.toList());
+	}
+
+	private static int[] axisIndexes( final CoordinateSystem cs, final List<String> axes )
+	{
+		return Arrays.stream( cs.getAxisNames() ).mapToInt( axes::indexOf ).toArray();
 	}
 
 

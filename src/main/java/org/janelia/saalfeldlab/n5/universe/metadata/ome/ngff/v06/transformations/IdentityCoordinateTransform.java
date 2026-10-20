@@ -29,15 +29,19 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 		super(other);
 	}
 
-	public IdentityCoordinateTransform(IdentityCoordinateTransform other, int[] inputAxes, int[] outputAxes) {
-
-		super(other, inputAxes, outputAxes);
-	}
-
 	@Override
 	public InvertibleRealTransform getTransform() {
 
-		final int nd = getInputAxes() != null ? getInputAxes().length : 0;
+		final int nd = inputCoordinateSystem != null ? inputCoordinateSystem.numDimensions() : 0;
+		return getTransform(nd);
+	}
+
+	/**
+	 * @param nd the number of dimensions
+	 * @return an identity transform with {@code nd} source and target dimensions
+	 */
+	public InvertibleRealTransform getTransform(final int nd) {
+
 		return new IdentityRealTransform(nd);
 	}
 

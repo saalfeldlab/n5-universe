@@ -40,11 +40,6 @@ public class InvertibleAffineCoordinateTransform extends AbstractAffineCoordinat
 	}
 
 	public InvertibleAffineCoordinateTransform(final String name,
-			final int[] inputAxes, final int[] outputAxes, final double[][] affine) {
-		super(name, inputAxes, outputAxes, affine);
-	}
-
-	public InvertibleAffineCoordinateTransform(final String name,
 			final String inputSpace, final String outputSpace, final String path) {
 		super(name, inputSpace, outputSpace, path);
 	}

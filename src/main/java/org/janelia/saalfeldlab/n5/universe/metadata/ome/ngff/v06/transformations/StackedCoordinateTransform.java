@@ -14,7 +14,7 @@ import net.imglib2.realtransform.StackedRealTransform;
 
 public class StackedCoordinateTransform extends AbstractCoordinateTransform<RealTransform> {
 
-	private final List<CoordinateTransform<?>> transforms;
+	private final List<SubAxisTransformation> transforms;
 
 	private transient CoordinateSystems spaces;
 
@@ -23,7 +23,7 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 	public StackedCoordinateTransform(
 			final String name,
 			final String inputSpace, final String outputSpace,
-			final List<CoordinateTransform<?>> transforms )
+			final List<SubAxisTransformation> transforms )
 	{
 		super( "stacked", name, inputSpace, outputSpace );
 		this.transforms = transforms;
@@ -32,7 +32,7 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 	public StackedCoordinateTransform(
 			final String name,
 			final String inputSpace, final String outputSpace,
-			final CoordinateTransform<?>[] transforms )
+			final SubAxisTransformation[] transforms )
 	{
 		this( name, inputSpace, outputSpace, Arrays.stream( transforms ).collect( Collectors.toList() ));
 	}
@@ -40,7 +40,7 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 	public StackedCoordinateTransform(
 			final String name,
 			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final List<CoordinateTransform<?>> transforms )
+			final List<SubAxisTransformation> transforms )
 	{
 		super( "stacked", name, inputRef, outputRef );
 		this.transforms = transforms;
@@ -49,7 +49,7 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 	public StackedCoordinateTransform(
 			final String name,
 			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final CoordinateTransform<?>[] transforms )
+			final SubAxisTransformation[] transforms )
 	{
 		this( name, inputRef, outputRef, Arrays.stream( transforms ).collect( Collectors.toList() ));
 	}
@@ -61,18 +61,18 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 
 	public int[] inputAxesLabels()
 	{
-		return transforms.stream().flatMapToInt(t -> Arrays.stream(t.getInputAxes())).toArray();
+		return transforms.stream().flatMapToInt(e -> Arrays.stream(e.getInputAxes())).toArray();
 	}
 
 	public int[] outputAxesLabels()
 	{
-		return transforms.stream().flatMapToInt(t -> Arrays.stream(t.getOutputAxes())).toArray();
+		return transforms.stream().flatMapToInt(e -> Arrays.stream(e.getOutputAxes())).toArray();
 	}
 
 	public RealTransform buildTransform()
 	{
 		final RealTransform[] arr = transforms.stream()
-				.map( x -> (RealTransform)x.getTransform() )
+				.map( e -> (RealTransform)e.getTransformation().getTransform() )
 				.toArray( RealTransform[]::new );
 
 		final StackedRealTransform stackedTransform = new StackedRealTransform(arr);

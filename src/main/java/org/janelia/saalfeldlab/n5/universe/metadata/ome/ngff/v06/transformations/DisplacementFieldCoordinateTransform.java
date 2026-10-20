@@ -68,11 +68,6 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		super(TYPE, name, path, interpolation, input, output);
 	}
 
-	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation,
-			final int[] inputAxes, final int[] outputAxes ) {
-		super(TYPE, name, path, interpolation, inputAxes, outputAxes );
-	}
-
 	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation) {
 		this( name, path, interpolation, (String)null, (String)null );
 	}

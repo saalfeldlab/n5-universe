@@ -15,10 +15,6 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 
 	protected OmeNgffReference output;
 
-	protected int[] inputAxes;
-
-	protected int[] outputAxes;
-
 	protected transient CoordinateSystem inputCoordinateSystem;
 
 	protected transient CoordinateSystem outputCoordinateSystem;
@@ -46,14 +42,6 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.output = new OmeNgffReference(outputSpace);
 	}
 
-	public AbstractCoordinateTransform( final String type, final String name,
-			final int[] inputAxes, final int[] outputAxes ) {
-		this.type = type;
-		this.name = name;
-		this.inputAxes = inputAxes;
-		this.outputAxes = outputAxes;
-	}
-	
 	public AbstractCoordinateTransform( final String type,
 			final String name,
 			final CoordinateSystem input, final CoordinateSystem output) {
@@ -83,36 +71,6 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.type = other.getType();
 		this.input = other.getInput();
 		this.output = other.getOutput();
-		this.inputAxes = other.getInputAxes();
-		this.outputAxes = other.getOutputAxes();
-	}
-
-	public AbstractCoordinateTransform( CoordinateTransform<T> other, int[] inputAxes, int[] outputAxes )
-	{
-		this.name = other.getName();
-		this.type = other.getType();
-		this.input = other.getInput();
-		this.output = other.getOutput();
-		this.inputAxes = other.getInputAxes();
-		this.outputAxes = other.getOutputAxes();
-	}
-
-	@Override
-	public int[] getInputAxes() {
-		return inputAxes;
-	}
-
-	public void setInputAxes(final int[] inputAxes) {
-		this.inputAxes = inputAxes;
-	}
-
-	@Override
-	public int[] getOutputAxes() {
-		return outputAxes;
-	}
-
-	public void setOutputAxes(final int[] outputAxes) {
-		this.outputAxes = outputAxes;
 	}
 
 	@Override
