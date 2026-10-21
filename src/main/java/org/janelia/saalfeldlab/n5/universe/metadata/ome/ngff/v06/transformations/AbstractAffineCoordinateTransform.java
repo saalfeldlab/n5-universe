@@ -46,7 +46,7 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 	protected AbstractAffineCoordinateTransform(final String name, final N5Reader n5, final String path,
 			final String inputSpace, final String outputSpace) {
 		super(TYPE, name, path, inputSpace, outputSpace);
-		bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
+		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 		buildTransform(getParameters());
 	}
 
@@ -66,7 +66,7 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 		if (transform != null)
 			return transform;
 		else if (path != null)
-			return buildTransform(getParameters());
+			return buildTransform(requireParameters());
 
 		return null;
 	}
@@ -91,12 +91,31 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 
 	protected abstract T createTransform();
 
-	public void write(final N5Writer n5, final String dataset) {
+	/**
+	 * @param path the parameter path
+	 * @return a copy of this transform with the same matrix that references its parameters by {@code path}
+	 */
+	protected abstract AbstractAffineCoordinateTransform<T> withPath(final String path);
 
-		final double[][] stored = OmeNgffMetadataParser.reverse(n5)
+	/**
+	 * Writes this transform's matrix to an array.
+	 *
+	 * @param n5 the writer
+	 * @param dataset the dataset to write the matrix to
+	 * @return a copy of this transform that references the matrix by {@code dataset}, bound to {@code n5}.
+	 *         It keeps the matrix, so it does not read the array to build its transform.
+	 */
+	public AbstractAffineCoordinateTransform<T> write(final N5Writer n5, final String dataset) {
+
+		final boolean reverse = OmeNgffMetadataParser.storesDimensionsReversed(n5);
+		final double[][] stored = reverse
 				? TransformUtils.reverseCoordinates(affine)
 				: affine;
 		CoordinateTransformAdapter.writeDoubleArray2d(n5, dataset, stored);
+
+		final AbstractAffineCoordinateTransform<T> written = withPath(dataset);
+		written.bindParameters(n5, reverse);
+		return written;
 	}
 
 }

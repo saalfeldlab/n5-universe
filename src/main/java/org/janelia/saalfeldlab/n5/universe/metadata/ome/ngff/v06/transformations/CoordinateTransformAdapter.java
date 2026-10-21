@@ -42,6 +42,8 @@ public class CoordinateTransformAdapter
 
 	final N5Reader n5;
 
+	final String group;
+
 	private boolean reverse;
 
 	public static final String[] FIELD_TO_NULL_CHECK = new String[]{
@@ -61,7 +63,23 @@ public class CoordinateTransformAdapter
 	}
 
 	public CoordinateTransformAdapter( final N5Reader n5, final boolean reverse ) {
+		this(n5, null, reverse);
+	}
+
+	/**
+	 * An adapter that binds every transform it deserializes to {@code n5}, with relative parameter
+	 * paths resolved against {@code group}, so they can be built with {@link CoordinateTransform#getTransform()}.
+	 * <p>
+	 * A reader and group are known only where the metadata is read, so use one of these per read
+	 * (see {@link CoordinateTransforms#read}) rather than registering it on a reader's gson.
+	 *
+	 * @param n5 the reader parameters are read from, may be null
+	 * @param group the group holding the metadata, or null to leave paths as written
+	 * @param reverse whether coordinates are stored reversed (zarr)
+	 */
+	public CoordinateTransformAdapter( final N5Reader n5, final String group, final boolean reverse ) {
 		this.n5 = n5;
+		this.group = group;
 		this.reverse = reverse;
 	}
 
@@ -160,10 +178,14 @@ public class CoordinateTransformAdapter
 			break;
 		}
 
-		// parameter paths are bound where the group is known (parsers, NgffScene.getGraph);
-		// an adapter given a reader binds what is still unbound, with paths as written
-		if (n5 != null)
-			ParameterBinding.bindUnbound(out, n5);
+		// an adapter given a reader binds what it deserializes, resolving paths against its group if
+		// it has one. nested transforms are bound again by their parent, which is harmless
+		if (n5 != null) {
+			if (group != null)
+				ParameterBinding.bind(out, n5, group);
+			else
+				ParameterBinding.bindUnbound(out, n5);
+		}
 
 		return out;
 	}
@@ -262,6 +284,45 @@ public class CoordinateTransformAdapter
 			Collections.reverse(obj.get("scale").getAsJsonArray().asList());
 		else if( TranslationCoordinateTransform.TYPE.equals(type) && obj.has("translation") )
 			Collections.reverse(obj.get("translation").getAsJsonArray().asList());
+		else if( ByDimensionCoordinateTransform.TYPE.equals(type) && obj.has("transformations") )
+			reverseAxesOnWrite(obj.get("transformations").getAsJsonArray());
+	}
+
+	/*
+	 * Reverses the axis indices of byDimension entries in the json, with the same reversal
+	 * used on read, so that the transform's own axis arrays are not modified.
+	 */
+	private static void reverseAxesOnWrite(final JsonArray entries) {
+
+		final SubAxisTransformation[] axes = new SubAxisTransformation[entries.size()];
+		for (int i = 0; i < axes.length; i++) {
+			final JsonObject e = entries.get(i).getAsJsonObject();
+			axes[i] = new SubAxisTransformation(null, toIntArray(e.get("inputAxes")), toIntArray(e.get("outputAxes")));
+		}
+
+		ByDimensionCoordinateTransform.reverseParameters(axes);
+
+		for (int i = 0; i < axes.length; i++) {
+			final JsonObject e = entries.get(i).getAsJsonObject();
+			e.add("inputAxes", toJsonArray(axes[i].getInputAxes()));
+			e.add("outputAxes", toJsonArray(axes[i].getOutputAxes()));
+		}
+	}
+
+	private static int[] toIntArray(final JsonElement elem) {
+
+		final JsonArray arr = elem.getAsJsonArray();
+		final int[] out = new int[arr.size()];
+		for (int i = 0; i < out.length; i++)
+			out[i] = arr.get(i).getAsInt();
+		return out;
+	}
+
+	private static JsonArray toJsonArray(final int[] values) {
+
+		final JsonArray arr = new JsonArray();
+		Arrays.stream(values).forEach(arr::add);
+		return arr;
 	}
 
 	public static JsonElement serializeGeneric(final JsonSerializationContext context, final CoordinateTransform<?> ct ) {

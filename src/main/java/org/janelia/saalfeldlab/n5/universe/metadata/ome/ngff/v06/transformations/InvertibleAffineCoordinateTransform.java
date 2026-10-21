@@ -50,6 +50,14 @@ public class InvertibleAffineCoordinateTransform extends AbstractAffineCoordinat
 	}
 
 	@Override
+	protected InvertibleAffineCoordinateTransform withPath(final String path) {
+
+		final InvertibleAffineCoordinateTransform ct = new InvertibleAffineCoordinateTransform(getName(), getInput(), getOutput(), path);
+		ct.buildTransform(affine);
+		return ct;
+	}
+
+	@Override
 	protected AffineGet createTransform() {
 
 		final double[] affineFlat = TransformUtils.flatten(affine);

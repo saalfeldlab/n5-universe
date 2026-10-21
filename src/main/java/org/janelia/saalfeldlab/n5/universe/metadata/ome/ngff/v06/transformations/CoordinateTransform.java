@@ -19,9 +19,28 @@ public interface CoordinateTransform<T extends RealTransform> {
 	public final static String INPUT_AXES_KEY = "inputAxes";
 	public final static String OUTPUT_AXES_KEY = "outputAxes";
 
+	/**
+	 * Builds this transform. Transforms whose parameters are stored in arrays read them from the
+	 * reader they are bound to, see {@link CoordinateTransforms}.
+	 *
+	 * @return the transform
+	 * @throws org.janelia.saalfeldlab.n5.N5Exception if parameters are stored in an array, but this
+	 *             transform is not bound to a reader
+	 */
 	public T getTransform();
 
+	/**
+	 * Binds any parametrized transform in this one that is not bound yet to {@code n5}, then builds
+	 * this transform.
+	 *
+	 * @param n5 the reader
+	 * @return the transform
+	 * @deprecated read transforms with {@link CoordinateTransforms} or the ome-ngff parsers, which
+	 *             bind them, and use {@link #getTransform()}
+	 */
+	@Deprecated
 	public default T getTransform( final N5Reader n5 ) {
+		ParameterBinding.bindUnbound(this, n5);
 		return getTransform();
 	}
 

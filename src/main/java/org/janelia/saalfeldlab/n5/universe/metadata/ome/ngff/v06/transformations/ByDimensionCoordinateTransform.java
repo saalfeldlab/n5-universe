@@ -65,15 +65,22 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		setTransformsAfterDeserialization();
 	}
 
-	public RealTransform buildTransform()
-	{
-		return buildTransform( null );
-	}
-
+	/**
+	 * @param n5 the reader
+	 * @return the transform
+	 * @deprecated use {@link #buildTransform()}, see {@link CoordinateTransform#getTransform(N5Reader)}
+	 */
+	@Deprecated
 	public RealTransform buildTransform( final N5Reader n5 ) {
 
+		ParameterBinding.bindUnbound(this, n5);
+		return buildTransform();
+	}
+
+	public RealTransform buildTransform() {
+
 		final RealTransform[] transformArray = Arrays.stream(transformations)
-				.map(e -> buildChild(e, n5))
+				.map(ByDimensionCoordinateTransform::buildChild)
 				.toArray(RealTransform[]::new);
 
 	    final StackedRealTransform stackedTransform = new StackedRealTransform(transformArray);
@@ -139,12 +146,12 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 	}
 
 	// an identity has no dimensionality of its own, it takes the number of axes it is given here
-	private static RealTransform buildChild(final SubAxisTransformation entry, final N5Reader n5) {
+	private static RealTransform buildChild(final SubAxisTransformation entry) {
 
 		if (entry.getTransformation() instanceof IdentityCoordinateTransform)
 			return ((IdentityCoordinateTransform)entry.getTransformation()).getTransform(entry.getInputAxes().length);
 
-		return (RealTransform)entry.getTransformation().getTransform(n5);
+		return (RealTransform)entry.getTransformation().getTransform();
 	}
 
 	protected int[] inputAxesFromTransforms() {
@@ -153,16 +160,6 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 
 	protected int[] outputAxesFromTransforms() {
 		return Arrays.stream(transformations).flatMapToInt(e -> Arrays.stream(e.getOutputAxes())).toArray();
-	}
-
-	@Override
-	public RealTransform getTransform( N5Reader n5) {
-
-	    if (totalTransform != null)
-	        return totalTransform;
-
-		buildTransform(n5);
-		return totalTransform;
 	}
 
 	@Override

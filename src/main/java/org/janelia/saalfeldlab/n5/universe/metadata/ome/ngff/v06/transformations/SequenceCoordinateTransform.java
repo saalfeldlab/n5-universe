@@ -131,16 +131,6 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		return getTransform();
 	}
 
-	@Override
-	public RealTransformSequence getTransform(final N5Reader n5 )
-	{
-		final RealTransformSequence transform = new RealTransformSequence();
-		for( final CoordinateTransform<?> t : getTransformations() )
-			transform.add( t.getTransform(n5) );
-
-		return transform;
-	}
-
 	public CoordinateTransform<?>[] getTransformations() {
 		return transformations;
 	}

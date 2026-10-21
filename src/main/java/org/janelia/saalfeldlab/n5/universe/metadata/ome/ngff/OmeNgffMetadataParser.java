@@ -1,6 +1,5 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ParameterBinding;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -49,11 +48,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 	}
 
 	public OmeNgffMetadataParser(final N5Reader n5) {
-		this(reverse(n5));
-	}
-	
-	public static boolean reverse(final N5Reader n5) {
-		return n5 instanceof ZarrV3KeyValueReader || n5 instanceof ZarrKeyValueReader;
+		this(storesDimensionsReversed(n5));
 	}
 
 	/**
@@ -74,8 +69,26 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 	public GsonBuilder gsonBuilder() {
 
+		return gsonBuilder(new CoordinateTransformAdapter(reverse));
+	}
+
+	/**
+	 * A gson whose deserialized transforms are bound to {@code n5}, with parameter paths resolved
+	 * against {@code group}.
+	 *
+	 * @param n5 the reader
+	 * @param group the group holding the metadata to be deserialized
+	 * @return the gson builder
+	 */
+	public GsonBuilder gsonBuilder(final N5Reader n5, final String group) {
+
+		return gsonBuilder(new CoordinateTransformAdapter(n5, group, reverse));
+	}
+
+	private GsonBuilder gsonBuilder(final CoordinateTransformAdapter transformAdapter) {
+
 		return new GsonBuilder()
-				.registerTypeAdapter(CoordinateTransform.class, new CoordinateTransformAdapter(reverse))
+				.registerTypeAdapter(CoordinateTransform.class, transformAdapter)
 				.registerTypeAdapter(Axis.class, new AxisAdapter())
 				.registerTypeAdapter(OmeNgffReference.class, new OmeNgffReferenceAdapter())
 				.registerTypeAdapter(OmeNgffMultiScaleMetadata.class, new MultiscalesAdapter(reverse));
@@ -105,7 +118,7 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 
 		OmeNgffMultiScaleMetadata[] multiscales;
 		try {
-			multiscales = gson.fromJson(msBase, OmeNgffMultiScaleMetadata[].class);
+			multiscales = gsonBuilder(n5, node.getPath()).create().fromJson(msBase, OmeNgffMultiScaleMetadata[].class);
 		} catch (final Exception e) {
 			return Optional.empty();
 		}
@@ -121,10 +134,6 @@ public class OmeNgffMetadataParser implements N5MetadataParser<OmeNgffMetadata>,
 		for (int j = 0; j < multiscales.length; j++) {
 
 			final OmeNgffMultiScaleMetadata ms = multiscales[j];
-			ParameterBinding.bindAll(ms.coordinateTransformations, n5, node.getPath());
-			if (ms.getDatasets() != null)
-				for (final OmeNgffDataset d : ms.getDatasets())
-					ParameterBinding.bindAll(d.coordinateTransformations, n5, node.getPath());
 			nd = ms.getAxes().length;
 
 			final int numScales = ms.getDatasets().length;

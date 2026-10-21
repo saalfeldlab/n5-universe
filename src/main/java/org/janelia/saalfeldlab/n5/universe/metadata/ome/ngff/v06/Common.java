@@ -21,7 +21,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransform
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph.TransformGraph;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransformAdapter;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransforms;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.IdentityCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ParameterBinding;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ReferencedCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.SequenceCoordinateTransform;
 
@@ -107,12 +109,20 @@ public class Common {
 		return toAffine3D( Arrays.asList( seq.getTransformations()));
 	}
 
-	public static AffineTransform3D toAffine3D( final Collection<CoordinateTransform<?>> transforms )
+	/**
+	 * @param n5 the reader
+	 * @param transforms the transforms to compose
+	 * @return the composed 3D affine
+	 * @deprecated use {@link #toAffine3D(Collection)}, see {@link CoordinateTransform#getTransform(N5Reader)}
+	 */
+	@Deprecated
+	public static AffineTransform3D toAffine3D( final N5Reader n5, final Collection<CoordinateTransform<?>> transforms )
 	{
-		return toAffine3D( null, transforms );
+		transforms.forEach( ct -> ParameterBinding.bindUnbound( ct, n5 ));
+		return toAffine3D( transforms );
 	}
 
-	public static AffineTransform3D toAffine3D( final N5Reader n5, final Collection<CoordinateTransform<?>> transforms )
+	public static AffineTransform3D toAffine3D( final Collection<CoordinateTransform<?>> transforms )
 	{
 		final AffineTransform3D total = new AffineTransform3D();
 		for( final CoordinateTransform<?> ct : transforms )
@@ -128,7 +138,7 @@ public class Common {
 					preConcatenate( total, (AffineGet) t  );
 			}
 			else {
-				final Object t = ct.getTransform(n5);
+				final Object t = ct.getTransform();
 				if( t instanceof AffineGet )
 				{
 					preConcatenate( total, (AffineGet) t  );
@@ -141,7 +151,21 @@ public class Common {
 	}
 
 	/**
-	 * Like {@link #toAffine3D(N5Reader, Collection)}, but for
+	 * @param n5 the reader
+	 * @param transforms the transforms to compose
+	 * @param axes the (shared) axes of {@code transforms}' coordinate systems
+	 * @return the composed, spatial-axes-only 3D affine
+	 * @deprecated use {@link #toAffine3D(Collection, Axis[])}, see {@link CoordinateTransform#getTransform(N5Reader)}
+	 */
+	@Deprecated
+	public static AffineTransform3D toAffine3D( final N5Reader n5, final Collection<CoordinateTransform<?>> transforms, final Axis[] axes )
+	{
+		transforms.forEach( ct -> ParameterBinding.bindUnbound( ct, n5 ));
+		return toAffine3D( transforms, axes );
+	}
+
+	/**
+	 * Like {@link #toAffine3D(Collection)}, but for
 	 * {@code transforms} whose axes aren't necessarily (only) the 3 spatial
 	 * ones expected by {@link AffineTransform3D}. {@code axes} identifies
 	 * which of the shared axis space's axes are spatial, and is used (via
@@ -151,12 +175,11 @@ public class Common {
 	 * the same for every transform in {@code transforms} and for the nested
 	 * sub-transforms of any {@link SequenceCoordinateTransform}.
 	 *
-	 * @param n5 the reader
 	 * @param transforms the transforms to compose
 	 * @param axes the (shared) axes of {@code transforms}' coordinate systems
 	 * @return the composed, spatial-axes-only 3D affine
 	 */
-	public static AffineTransform3D toAffine3D( final N5Reader n5, final Collection<CoordinateTransform<?>> transforms, final Axis[] axes )
+	public static AffineTransform3D toAffine3D( final Collection<CoordinateTransform<?>> transforms, final Axis[] axes )
 	{
 		final AffineTransform3D total = new AffineTransform3D();
 		for( final CoordinateTransform<?> ct : transforms )
@@ -165,7 +188,7 @@ public class Common {
 				continue;
 			else if( ct instanceof SequenceCoordinateTransform )
 			{
-				final AffineTransform3D t = toAffine3D( n5, Arrays.asList( ((SequenceCoordinateTransform)ct).getTransformations() ), axes );
+				final AffineTransform3D t = toAffine3D( Arrays.asList( ((SequenceCoordinateTransform)ct).getTransformations() ), axes );
 				if( t == null )
 					return null;
 				else
@@ -177,7 +200,7 @@ public class Common {
 					total.preConcatenate( t );
 			}
 			else {
-				final Object t = ct.getTransform(n5);
+				final Object t = ct.getTransform();
 				if( t instanceof AffineGet )
 					preConcatenate( total, (AffineGet) t, axes );
 				else
@@ -188,21 +211,34 @@ public class Common {
 	}
 
 	/**
-	 * Like {@link #toAffine3D(N5Reader, Collection, Axis[])}, but resolves
-	 * {@code axes} automatically from {@code g}, using the input
-	 * {@link CoordinateSystem} of the first of {@code transforms} whose input
-	 * space is registered in {@code g} (see the class-level note on
-	 * {@link #toAffine3D(N5Reader, Collection, Axis[])} about why a single
-	 * shared {@code axes} suffices). Falls back to
-	 * {@link #toAffine3D(N5Reader, Collection)} (the pre-existing,
-	 * axis-selection-unaware behavior) if no axes can be resolved this way.
-	 *
 	 * @param n5 the reader
 	 * @param g the graph {@code transforms} were resolved from
 	 * @param transforms the transforms to compose
 	 * @return the composed, spatial-axes-only 3D affine
+	 * @deprecated use {@link #toAffine3D(TransformGraph, Collection)}, see {@link CoordinateTransform#getTransform(N5Reader)}
 	 */
+	@Deprecated
 	public static AffineTransform3D toAffine3D( final N5Reader n5, final TransformGraph g, final Collection<CoordinateTransform<?>> transforms )
+	{
+		transforms.forEach( ct -> ParameterBinding.bindUnbound( ct, n5 ));
+		return toAffine3D( g, transforms );
+	}
+
+	/**
+	 * Like {@link #toAffine3D(Collection, Axis[])}, but resolves
+	 * {@code axes} automatically from {@code g}, using the input
+	 * {@link CoordinateSystem} of the first of {@code transforms} whose input
+	 * space is registered in {@code g} (see the class-level note on
+	 * {@link #toAffine3D(Collection, Axis[])} about why a single
+	 * shared {@code axes} suffices). Falls back to
+	 * {@link #toAffine3D(Collection)} (the pre-existing,
+	 * axis-selection-unaware behavior) if no axes can be resolved this way.
+	 *
+	 * @param g the graph {@code transforms} were resolved from
+	 * @param transforms the transforms to compose
+	 * @return the composed, spatial-axes-only 3D affine
+	 */
+	public static AffineTransform3D toAffine3D( final TransformGraph g, final Collection<CoordinateTransform<?>> transforms )
 	{
 		Axis[] axes = null;
 		for( final CoordinateTransform<?> ct : transforms )
@@ -216,9 +252,9 @@ public class Common {
 		}
 
 		if( axes == null )
-			return toAffine3D( n5, transforms );
+			return toAffine3D( transforms );
 
-		return toAffine3D( n5, transforms, axes );
+		return toAffine3D( transforms, axes );
 	}
 
 	public static void preConcatenate( final AffineTransform3D tgt, final AffineGet concatenate )
@@ -296,7 +332,7 @@ public class Common {
 	public static <T extends NumericType<T> & NativeType<T>> RealRandomAccessible<T> transformImage(
 			final N5Reader n5, final String imageDataset, final String registrationDataset, final String space ) throws IOException {
 		final TransformGraph graph = Common.openGraph(n5, registrationDataset, imageDataset );
-		final Optional<RealTransform> t = graph.path(space,"").map( p -> p.totalTransform(n5));
+		final Optional<RealTransform> t = graph.path(space,"").map( p -> p.totalTransform());
 
 		final RandomAccessibleInterval<T> img = open( n5 , imageDataset );
 		final RealRandomAccessible<T> rra = Views.interpolate( Views.extendZero( img ), new NLinearInterpolatorFactory<T>());
@@ -373,18 +409,18 @@ public class Common {
 		if( spaces == null )
 			return openGraphImpliedSpaces( n5, group, nd );
 
-		CoordinateTransform<?>[] transforms = n5.getAttribute(group, "coordinateTransformations", CoordinateTransform[].class);
+		CoordinateTransform<?>[] transforms = CoordinateTransforms.readAll(n5, group, "coordinateTransformations");
 		if( transforms == null )
-			transforms = n5.getAttribute(group, "transformations", CoordinateTransform[].class);
+			transforms = CoordinateTransforms.readAll(n5, group, "transformations");
 
 		return new SpacesTransforms( spaces, transforms ).buildTransformGraph(group, nd);
 	}
 
 	protected static TransformGraph openGraphImpliedSpaces(final N5Reader n5, final String dataset, final int nd) {
 
-		CoordinateTransform<?>[] transforms = n5.getAttribute(dataset, "coordinateTransformations", CoordinateTransform[].class);
+		CoordinateTransform<?>[] transforms = CoordinateTransforms.readAll(n5, dataset, "coordinateTransformations");
 		if (transforms == null)
-			transforms = n5.getAttribute(dataset, "transformations", CoordinateTransform[].class);
+			transforms = CoordinateTransforms.readAll(n5, dataset, "transformations");
 
 		final CoordinateSystem[] coordinateSystems = Arrays.stream(transforms).flatMap(x -> {
 			return Stream.of(
@@ -449,7 +485,7 @@ public class Common {
 //				final String attribute = n5url.getAttributePath() != null ? n5url.getAttributePath() : "coordinateTransformations[0]";
 
 				try {
-					final CoordinateTransform<?> ct = n5.getAttribute(dataset, attribute, CoordinateTransform.class);
+					final CoordinateTransform<?> ct = CoordinateTransforms.read(n5, dataset, attribute);
 					return new ValuePair<>( ct, n5 );
 				} catch( N5Exception | ClassCastException e ) {}
 
@@ -471,13 +507,13 @@ public class Common {
 	{
 		// TODO error handling
 		final TransformGraph g = Common.openGraph( n5, dataset );
-		return (T)g.path( input, output ).get().totalTransform( n5, g );
+		return (T)g.path( input, output ).get().totalTransform( g );
 	}
 
 	public static RealTransform open( final String url )
 	{
 		final Pair< CoordinateTransform< ? >, N5Reader > pair = openTransformN5( url );
-		return pair.getA().getTransform( pair.getB() );
+		return pair.getA().getTransform();
 	}
 
 	public static Pair<CoordinateTransform<?>,N5Reader> openReference( final String url, final N5Reader n5, final String dataset, final String attribute) {

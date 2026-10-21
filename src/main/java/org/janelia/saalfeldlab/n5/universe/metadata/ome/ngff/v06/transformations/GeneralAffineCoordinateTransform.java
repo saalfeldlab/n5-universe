@@ -42,6 +42,19 @@ public class GeneralAffineCoordinateTransform extends AbstractAffineCoordinateTr
 		super(name, inputSpace, outputSpace, path);
 	}
 
+	public GeneralAffineCoordinateTransform(final String name,
+			final OmeNgffReference inputSpace, final OmeNgffReference outputSpace, final String path) {
+		super(name, inputSpace, outputSpace, path);
+	}
+
+	@Override
+	protected GeneralAffineCoordinateTransform withPath(final String path) {
+
+		final GeneralAffineCoordinateTransform ct = new GeneralAffineCoordinateTransform(getName(), getInput(), getOutput(), path);
+		ct.buildTransform(affine);
+		return ct;
+	}
+
 	@Override
 	protected AffineRealTransform createTransform() {
 		return new AffineRealTransform(numSourceDimensions(), numTargetDimensions(),

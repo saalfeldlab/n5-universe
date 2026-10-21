@@ -50,6 +50,13 @@ public class AffineCoordinateTransformAdapter implements
 	public JsonElement serialize(AbstractAffineCoordinateTransform src, Type typeOfSrc, JsonSerializationContext context) {
 
 		final JsonObject json = CoordinateTransformAdapter.serializeGeneric(context, src).getAsJsonObject();
+
+		// parameters stored in an array are referenced by their path, as written (not resolved)
+		if (src.path != null) {
+			json.addProperty("path", src.path);
+			return json;
+		}
+
 		final double[][] mtx = src.affine;
 		final double[][] mtxOut = reverse ? TransformUtils.reverseCoordinates(mtx) : mtx;
 		json.add(AbstractAffineCoordinateTransform.TYPE, context.serialize(mtxOut));

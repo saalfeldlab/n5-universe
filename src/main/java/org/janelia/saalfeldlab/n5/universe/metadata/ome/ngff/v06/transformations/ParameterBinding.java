@@ -8,6 +8,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataPars
 /**
  * Prepares parsed transforms to read their parameters: resolves each parameter
  * path against the group holding the metadata, and binds it to a reader.
+ * <p>
+ * Transforms read with {@link CoordinateTransforms#read} or the ome-ngff parsers are
+ * already bound; this is for transforms that came from elsewhere, e.g. a reader's own gson.
  */
 public class ParameterBinding {
 
@@ -25,7 +28,7 @@ public class ParameterBinding {
 
 		forEachParametrized(ct, pt -> {
 			pt.resolveAbsoluePath(group);
-			pt.bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
+			pt.bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 		});
 	}
 
@@ -46,9 +49,12 @@ public class ParameterBinding {
 	 */
 	public static void bindUnbound(final CoordinateTransform<?> ct, final N5Reader n5) {
 
-		forEachParametrized(ct, pt -> {
-			if (!pt.isBound())
-				pt.bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
+		if (n5 == null)
+			return;
+
+		forEachParametrized(ct, t -> {
+			if (!t.isBound())
+				t.bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 		});
 	}
 

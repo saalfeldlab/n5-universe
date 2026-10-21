@@ -291,7 +291,7 @@ public class FieldTransformParsing {
 	
 	public static CoordinateTransform<?> findPixelToPhysicalTransformStrict(final N5Reader n5, final String group, final String output ) {
 
-		final CoordinateTransform<?>[] transforms = n5.getAttribute(group, "ome/"+CoordinateTransform.KEY, CoordinateTransform[].class);
+		final CoordinateTransform<?>[] transforms = CoordinateTransforms.readAll(n5, group, "ome/"+CoordinateTransform.KEY);
 		return selectPixelToPhysical(transforms, output);
 	}
 
@@ -349,6 +349,7 @@ public class FieldTransformParsing {
 	 * @return a transformation or null
 	 */
 	public static CoordinateTransform<?> findPixelToPhysicalTransformCheckSelfRef(final N5Reader n5, final String group, final String output ) {
+		// read unbound, so that parameter paths are compared as written
 		final CoordinateTransform<?>[] transforms = n5.getAttribute(group, "ome/" + CoordinateTransform.KEY, CoordinateTransform[].class);
 		if (transforms == null)
 			return null;
@@ -366,8 +367,10 @@ public class FieldTransformParsing {
 					continue;
 				else if( N5URI.normalizeGroupPath(group).equals(N5URI.normalizeGroupPath(path)))
 					continue;
-				else
+				else {
+					ParameterBinding.bindUnbound(ct, n5);
 					return ct;
+				}
 			}
 			else
 				return ct;
@@ -378,7 +381,7 @@ public class FieldTransformParsing {
 	public static RealTransform findFieldTransformStrict(final N5Reader n5, final String group, final String output ) {
 
 		final String normGrp = N5URI.normalizeGroupPath(group);
-		final CoordinateTransform<?>[] transforms = n5.getAttribute(group, CoordinateTransform.KEY, CoordinateTransform[].class);
+		final CoordinateTransform<?>[] transforms = CoordinateTransforms.readAll(n5, group, CoordinateTransform.KEY);
 		if (transforms == null)
 			return null;
 
@@ -386,7 +389,7 @@ public class FieldTransformParsing {
 			// TODO properly handle reference
 			final String nrmInput = N5URI.normalizeGroupPath(ct.getInput().getName());
 			if (nrmInput.equals(normGrp) && ct.getOutput().equals(output) ) {
-				return ct.getTransform(n5);
+				return ct.getTransform();
 			}
 		}
 		return null;
@@ -414,6 +417,7 @@ public class FieldTransformParsing {
 		 */
 		public static CoordinateTransform<?> findPixelToPhysicalTransformCheckSelfRef(final N5Reader n5, final String group, final String output) {
 
+			// read unbound, so that parameter paths are compared as written
 			final CoordinateTransform<?>[] transforms = n5.getAttribute(group, "ome/" + CoordinateTransform.KEY, CoordinateTransform[].class);
 			if (transforms == null)
 				return null;
@@ -430,8 +434,10 @@ public class FieldTransformParsing {
 						continue;
 					else if (N5URI.normalizeGroupPath(group).equals(N5URI.normalizeGroupPath(path)))
 						continue;
-					else
+					else {
+						ParameterBinding.bindUnbound(ct, n5);
 						return ct;
+					}
 				} else
 					return ct;
 			}
@@ -441,7 +447,7 @@ public class FieldTransformParsing {
 		public static RealTransform findFieldTransformStrict(final N5Reader n5, final String group, final String output) {
 
 			final String normGrp = N5URI.normalizeGroupPath(group);
-			final CoordinateTransform<?>[] transforms = n5.getAttribute(group, CoordinateTransform.KEY, CoordinateTransform[].class);
+			final CoordinateTransform<?>[] transforms = CoordinateTransforms.readAll(n5, group, CoordinateTransform.KEY);
 			if (transforms == null)
 				return null;
 
@@ -449,7 +455,7 @@ public class FieldTransformParsing {
 				// TODO properly handle reference
 				final String nrmInput = N5URI.normalizeGroupPath(ct.getInput().getName());
 				if (nrmInput.equals(normGrp) && ct.getOutput().equals(output)) {
-					return ct.getTransform(n5);
+					return ct.getTransform();
 				}
 			}
 			return null;

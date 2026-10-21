@@ -225,24 +225,24 @@ public class SceneParsingTest {
 
 			final AffineTransform3D identity = new AffineTransform3D();
 			assertAffineEquals(identity,
-					graph.path("CBCT/physical", "world").get().totalAffine3D(zarr));
+					graph.path("CBCT/physical", "world").get().totalAffine3D());
 
 			final AffineTransform3D doseToWorld = new AffineTransform3D();
 			doseToWorld.translate(0, 0, 4400);
 			assertAffineEquals(doseToWorld,
-					graph.path("Dose/physical", "world").get().totalAffine3D(zarr));
+					graph.path("Dose/physical", "world").get().totalAffine3D());
 
 			final AffineTransform3D letToWorld = new AffineTransform3D();
 			letToWorld.translate(0, 0, 4400);
 			assertAffineEquals(letToWorld,
-					graph.path("LET/physical", "world").get().totalAffine3D(zarr));
+					graph.path("LET/physical", "world").get().totalAffine3D());
 
 			// the inverse edges added automatically by TransformGraph should
 			// also resolve, with the inverse translation
 			final AffineTransform3D worldToDose = new AffineTransform3D();
 			worldToDose.translate(0, 0, -4400);
 			assertAffineEquals(worldToDose,
-					graph.path("world", "Dose/physical").get().totalAffine3D(zarr));
+					graph.path("world", "Dose/physical").get().totalAffine3D());
 		}
 	}
 

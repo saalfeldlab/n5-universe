@@ -5,19 +5,9 @@ import java.util.function.Supplier;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
-import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
-import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 
-import net.imglib2.Cursor;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.cache.img.CachedCellImg;
-import net.imglib2.img.cell.CellCursor;
 import net.imglib2.realtransform.RealTransform;
-import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.RealType;
-import net.imglib2.view.Views;
 
 public abstract class AbstractParametrizedTransform<T extends RealTransform,P> extends AbstractCoordinateTransform<T> implements ParametrizedTransform<T,P> {
 
@@ -118,23 +108,28 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 	}
 
 	/**
-	 * Binds this transform to {@code n5} if it has a parameter path and is not
-	 * bound yet, then returns its transform.
-	 */
-	@Override
-	public T getTransform(final N5Reader n5) {
-
-		if (n5 != null && !isBound() && getParameterPath() != null)
-			bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
-
-		return getTransform();
-	}
-
-	/**
 	 * @return the parameters, or null if no parameter source is bound
 	 */
 	public P getParameters() {
 		return parameterSupplier == null ? null : parameterSupplier.get();
+	}
+
+	/**
+	 * For building the transform from parameters stored in an array.
+	 *
+	 * @return the parameters, or null if they could not be read
+	 * @throws N5Exception if this transform is not bound to a reader
+	 */
+	protected P requireParameters() {
+
+		if (!isBound())
+			throw new N5Exception("The parameters of " + getType() + " transform"
+					+ (getName() != null ? " \"" + getName() + "\"" : "")
+					+ " at path \"" + getParameterPath() + "\" are not bound to a reader."
+					+ " Read transforms with CoordinateTransforms or an ome-ngff parser,"
+					+ " or bind them with ParameterBinding.");
+
+		return getParameters();
 	}
 
 	@Override

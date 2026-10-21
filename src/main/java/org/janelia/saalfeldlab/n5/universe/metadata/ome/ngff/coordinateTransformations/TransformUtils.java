@@ -12,6 +12,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.IdentityCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.InvertibleAffineCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ParameterBinding;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.RotationCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.SequenceCoordinateTransform;
@@ -461,9 +462,17 @@ public class TransformUtils
 				.collect( Collectors.toList() ));
 	}
 
-	public static AffineTransform3D toAffine3D( Collection<CoordinateTransform<?>> transforms )
+	/**
+	 * @param n5 the reader
+	 * @param transforms the transforms to compose
+	 * @return the composed 3D affine
+	 * @deprecated use {@link #toAffine3D(Collection)}, see {@link CoordinateTransform#getTransform(N5Reader)}
+	 */
+	@Deprecated
+	public static AffineTransform3D toAffine3D( N5Reader n5, Collection<CoordinateTransform<?>> transforms )
 	{
-		return toAffine3D( null, transforms );
+		transforms.forEach( ct -> ParameterBinding.bindUnbound( ct, n5 ));
+		return toAffine3D( transforms );
 	}
 
 	public static AffineGet toAffine( CoordinateTransform< ? > transform, int nd ) {
@@ -490,7 +499,7 @@ public class TransformUtils
 		}
 	}
 
-	public static AffineTransform3D toAffine3D( N5Reader n5, Collection<CoordinateTransform<?>> transforms )
+	public static AffineTransform3D toAffine3D( Collection<CoordinateTransform<?>> transforms )
 	{
 		final AffineTransform3D total = new AffineTransform3D();
 		for( final CoordinateTransform<?> ct : transforms )
@@ -506,7 +515,7 @@ public class TransformUtils
 					preConcatenate( total, (AffineGet) t  );
 			}
 			else {
-				final Object t = ct.getTransform(n5);
+				final Object t = ct.getTransform();
 				if( t instanceof AffineGet )
 				{
 					preConcatenate( total, (AffineGet) t  );

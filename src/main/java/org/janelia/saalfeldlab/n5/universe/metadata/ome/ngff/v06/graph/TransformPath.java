@@ -84,9 +84,21 @@ public class TransformPath {
 		return flatTransforms;
 	}
 
+	/**
+	 * @param n5 the reader
+	 * @param g the graph this path is from
+	 * @return the total transform
+	 * @deprecated use {@link #totalTransform(TransformGraph)}, see {@link CoordinateTransform#getTransform(N5Reader)}
+	 */
+	@Deprecated
 	public RealTransform totalTransform( final N5Reader n5, final TransformGraph g )
 	{
 		flatTransforms().forEach( t -> ParameterBinding.bindUnbound( t, n5 ));
+		return totalTransform( g );
+	}
+
+	public RealTransform totalTransform( final TransformGraph g )
+	{
 		final RealTransformSequence total = new RealTransformSequence();
 		flatTransforms().forEach( t ->  {
 				if( t instanceof SequenceCoordinateTransform) {
@@ -106,19 +118,23 @@ public class TransformPath {
 					// no op
 				}
 				else {
-					total.add( ((RealTransform)t.getTransform( n5 )));
+					total.add( ((RealTransform)t.getTransform()));
 				}
 			}
 			);
 		return total;
 	}
 
+	/**
+	 * @param n5 the reader
+	 * @return the total transform
+	 * @deprecated use {@link #totalTransform()}, see {@link CoordinateTransform#getTransform(N5Reader)}
+	 */
+	@Deprecated
 	public RealTransform totalTransform( final N5Reader n5 )
 	{
 		flatTransforms().forEach( t -> ParameterBinding.bindUnbound( t, n5 ));
-		final RealTransformSequence total = new RealTransformSequence();
-		flatTransforms().forEach( t -> total.add( ((RealTransform)t.getTransform( n5 ))));
-		return total;
+		return totalTransform();
 	}
 
 	public RealTransform totalTransform()
@@ -128,9 +144,16 @@ public class TransformPath {
 		return total;
 	}
 
+	/**
+	 * @param n5 the reader
+	 * @return the total affine
+	 * @deprecated use {@link #totalAffine3D()}, see {@link CoordinateTransform#getTransform(N5Reader)}
+	 */
+	@Deprecated
 	public AffineTransform3D totalAffine3D( final N5Reader n5 )
 	{
-		return Common.toAffine3D(n5, flatTransforms());
+		flatTransforms().forEach( t -> ParameterBinding.bindUnbound( t, n5 ));
+		return totalAffine3D();
 	}
 
 	public AffineTransform3D totalAffine3D()

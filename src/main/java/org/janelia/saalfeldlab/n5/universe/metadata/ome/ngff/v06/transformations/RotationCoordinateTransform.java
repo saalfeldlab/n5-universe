@@ -54,7 +54,7 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 	public RotationCoordinateTransform(final String name, final N5Reader n5, final String path,
 			final String inputSpace, final String outputSpace) {
 		super(TYPE, name, path, inputSpace, outputSpace );
-		bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
+		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 		buildTransform(getParameters());
 	}
 
@@ -88,14 +88,14 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 		else if (rotation != null)
 			return buildTransform(rotation);
 		else if (path != null)
-			return buildTransform(getParameters());
+			return buildTransform(requireParameters());
 
 		return null;
 	}
 
 	public void write(final N5Writer n5, final String dataset) {
 
-		final double[][] stored = OmeNgffMetadataParser.reverse(n5)
+		final double[][] stored = OmeNgffMetadataParser.storesDimensionsReversed(n5)
 				? TransformUtils.reverseCoordinatesRotation(rotation)
 				: rotation;
 		CoordinateTransformAdapter.writeDoubleArray2d(n5, dataset, stored);

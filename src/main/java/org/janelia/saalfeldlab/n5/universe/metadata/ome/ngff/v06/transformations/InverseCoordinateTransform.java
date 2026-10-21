@@ -47,16 +47,6 @@ public class InverseCoordinateTransform<T extends InvertibleRealTransform, C ext
 	}
 
 	@Override
-	public T getTransform(final N5Reader n5) {
-		return (T)getWrappedCoordinateTransform().getTransform(n5).inverse();
-	}
-
-	@Override
-	public InvertibleRealTransform getInvertibleTransform(N5Reader n5) {
-		return getTransform(n5);
-	}
-
-	@Override
 	public InvertibleRealTransform getInvertibleTransform() {
 		return getTransform();
 	}

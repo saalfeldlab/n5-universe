@@ -13,6 +13,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph.Transform
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph.TransformPath;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransformAdapter;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransforms;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -59,7 +60,7 @@ public class NgffTransformsConformance {
 
 			final Gson gson = buildGson();
 			final double[][] inputCoords = gson.fromJson(coordsJson, double[][].class);
-			final RealTransform transform = pathOpt.get().totalTransform(n5, graph);
+			final RealTransform transform = pathOpt.get().totalTransform(graph);
 			final double[][] outputCoords = applyTransform(ndIn, ndOut, transform, inputCoords);
 
 			final JsonObject result = new JsonObject();
@@ -76,8 +77,7 @@ public class NgffTransformsConformance {
 	public static TransformGraph loadTransformGraph(final N5Reader n5) throws JsonSyntaxException, JsonIOException, FileNotFoundException {
 
 		final CoordinateSystem[] spaces = n5.getAttribute("", "ome/scene/" + CoordinateSystem.KEY, CoordinateSystem[].class);
-		@SuppressWarnings("rawtypes")
-		final CoordinateTransform[] transforms = n5.getAttribute("", "ome/scene/" + CoordinateTransform.KEY, CoordinateTransform[].class);
+		final CoordinateTransform<?>[] transforms = CoordinateTransforms.readAll(n5, "", "ome/scene/" + CoordinateTransform.KEY);
 		return new TransformGraph(Arrays.asList(transforms), Arrays.asList(spaces));
 	}
 

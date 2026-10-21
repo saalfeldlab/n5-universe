@@ -52,7 +52,7 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 	public TranslationCoordinateTransform( String name, final String inputSpace, final String outputSpace,
 			final N5Reader n5, final String path) {
 		super(TYPE, name, path, inputSpace, outputSpace );
-		bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
+		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 		this.translation = getParameters();
 		buildTransform( translation );
 	}
@@ -98,7 +98,7 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 		else if (translation != null)
 			return buildTransform(translation);
 		else if (path != null)
-			return buildTransform(getParameters());
+			return buildTransform(requireParameters());
 
 		return null;
 	}

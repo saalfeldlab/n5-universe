@@ -50,7 +50,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 	public CoordinateFieldCoordinateTransform(final String name, final N5Reader n5, final String path, final String interpolation,
 			final String input, final String output) {
 		super(TYPE, name, path, interpolation, input, output);
-		bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
+		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 	}
 
 	/**
@@ -100,7 +100,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		else if (field != null)
 			return buildTransform(field);
 		else if (path != null)
-			return buildTransform(getParameters());
+			return buildTransform(requireParameters());
 
 		return null;
 	}
@@ -116,7 +116,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 
 		final CoordinateFieldCoordinateTransform<T> cf = writtenTransform(dataset, coordinateField, input, output, transforms);
 
-		final RandomAccessibleInterval<T> storedField = OmeNgffMetadataParser.reverse(n5)
+		final RandomAccessibleInterval<T> storedField = OmeNgffMetadataParser.storesDimensionsReversed(n5)
 				? FieldTransformParsing.reverseCoordinates(coordinateField)
 				: coordinateField;
 		n5.createDataset(dataset, datasetAttributes);
@@ -138,7 +138,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		CoordinateSystem pfieldCoordinateSystem = createPositionFieldCoordinateSystem(input);
 		final CoordinateFieldCoordinateTransform<T> cf = writtenTransform(dataset, coordinateField, input, output, transforms);
 
-		final RandomAccessibleInterval<T> storedField = OmeNgffMetadataParser.reverse(n5)
+		final RandomAccessibleInterval<T> storedField = OmeNgffMetadataParser.storesDimensionsReversed(n5)
 				? FieldTransformParsing.reverseCoordinates(coordinateField)
 				: coordinateField;
 		N5Utils.save(storedField, n5, dataset, blockSize, compression);

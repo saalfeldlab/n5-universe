@@ -36,7 +36,7 @@ public class OmeNgffSceneWriter implements N5MetadataWriter<NgffSceneMetadata> {
 	}
 
 	public OmeNgffSceneWriter(final N5Writer n5) {
-		this(OmeNgffMetadataParser.reverse(n5));
+		this(OmeNgffMetadataParser.storesDimensionsReversed(n5));
 	}
 
 	public OmeNgffSceneWriter() {

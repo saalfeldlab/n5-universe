@@ -141,12 +141,14 @@ public class NgffScene {
 	 */
 	public TransformGraph getGraph(N5Reader n5, String basePath) {
 
-		final Gson gson = new OmeNgffMetadataParser(n5).gsonBuilder().create();
+		final OmeNgffMetadataParser parser = new OmeNgffMetadataParser(n5);
 
 		final ArrayList<CoordinateSystem> allCs = new ArrayList<>();
 		if (coordinateSystems != null)
 			allCs.addAll(Arrays.asList(coordinateSystems));
 
+		// a scene parsed by OmeNgffSceneParser is bound already, but one read some other way
+		// (e.g. with the reader's own gson) is not
 		final ArrayList<CoordinateTransform<?>> allCts = new ArrayList<>();
 		if (coordinateTransformations != null)
 			for (final CoordinateTransform<?> ct : coordinateTransformations) {
@@ -158,6 +160,8 @@ public class NgffScene {
 			final String resolvedPath = (basePath == null || basePath.isEmpty())
 					? extPath : basePath + "/" + extPath;
 
+			// binds the dataset's transforms, with paths relative to the dataset
+			final Gson gson = parser.gsonBuilder(n5, resolvedPath).create();
 			for (final OmeNgffMultiScaleMetadata ms : readMultiscales(n5, resolvedPath, gson)) {
 
 				final CoordinateSystem[] css = ms.getCoordinateSystems();
@@ -166,10 +170,8 @@ public class NgffScene {
 
 				final CoordinateTransform<?>[] cts = ms.getCoordinateTransformations();
 				if (cts != null)
-					for (final CoordinateTransform<?> ct : cts) {
-						ParameterBinding.bind(ct, n5, resolvedPath);
+					for (final CoordinateTransform<?> ct : cts)
 						allCts.add(qualify(ct, resolvedPath));
-					}
 			}
 		}
 

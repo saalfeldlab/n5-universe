@@ -32,6 +32,9 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxes
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
@@ -203,6 +206,77 @@ public class NgffTests {
 	}
 
 	/**
+	 * An all-zero translation is kept by {@link NgffSingleScaleAxesMetadata}, but is not
+	 * serialized in the dataset's coordinate transformations.
+	 */
+	@Test
+	public void testZeroTranslationNotSerialized() {
+
+		final DatasetAttributes attrs = new DatasetAttributes(DEFAULT_DIMENSIONS, DEFAULT_CHUNK_SIZE, DataType.UINT8, new RawCompression());
+		final double[] zeros = new double[DEFAULT_TRANSLATION.length];
+		final OmeNgffMultiScaleMetadata zeroMeta = buildPermutedAxesMetadata(DEFAULT_NGFF_PERMUTATION, false, attrs, zeros);
+
+		final NgffSingleScaleAxesMetadata child = zeroMeta.getChildrenMetadata()[0];
+		Assert.assertArrayEquals("zero translation kept", zeros, child.getTranslation(), 1e-9);
+		Assert.assertEquals("only a scale transform", 1, child.getCoordinateTransformations().length);
+		Assert.assertTrue("only a scale transform", child.getCoordinateTransformations()[0] instanceof ScaleCoordinateTransform);
+
+		Assert.assertArrayEquals("zero translation not serialized",
+				new String[]{"scale"}, serializedDatasetTransformTypes(zeroMeta));
+	}
+
+	/**
+	 * A nonzero translation is kept by {@link NgffSingleScaleAxesMetadata}, and is serialized
+	 * in the dataset's coordinate transformations, after the scale.
+	 */
+	@Test
+	public void testNonzeroTranslationSerialized() {
+
+		final DatasetAttributes attrs = new DatasetAttributes(DEFAULT_DIMENSIONS, DEFAULT_CHUNK_SIZE, DataType.UINT8, new RawCompression());
+		final OmeNgffMultiScaleMetadata meta = buildPermutedAxesMetadata(DEFAULT_NGFF_PERMUTATION, false, attrs);
+
+		final double[] expected = AxisUtils.permute(DEFAULT_TRANSLATION, DEFAULT_NGFF_PERMUTATION);
+		final NgffSingleScaleAxesMetadata child = meta.getChildrenMetadata()[0];
+		Assert.assertArrayEquals("translation kept", expected, child.getTranslation(), 1e-9);
+
+		final CoordinateTransform<?>[] cts = child.getCoordinateTransformations();
+		Assert.assertEquals("scale and translation transforms", 2, cts.length);
+		Assert.assertTrue("first transform is a scale", cts[0] instanceof ScaleCoordinateTransform);
+		Assert.assertTrue("second transform is a translation", cts[1] instanceof TranslationCoordinateTransform);
+		Assert.assertArrayEquals("translation transform values", expected,
+				((TranslationCoordinateTransform)cts[1]).translation, 1e-9);
+
+		Assert.assertArrayEquals("nonzero translation serialized",
+				new String[]{"scale", "translation"}, serializedDatasetTransformTypes(meta));
+
+		// the parser's default gson reverses parameters (zarr order)
+		final JsonArray values = serializedDatasetTransforms(meta).get(1).getAsJsonObject().getAsJsonArray("translation");
+		Assert.assertEquals("serialized translation length", expected.length, values.size());
+		for (int i = 0; i < expected.length; i++)
+			Assert.assertEquals("serialized translation at index " + i,
+					expected[expected.length - 1 - i], values.get(i).getAsDouble(), 1e-9);
+	}
+
+	private static JsonArray serializedDatasetTransforms(final OmeNgffMultiScaleMetadata meta) {
+
+		return new OmeNgffMetadataParser().gsonBuilder().create()
+				.toJsonTree(meta).getAsJsonObject()
+				.getAsJsonArray("datasets").get(0).getAsJsonObject()
+				.getAsJsonArray("coordinateTransformations");
+	}
+
+	private static String[] serializedDatasetTransformTypes(final OmeNgffMultiScaleMetadata meta) {
+
+		final JsonArray transforms = serializedDatasetTransforms(meta);
+
+		final String[] types = new String[transforms.size()];
+		for (int i = 0; i < types.length; i++)
+			types[i] = transforms.get(i).getAsJsonObject().get("type").getAsString();
+
+		return types;
+	}
+
+	/**
 	 * The multiscales metadata of an OME-NGFF group may refer to the group
 	 * itself ({@code "path" : "."}), in which case that node is both a
 	 * multiscale group and an array.
@@ -326,18 +400,24 @@ public class NgffTests {
 
 	public static OmeNgffMultiScaleMetadata buildPermutedAxesMetadata(final int[] permutation, final boolean cOrder, final DatasetAttributes dsetAttrs) {
 
+		return buildPermutedAxesMetadata(permutation, cOrder, dsetAttrs, DEFAULT_TRANSLATION);
+	}
+
+	public static OmeNgffMultiScaleMetadata buildPermutedAxesMetadata(final int[] permutation, final boolean cOrder,
+			final DatasetAttributes dsetAttrs, final double[] unpermutedTranslation) {
+
 		final HashMap<String,Double> axisResolution = new HashMap<>();
 		final HashMap<String, Double> axisTranslation = new HashMap<>();
 		for (int i = 0; i < DEFAULT_AXES.length; i++) {
 			axisResolution.put(DEFAULT_AXES_S[i], DEFAULT_RESOLUTION[i]);
-			axisTranslation.put(DEFAULT_AXES_S[i], DEFAULT_TRANSLATION[i]);
+			axisTranslation.put(DEFAULT_AXES_S[i], unpermutedTranslation[i]);
 		}
 
 		final String[] axesLabels = new String[permutation.length];
 		AxisUtils.permute(DEFAULT_AXES_S, axesLabels, permutation);
 
 		final double[] resolution = AxisUtils.permute(DEFAULT_RESOLUTION, permutation);
-		final double[] translation = AxisUtils.permute(DEFAULT_TRANSLATION, permutation);
+		final double[] translation = AxisUtils.permute(unpermutedTranslation, permutation);
 
 		final NgffSingleScaleAxesMetadata s0Meta = new NgffSingleScaleAxesMetadata("s0", resolution, translation, dsetAttrs);
 		final OmeNgffDataset[] dsets = new OmeNgffDataset[] { new OmeNgffDataset() };

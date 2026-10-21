@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -14,16 +15,20 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
 
+import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.AxisAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffSceneParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.scene.NgffScene;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.scene.NgffSceneMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph.CoordinateSystems;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph.TransformGraph;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph.TransformPath;
@@ -156,6 +161,13 @@ public class AffineAdapterPathTest {
 			assertArrayEquals(msg + ": row " + i, expected[i], actual[i], EPS);
 	}
 
+	// writes the json as an attribute at the root, then reads it with CoordinateTransforms, which binds it
+	private CoordinateTransform<?> readTransform(final String json) {
+
+		n5.setAttribute("", "ct", JsonParser.parseString(json));
+		return CoordinateTransforms.read(n5, "", "ct");
+	}
+
 	private static String pathAffineJson(final String path) {
 		return "{\"type\":\"affine\",\"name\":\"aff\",\"input\":{\"name\":\"in\"},\"output\":{\"name\":\"out\"},"
 				+ "\"path\":\"" + path + "\"}";
@@ -172,6 +184,24 @@ public class AffineAdapterPathTest {
 
 		final InvertibleAffineCoordinateTransform ct = new InvertibleAffineCoordinateTransform("aff", n5, "affine", "in", "out");
 		assertMatrixEquals("square affine parameters", A, ct.getParameters());
+	}
+
+	/**
+	 * {@link AbstractAffineCoordinateTransform#write} returns an affine of the same type that
+	 * references the written array by its path, serializes as that path, and reads it back.
+	 */
+	@Test
+	public void writeReturnsPathTransform() {
+
+		final AbstractAffineCoordinateTransform<?> written = new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+		assertTrue("same type", written instanceof InvertibleAffineCoordinateTransform);
+		assertEquals("affine", written.getParameterPath());
+		assertArrayEquals(apply(A, P), apply(written.getTransform(), P), EPS);
+		assertMatrixEquals("parameters read from the array", A, written.getParameters());
+
+		final JsonObject json = gson().toJsonTree(written, CoordinateTransform.class).getAsJsonObject();
+		assertEquals("serialized path", "affine", json.get("path").getAsString());
+		assertTrue("matrix not serialized", !json.has(AbstractAffineCoordinateTransform.TYPE));
 	}
 
 	@Test
@@ -247,25 +277,53 @@ public class AffineAdapterPathTest {
 	}
 
 	/**
-	 * Deserializing an affine with only a {@code path} and then calling
-	 * {@link CoordinateTransform#getTransform(org.janelia.saalfeldlab.n5.N5Reader)} loads the
-	 * parameters and gives the same transform as the inline affine.
+	 * An affine with only a {@code path}, read with {@link CoordinateTransforms}, is bound, so
+	 * {@link CoordinateTransform#getTransform()} loads the parameters and gives the same transform
+	 * as the inline affine.
 	 */
 	@Test
 	public void deserializeFromPathThenGetTransform() {
 
 		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
 
-		final CoordinateTransform<?> ct = gson().fromJson(pathAffineJson("affine"), CoordinateTransform.class);
+		final CoordinateTransform<?> ct = readTransform(pathAffineJson("affine"));
 		assertNotNull("deserialized", ct);
 		assertTrue("is an affine", ct instanceof AbstractAffineCoordinateTransform);
+		assertTrue("is bound", ((AbstractParametrizedTransform<?, ?>)ct).isBound());
 		assertEquals("affine", ((ParametrizedTransform<?, ?>)ct).getParameterPath());
 		assertEquals("in", ct.getInput().getName());
 		assertEquals("out", ct.getOutput().getName());
 
-		final RealTransform t = ct.getTransform(n5);
+		final RealTransform t = ct.getTransform();
 		assertNotNull("transform built from path", t);
 		assertArrayEquals(apply(A, P), apply(t, P), EPS);
+	}
+
+	/**
+	 * An affine with only a {@code path}, deserialized without a reader, is not bound, so
+	 * {@link CoordinateTransform#getTransform()} throws rather than returning null.
+	 */
+	@Test(expected = N5Exception.class)
+	public void unboundPathAffineThrows() {
+
+		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+
+		final CoordinateTransform<?> ct = gson().fromJson(pathAffineJson("affine"), CoordinateTransform.class);
+		ct.getTransform();
+	}
+
+	/**
+	 * The deprecated {@link CoordinateTransform#getTransform(org.janelia.saalfeldlab.n5.N5Reader)}
+	 * still binds an unbound transform to the reader it is given.
+	 */
+	@Test
+	@SuppressWarnings("deprecation")
+	public void deprecatedGetTransformWithReaderBinds() {
+
+		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+
+		final CoordinateTransform<?> ct = gson().fromJson(pathAffineJson("affine"), CoordinateTransform.class);
+		assertArrayEquals(apply(A, P), apply(ct.getTransform(n5), P), EPS);
 	}
 
 	@Test
@@ -273,10 +331,10 @@ public class AffineAdapterPathTest {
 
 		new GeneralAffineCoordinateTransform("aff", "in", "out", G).write(n5, "affine");
 
-		final CoordinateTransform<?> ct = gson().fromJson(pathAffineJson("affine"), CoordinateTransform.class);
+		final CoordinateTransform<?> ct = readTransform(pathAffineJson("affine"));
 		assertNotNull("deserialized", ct);
 
-		final RealTransform t = ct.getTransform(n5);
+		final RealTransform t = ct.getTransform();
 		assertNotNull("transform built from path", t);
 		assertEquals("source dimensions", 3, t.numSourceDimensions());
 		assertEquals("target dimensions", 2, t.numTargetDimensions());
@@ -292,10 +350,9 @@ public class AffineAdapterPathTest {
 
 		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
 
-		final CoordinateTransform<?> ct = gson().fromJson(pathAffineJson("affine"), CoordinateTransform.class);
+		// the graph builds inverse edges when it is built, which reads the matrix, so it must be bound
+		final CoordinateTransform<?> ct = readTransform(pathAffineJson("affine"));
 		assertNotNull("deserialized", ct);
-		// the graph builds inverse edges when it is built, which reads the matrix
-		ParameterBinding.bindUnbound(ct, n5);
 
 		final TransformGraph graph = new TransformGraph(
 				Arrays.<CoordinateTransform<?>>asList(ct),
@@ -303,7 +360,7 @@ public class AffineAdapterPathTest {
 
 		final Optional<TransformPath> inverse = graph.path("out", "in");
 		assertTrue("path out -> in", inverse.isPresent());
-		assertArrayEquals(P, apply(inverse.get().totalTransform(n5, graph), apply(A, P)), EPS);
+		assertArrayEquals(P, apply(inverse.get().totalTransform(graph), apply(A, P)), EPS);
 	}
 
 	/**
@@ -314,8 +371,7 @@ public class AffineAdapterPathTest {
 
 		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
 
-		final CoordinateTransform<?> ct = gson().fromJson(sequenceJson("affine"), CoordinateTransform.class);
-		ParameterBinding.bindUnbound(ct, n5);
+		final CoordinateTransform<?> ct = readTransform(sequenceJson("affine"));
 
 		final TransformGraph graph = new TransformGraph(
 				Arrays.<CoordinateTransform<?>>asList(ct),
@@ -323,7 +379,7 @@ public class AffineAdapterPathTest {
 
 		final Optional<TransformPath> inverse = graph.path("b", "a");
 		assertTrue("path b -> a", inverse.isPresent());
-		assertArrayEquals(P, apply(inverse.get().totalTransform(n5, graph), apply(A, scaledP())), EPS);
+		assertArrayEquals(P, apply(inverse.get().totalTransform(graph), apply(A, scaledP())), EPS);
 	}
 
 	/**
@@ -337,32 +393,31 @@ public class AffineAdapterPathTest {
 	}
 
 	/**
-	 * A path affine nested in a sequence is built by
-	 * {@link SequenceCoordinateTransform#getTransform(org.janelia.saalfeldlab.n5.N5Reader)}.
+	 * A path affine nested in a sequence is bound when the sequence is read, and built by
+	 * {@link SequenceCoordinateTransform#getTransform()}.
 	 */
 	@Test
 	public void pathAffineInSequence() {
 
 		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
 
-		final CoordinateTransform<?> ct = gson().fromJson(sequenceJson("affine"), CoordinateTransform.class);
+		final CoordinateTransform<?> ct = readTransform(sequenceJson("affine"));
 		assertTrue("is a sequence", ct instanceof SequenceCoordinateTransform);
 
-		final RealTransform t = ct.getTransform(n5);
+		final RealTransform t = ct.getTransform();
 		assertNotNull(t);
 		assertArrayEquals(apply(A, scaledP()), apply(t, P), EPS);
 	}
 
 	/**
-	 * A path affine nested in a sequence is built by
-	 * {@link TransformPath#totalTransform(org.janelia.saalfeldlab.n5.N5Reader, TransformGraph)}.
+	 * A path affine nested in a sequence is built by {@link TransformPath#totalTransform(TransformGraph)}.
 	 */
 	@Test
 	public void pathAffineInSequenceThroughGraph() {
 
 		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
 
-		final CoordinateTransform<?> ct = gson().fromJson(sequenceJson("affine"), CoordinateTransform.class);
+		final CoordinateTransform<?> ct = readTransform(sequenceJson("affine"));
 		final TransformGraph graph = new TransformGraph(
 				Arrays.<CoordinateTransform<?>>asList(ct),
 				new CoordinateSystems(Arrays.asList(new CoordinateSystem("a", 3), new CoordinateSystem("b", 3))));
@@ -370,7 +425,7 @@ public class AffineAdapterPathTest {
 		final Optional<TransformPath> path = graph.path("a", "b");
 		assertTrue("path a -> b", path.isPresent());
 
-		final RealTransform t = path.get().totalTransform(n5, graph);
+		final RealTransform t = path.get().totalTransform(graph);
 		assertArrayEquals(apply(A, scaledP()), apply(t, P), EPS);
 	}
 
@@ -380,6 +435,40 @@ public class AffineAdapterPathTest {
 	 */
 	@Test
 	public void scenePathResolvesRelativeToGroup() {
+
+		writeSceneWithPathAffine();
+
+		// read with the reader's own gson, so the scene's transforms are bound by getGraph
+		final NgffScene scene = n5.getAttribute("scene", NgffScene.SCENE_KEY, NgffScene.class);
+		assertNotNull("scene parsed", scene);
+
+		final TransformGraph graph = scene.getGraph(n5, "scene");
+		final Optional<TransformPath> path = graph.path("a", "b");
+		assertTrue("path a -> b", path.isPresent());
+
+		final RealTransform t = path.get().totalTransform(graph);
+		assertArrayEquals(apply(A, P), apply(t, P), EPS);
+	}
+
+	/**
+	 * A scene parsed by {@link OmeNgffSceneParser} has its transforms bound, with relative paths
+	 * resolved against the scene's group, without building the graph.
+	 */
+	@Test
+	public void sceneParserBindsTransforms() {
+
+		writeSceneWithPathAffine();
+
+		final Optional<NgffSceneMetadata> meta = new OmeNgffSceneParser(n5).parseMetadata(n5, new N5TreeNode("scene"));
+		assertTrue("scene parsed", meta.isPresent());
+
+		final CoordinateTransform<?> ct = meta.get().getScene().getCoordinateTransformations()[0];
+		assertEquals("scene/params/affine", ((ParametrizedTransform<?, ?>)ct).getParameterPath());
+		assertArrayEquals(apply(A, P), apply(ct.getTransform(), P), EPS);
+	}
+
+	// a scene at group "scene" with an affine a -> b whose matrix is at "params/affine", relative to the scene
+	private void writeSceneWithPathAffine() {
 
 		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "scene/params/affine");
 
@@ -392,45 +481,34 @@ public class AffineAdapterPathTest {
 				+ "\"input\":{\"name\":\"a\"},\"output\":{\"name\":\"b\"},\"path\":\"params/affine\"}]"
 				+ "}}").getAsJsonObject();
 		n5.setAttribute("scene", "ome", ome);
-
-		final NgffScene scene = n5.getAttribute("scene", NgffScene.SCENE_KEY, NgffScene.class);
-		assertNotNull("scene parsed", scene);
-
-		final TransformGraph graph = scene.getGraph(n5, "scene");
-		final Optional<TransformPath> path = graph.path("a", "b");
-		assertTrue("path a -> b", path.isPresent());
-
-		final RealTransform t = path.get().totalTransform(n5, graph);
-		assertArrayEquals(apply(A, P), apply(t, P), EPS);
 	}
 
 	/**
-	 * A path affine nested in a byDimension is built by
-	 * {@link ByDimensionCoordinateTransform#getTransform(org.janelia.saalfeldlab.n5.N5Reader)}.
+	 * A path affine nested in a byDimension is bound when the byDimension is read, and built by
+	 * {@link ByDimensionCoordinateTransform#getTransform()}.
 	 */
 	@Test
 	public void pathAffineInByDimension() {
 
 		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
 
-		final CoordinateTransform<?> ct = gson().fromJson(byDimensionJson("affine"), CoordinateTransform.class);
+		final CoordinateTransform<?> ct = readTransform(byDimensionJson("affine"));
 		assertTrue("is a byDimension", ct instanceof ByDimensionCoordinateTransform);
 
-		final RealTransform t = ct.getTransform(n5);
+		final RealTransform t = ct.getTransform();
 		assertNotNull(t);
 		assertArrayEquals(byDimensionExpected(), apply(t, P), EPS);
 	}
 
 	/**
-	 * A path affine nested in a byDimension is built by
-	 * {@link TransformPath#totalTransform(org.janelia.saalfeldlab.n5.N5Reader, TransformGraph)}.
+	 * A path affine nested in a byDimension is built by {@link TransformPath#totalTransform(TransformGraph)}.
 	 */
 	@Test
 	public void pathAffineInByDimensionThroughGraph() {
 
 		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
 
-		final CoordinateTransform<?> ct = gson().fromJson(byDimensionJson("affine"), CoordinateTransform.class);
+		final CoordinateTransform<?> ct = readTransform(byDimensionJson("affine"));
 		final TransformGraph graph = new TransformGraph(
 				Arrays.<CoordinateTransform<?>>asList(ct),
 				new CoordinateSystems(Arrays.asList(new CoordinateSystem("a", 3), new CoordinateSystem("b", 3))));
@@ -438,13 +516,13 @@ public class AffineAdapterPathTest {
 		final Optional<TransformPath> path = graph.path("a", "b");
 		assertTrue("path a -> b", path.isPresent());
 
-		final RealTransform t = path.get().totalTransform(n5, graph);
+		final RealTransform t = path.get().totalTransform(graph);
 		assertArrayEquals(byDimensionExpected(), apply(t, P), EPS);
 	}
 
 	/**
-	 * A byDimension made with constructors, holding a path affine that is not bound yet, is built by
-	 * {@link ByDimensionCoordinateTransform#getTransform(org.janelia.saalfeldlab.n5.N5Reader)}.
+	 * A byDimension made with constructors, holding a path affine without a reader, cannot be built
+	 * until it is bound.
 	 */
 	@Test
 	public void constructedPathAffineInByDimension() {
@@ -454,7 +532,13 @@ public class AffineAdapterPathTest {
 		final GeneralAffineCoordinateTransform affine = new GeneralAffineCoordinateTransform("aff", "in", "out", "affine");
 		final ByDimensionCoordinateTransform ct = constructedByDimension(affine);
 
-		final RealTransform t = ct.getTransform(n5);
+		try {
+			ct.getTransform();
+			fail("an unbound path affine should not build");
+		} catch (final N5Exception e) {}
+
+		ParameterBinding.bind(ct, n5, "");
+		final RealTransform t = ct.getTransform();
 		assertNotNull(t);
 		assertArrayEquals(byDimensionExpected(), apply(t, P), EPS);
 	}
@@ -471,20 +555,19 @@ public class AffineAdapterPathTest {
 		final GeneralAffineCoordinateTransform affine = new GeneralAffineCoordinateTransform("aff", n5, "affine", "in", "out");
 		final ByDimensionCoordinateTransform ct = constructedByDimension(affine);
 
-		final RealTransform t = ct.getTransform(n5);
+		final RealTransform t = ct.getTransform();
 		assertNotNull(t);
 		assertArrayEquals(byDimensionExpected(), apply(t, P), EPS);
 	}
 
 	/**
-	 * As {@link #constructedPathAffineInByDimension()}, built through the graph.
+	 * A byDimension made with constructors, holding the path affine returned by
+	 * {@link AbstractAffineCoordinateTransform#write}, built through the graph.
 	 */
 	@Test
-	public void constructedPathAffineInByDimensionThroughGraph() {
+	public void writtenAffineInByDimensionThroughGraph() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
-
-		final GeneralAffineCoordinateTransform affine = new GeneralAffineCoordinateTransform("aff", "in", "out", "affine");
+		final AbstractAffineCoordinateTransform<?> affine = new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
 		final ByDimensionCoordinateTransform ct = constructedByDimension(affine);
 
 		final TransformGraph graph = new TransformGraph(
@@ -494,13 +577,13 @@ public class AffineAdapterPathTest {
 		final Optional<TransformPath> path = graph.path("a", "b");
 		assertTrue("path a -> b", path.isPresent());
 
-		final RealTransform t = path.get().totalTransform(n5, graph);
+		final RealTransform t = path.get().totalTransform(graph);
 		assertArrayEquals(byDimensionExpected(), apply(t, P), EPS);
 	}
 
 	// axes are given directly in imglib2 order (nothing is reversed outside of deserialization):
 	// scale on dim 2, the affine on dims 0 and 1
-	private static ByDimensionCoordinateTransform constructedByDimension(final GeneralAffineCoordinateTransform affine) {
+	private static ByDimensionCoordinateTransform constructedByDimension(final CoordinateTransform<?> affine) {
 
 		final ScaleCoordinateTransform scale = new ScaleCoordinateTransform("scale", new double[] { 2.0 });
 		return new ByDimensionCoordinateTransform("bd", "a", "b",

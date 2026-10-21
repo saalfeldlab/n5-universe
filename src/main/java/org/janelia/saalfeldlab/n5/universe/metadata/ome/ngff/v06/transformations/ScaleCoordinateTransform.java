@@ -52,7 +52,7 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 	public ScaleCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
 		 final N5Reader n5, final String path ) {
 		super(TYPE, name, path, inputSpace, outputSpace );
-		bindParameters(n5, OmeNgffMetadataParser.reverse(n5));
+		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 		this.scale = getParameters();
 		buildTransform( scale );
 	}
@@ -111,7 +111,7 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 		else if (scale != null)
 			return buildTransform(scale);
 		else if (path != null)
-			return buildTransform(getParameters());
+			return buildTransform(requireParameters());
 
 		return null;
 	}
