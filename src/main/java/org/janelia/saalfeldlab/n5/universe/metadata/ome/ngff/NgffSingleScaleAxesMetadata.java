@@ -92,28 +92,20 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 		this.axes = axes;
 
 		this.scale = scale != null ? scale : ones(axes.length);
-		
-		// use null if the passed translation is null, or full of zeros
-		this.translation = translation != null ? 
-				(allZeros(translation) ? null : translation)
-				: null;
-
+		this.translation = translation != null ? translation : new double[axes.length];
 
 		this.datasetAttributes = datasetAttributes;
-		coordinateTransformations = MetadataUtils.buildScaleTranslationTransformList(this.scale, this.translation);
 
+		// an all-zero translation is not serialized
+		coordinateTransformations = MetadataUtils.buildScaleTranslationTransformList(this.scale,
+				allZeros(this.translation) ? null : this.translation);
 
 		if (Arrays.stream(axes).allMatch(x -> x.getType().equals(Axis.SPACE))) {
 			this.transform = MetadataUtils.scaleTranslationTransforms(this.scale, this.translation);
 		} else {
 			final int[] spaceIndexes = AxisUtils.indexes(axes, x -> x.getType().equals(Axis.SPACE));
 			final double[] spaceScale = AxisUtils.permute(this.scale, spaceIndexes);
-			// this.translation is null when it was absent or all-zeros; leave it null
-			// (scaleTranslationTransforms then yields a scale-only transform) rather
-			// than permuting a null array
-			final double[] spaceTranslation = this.translation == null
-					? null
-					: AxisUtils.permute(this.translation, spaceIndexes);
+			final double[] spaceTranslation = AxisUtils.permute(this.translation, spaceIndexes);
 			this.transform = MetadataUtils.scaleTranslationTransforms(spaceScale, spaceTranslation);
 		}
 	}
@@ -224,16 +216,9 @@ public class NgffSingleScaleAxesMetadata implements AxisMetadata, N5SpatialDatas
 			return (AffineTransform3D)transform;
 		else {
 
-			if (scale != null) {
-				for (int i = 0; i < nd; i++) {
-					transform3d.set(scale[spatialIndexes[i]], i, i);
-				}
-			}
-
-			if (translation != null) {
-				for (int i = 0; i < nd; i++) {
-					transform3d.set(translation[spatialIndexes[i]], i, 3);
-				}
+			for (int i = 0; i < nd; i++) {
+				transform3d.set(scale[spatialIndexes[i]], i, i);
+				transform3d.set(translation[spatialIndexes[i]], i, 3);
 			}
 		}
 
