@@ -2,9 +2,10 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformation
 
 
 import org.janelia.saalfeldlab.n5.N5Exception;
+import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.Common;
 
 import net.imglib2.RandomAccessibleInterval;
@@ -83,7 +84,7 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 
 		final RandomAccessibleInterval<S> fieldRaw;
 		try {
-			fieldRaw = (RandomAccessibleInterval<S>)N5Utils.open(n5, path );
+			fieldRaw = (RandomAccessibleInterval)N5Utils.open(n5, path );
 		} catch (final N5Exception e) {
 			return null;
 		}
@@ -173,13 +174,13 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 
 	public static CoordinateTransform<?> findPixelToPhysicalTransformStrict(final N5Reader n5, final String group, final String output ) {
 
-		final String normGrp = N5URI.normalizeGroupPath(group);
+		final String normGrp = MetadataUtils.normalizeGroupPath(group);
 		final CoordinateTransform<?>[] transforms = n5.getAttribute(group, CoordinateTransform.KEY, CoordinateTransform[].class);
 		if (transforms == null)
 			return null;
 
 		for (final CoordinateTransform<?> ct : transforms) {
-			final String nrmInput = N5URI.normalizeGroupPath(ct.getInput());
+			final String nrmInput = MetadataUtils.normalizeGroupPath(ct.getInput());
 			if (nrmInput.equals(normGrp) && ct.getOutput().equals(output) ) {
 				return ct;
 			}
@@ -209,7 +210,7 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 				final String path = pct.getParameterPath();
 				if( pct.getParameterPath().equals("."))
 					continue;
-				else if( N5URI.normalizeGroupPath(group).equals(N5URI.normalizeGroupPath(path)))
+				else if( N5DirectoryPath.of(group).equals(N5DirectoryPath.of(path)))
 					continue;
 				else
 					return ct;
@@ -222,13 +223,13 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 
 	public static RealTransform findFieldTransformStrict(final N5Reader n5, final String group, final String output ) {
 
-		final String normGrp = N5URI.normalizeGroupPath(group);
 		final CoordinateTransform<?>[] transforms = n5.getAttribute(group, CoordinateTransform.KEY, CoordinateTransform[].class);
 		if (transforms == null)
 			return null;
 
+		final N5DirectoryPath normGrp = N5DirectoryPath.of(group);
 		for (final CoordinateTransform<?> ct : transforms) {
-			final String nrmInput = N5URI.normalizeGroupPath(ct.getInput());
+			final N5DirectoryPath nrmInput = N5DirectoryPath.of(ct.getInput());
 			if (nrmInput.equals(normGrp) && ct.getOutput().equals(output) ) {
 				return ct.getTransform(n5);
 			}

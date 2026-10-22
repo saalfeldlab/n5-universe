@@ -6,13 +6,13 @@ import org.janelia.saalfeldlab.n5.N5KeyValueReader;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
+import org.janelia.saalfeldlab.n5.universe.factory.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.factory.N5Location;
+import org.janelia.saalfeldlab.n5.universe.factory.StorageFormat;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.ZarrKeyValueWriter;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueReader;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
-import org.janelia.saalfeldlab.n5.universe.factory.InferredStorageFormat;
-import org.janelia.saalfeldlab.n5.universe.factory.N5Factory;
-import org.janelia.saalfeldlab.n5.universe.factory.StorageFormat;
 
 import static org.junit.Assert.assertTrue;
 
@@ -66,8 +66,7 @@ public interface StorageSchemeWrappedN5Test {
 	default String prependStorageScheme(String uri) {
 
 		final StorageFormat format = getStorageFormat();
-		final InferredStorageFormat inferred = InferredStorageFormat.of(uri);
-		if (inferred.format() == format && inferred.isExplicit()) {
+		if (N5Location.of(uri).explicitFormat() == format) {
 			return uri;
 		} else {
 			return format.scheme() + ":" + uri;

@@ -10,8 +10,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 
@@ -79,14 +79,17 @@ public class N5TreeNode {
 
 	public Optional<N5TreeNode> child(final String name) {
 
-		final String childPath = N5URI.normalizeGroupPath(path + "/" + name);
-		return children.stream().filter(x ->  N5URI.normalizeGroupPath(x.getPath()).equals(childPath)).findFirst();
+		final N5DirectoryPath childPath = N5DirectoryPath.of(path).resolve(name).asDirectory();
+		return children.stream().filter(x -> N5DirectoryPath.of(x.getPath()).equals(childPath)).findFirst();
 	}
 
 	public Optional<N5TreeNode> getDescendant(String path) {
 
-		return getDescendants(x -> N5URI.normalizeGroupPath(x.getPath()).equals(N5URI.normalizeGroupPath(path)))
-				.findFirst();
+		final N5DirectoryPath dirPath = N5DirectoryPath.of(path);
+		return getDescendants(x ->
+				N5DirectoryPath.of(x.getPath()).equals(dirPath)
+
+		).findFirst();
 	}
 
 	/**

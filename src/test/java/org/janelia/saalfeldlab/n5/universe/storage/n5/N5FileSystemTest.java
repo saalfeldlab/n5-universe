@@ -14,7 +14,7 @@ public class N5FileSystemTest extends N5StorageTests.N5FactoryTest {
 	@Override protected String tempN5Location() {
 
 		try {
-			return Files.createTempDirectory("n5-test").toUri().getPath();
+			return Files.createTempDirectory("n5-test").toString();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

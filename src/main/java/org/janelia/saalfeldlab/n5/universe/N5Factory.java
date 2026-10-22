@@ -4,18 +4,15 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.gson.GsonBuilder;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.janelia.saalfeldlab.n5.KeyValueRoot;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Exception.N5IOException;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.universe.factory.InferredStorageFormat;
 import org.janelia.saalfeldlab.n5.universe.factory.KeyValueRoots;
+import org.janelia.saalfeldlab.n5.universe.factory.N5Location;
 import org.janelia.saalfeldlab.n5.universe.factory.StorageFormat;
 import org.janelia.saalfeldlab.n5.universe.factory.options.N5FactoryOptions;
 import org.janelia.saalfeldlab.n5.universe.factory.options.Zarr2Options;
@@ -306,8 +303,9 @@ public class N5Factory {
 	@Deprecated
 	public N5Reader openGoogleCloudReader(final String uri) {
 
-		final KeyValueRoot root = KeyValueRoots.createGoogleCloud(stripStorageSchemePrefix(uri), true, getOptions().backend());
-		return openReader(explicitStorageFormat(uri), root);
+		final N5Location location = N5Location.of(uri);
+		final KeyValueRoot root = KeyValueRoots.createGoogleCloud(location.containerUri(), true, getOptions().backend());
+		return openReader(location.explicitFormat(), root);
 	}
 
 	/**
@@ -320,8 +318,9 @@ public class N5Factory {
 	@Deprecated
 	public N5Reader openAWSS3Reader(final String uri) {
 
-		final KeyValueRoot root = KeyValueRoots.createAmazonS3(stripStorageSchemePrefix(uri), true, getOptions().backend());
-		return openReader(explicitStorageFormat(uri), root);
+		final N5Location location = N5Location.of(uri);
+		final KeyValueRoot root = KeyValueRoots.createAmazonS3(location.containerUri(), true, getOptions().backend());
+		return openReader(location.explicitFormat(), root);
 	}
 
 	/**
@@ -334,8 +333,9 @@ public class N5Factory {
 	@Deprecated
 	public N5Reader openFileSystemReader(final String uri) {
 
-		final KeyValueRoot root = KeyValueRoots.createFileSystem(stripStorageSchemePrefix(uri));
-		return openReader(explicitStorageFormat(uri), root);
+		final N5Location location = N5Location.of(uri);
+		final KeyValueRoot root = KeyValueRoots.createFileSystem(location.containerUri());
+		return openReader(location.explicitFormat(), root);
 	}
 
 	/**
@@ -386,7 +386,7 @@ public class N5Factory {
 	@Deprecated
 	public N5Reader openReader(final KeyValueAccessBackend backend, final String uri) {
 
-		return openReader(backend, parseUriFromString(uri));
+		return openReader(backend, N5Location.of(uri));
 	}
 
 	/**
@@ -399,14 +399,19 @@ public class N5Factory {
 	@Deprecated
 	public N5Reader openReader(final KeyValueAccessBackend backend, final URI uri) {
 
-		final KeyValueRoot root = createKeyValueRoot(backend, uri, true);
+		return openReader(backend, N5Location.of(uri));
+	}
+
+	private N5Reader openReader(final KeyValueAccessBackend backend, final N5Location location) {
+
+		final KeyValueRoot root = createKeyValueRoot(backend, location, true);
 		if (root == null)
 			return null;
 
 		try {
-			return openReader(explicitStorageFormat(uri.toString()), root);
+			return openReader(location.explicitFormat(), root);
 		} catch (final N5Exception e) {
-			throw new N5Exception("Unable to open " + uri + " as N5Reader", e);
+			throw new N5Exception("Unable to open " + location + " as N5Reader", e);
 		}
 	}
 
@@ -480,8 +485,9 @@ public class N5Factory {
 	@Deprecated
 	public N5Writer openGoogleCloudWriter(final String uri) {
 
-		final KeyValueRoot root = KeyValueRoots.createGoogleCloud(stripStorageSchemePrefix(uri), false, getOptions().backend());
-		return openWriter(explicitStorageFormat(uri), root);
+		final N5Location location = N5Location.of(uri);
+		final KeyValueRoot root = KeyValueRoots.createGoogleCloud(location.containerUri(), false, getOptions().backend());
+		return openWriter(location.explicitFormat(), root);
 	}
 
 	/**
@@ -494,8 +500,9 @@ public class N5Factory {
 	@Deprecated
 	public N5Writer openAWSS3Writer(final String uri) {
 
-		final KeyValueRoot root = KeyValueRoots.createAmazonS3(stripStorageSchemePrefix(uri), false, getOptions().backend());
-		return openWriter(explicitStorageFormat(uri), root);
+		final N5Location location = N5Location.of(uri);
+		final KeyValueRoot root = KeyValueRoots.createAmazonS3(location.containerUri(), false, getOptions().backend());
+		return openWriter(location.explicitFormat(), root);
 	}
 
 	/**
@@ -520,15 +527,7 @@ public class N5Factory {
 	@Deprecated
 	public N5Writer openWriter(final KeyValueAccessBackend backend, final URI uri) {
 
-		final KeyValueRoot root = createKeyValueRoot(backend, uri, false);
-		if (root == null)
-			return null;
-
-		try {
-			return openWriter(explicitStorageFormat(uri.toString()), root);
-		} catch (final N5Exception e) {
-			throw new N5Exception("Unable to open " + uri + " as N5Writer", e);
-		}
+		return openWriter(backend, N5Location.of(uri));
 	}
 
 	/**
@@ -541,7 +540,20 @@ public class N5Factory {
 	@Deprecated
 	public N5Writer openWriter(final KeyValueAccessBackend backend, final String uri) {
 
-		return openWriter(backend, parseUriFromString(uri));
+		return openWriter(backend, N5Location.of(uri));
+	}
+
+	private N5Writer openWriter(final KeyValueAccessBackend backend, final N5Location location) {
+
+		final KeyValueRoot root = createKeyValueRoot(backend, location, false);
+		if (root == null)
+			return null;
+
+		try {
+			return openWriter(location.explicitFormat(), root);
+		} catch (final N5Exception e) {
+			throw new N5Exception("Unable to open " + location + " as N5Writer", e);
+		}
 	}
 
 	/**
@@ -620,13 +632,13 @@ public class N5Factory {
 	// └──────────────────────────────────────────────────────────────────────┘
 
 	/**
-	 * The root for {@code uri} on the given {@code backend}, whatever the URI
+	 * The root for {@code location} on the given {@code backend}, whatever the URI
 	 * looks like; {@code null} for an unknown backend.
 	 */
 	@Nullable
-	private KeyValueRoot createKeyValueRoot(final KeyValueAccessBackend backend, final URI uri, final boolean readOnly) {
+	private KeyValueRoot createKeyValueRoot(final KeyValueAccessBackend backend, final N5Location location, final boolean readOnly) {
 
-		final URI rootUri = stripStorageSchemePrefix(uri.toString());
+		final URI rootUri = location.containerUri();
 		switch (backend) {
 		case GOOGLE_CLOUD:
 			return KeyValueRoots.createGoogleCloud(rootUri, readOnly, getOptions().backend());
@@ -638,43 +650,6 @@ public class N5Factory {
 			return KeyValueRoots.createFileSystem(rootUri);
 		default:
 			return null;
-		}
-	}
-
-	/**
-	 * Return explicit {@code StorageFormat} if {@code uri} has a storage-scheme prefix, {@code null} otherwise.
-	 */
-	@Nullable
-	private static StorageFormat explicitStorageFormat(final String uri) {
-
-		final InferredStorageFormat inferred = InferredStorageFormat.of(uri);
-		return inferred.isExplicit() ? inferred.format() : null;
-	}
-
-	/**
-	 * Strip storage-scheme prefix from {@code uri}, if there is one.
-	 */
-	private static URI stripStorageSchemePrefix(final String uri) {
-
-		return InferredStorageFormat.of(uri).uri();
-	}
-
-	// NB: A copy of the package-private factory.N5Factory.parseUriFromString,
-	// needed only by the deprecated KeyValueAccessBackend overloads.
-	private static URI parseUriFromString(String uri) {
-
-		try {
-			return URI.create(uri);
-		} catch (final Throwable ignore) {}
-
-		try {
-			return Paths.get(uri).toUri();
-		} catch (final Throwable ignore) {}
-
-		try {
-			return N5URI.encodeAsUri(uri);
-		} catch (final URISyntaxException e) {
-			throw new N5Exception(e);
 		}
 	}
 }
