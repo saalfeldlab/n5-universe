@@ -1,7 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -9,7 +8,7 @@ import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.N5URI;
+import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadata;
@@ -131,7 +130,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		this.metadata = metadata;
 		this.childrenAttributes = childrenAttributes;
 	}
-	
+
 	public OmeNgffMultiScaleMetadata(final int nd, final String path, final String name,
 			final String type, final String version, final Axis[] axes,
 			final OmeNgffDataset[] datasets, 
@@ -233,7 +232,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		}
 		return datasets;
 	}
-	
+
 	public static NgffSingleScaleAxesMetadata[] buildMetadata( final int nd, final String path,
 			final String version,
 			final DatasetAttributes[] childrenAttributes,
@@ -316,7 +315,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 	{
 		return buildMetadata(nd, getPath(), version, datasets, datasetAttributes, coordinateTransformations, metadata, axes);
 	}
-	
+
 	public NgffSingleScaleAxesMetadata[] buildChildren()
 	{
 		return buildMetadata( axes.length, getPath(), version, datasets,
@@ -346,20 +345,10 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 	}
 
 	public String[] getCanonicalPaths() {
-
-		return Arrays.stream(getPaths()).map((x) -> {
-			if (x.startsWith("/"))
-				return x;
-			 else {
-				N5URI url;
-				try {
-					url = new N5URI("?" + getPath() + "/" + x);
-				} catch (final URISyntaxException e) {
-					return null;
-				}
-				return url.getGroupPath();
-			}
-		}).toArray(String[]::new);
+		final N5DirectoryPath path = N5DirectoryPath.of(getPath());
+		return Arrays.stream(getPaths())
+				.map(x -> path.resolve(x).normalPath())
+				.toArray(String[]::new);
 	}
 
 	@Override

@@ -2,7 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
 import static org.junit.Assert.assertEquals;
 
-import org.janelia.saalfeldlab.n5.N5URI;
+import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
@@ -37,7 +37,7 @@ public class BuildMultiscaleTest {
 
 		final OmeNgffMultiScaleMetadata meta = new OmeNgffMultiScaleMetadata(ms.getAxes().length,
 				path, path, downsampleMethod, "0.4",
-				ms.getAxes(), ms.getDatasets(), 
+				ms.getAxes(), ms.getDatasets(),
 				ms.coordinateTransformations, ms.childrenAttributes, ms.metadata, ms.getChildrenMetadata());
 
 		for (int i = 0; i < childPaths.length; i++) {
@@ -53,8 +53,8 @@ public class BuildMultiscaleTest {
 			// ensure the paths are equal up to normalization
 			assertEquals(
 				String.format("single scale path incorrect for root: %s, child: %s", path, childPaths[i]),
-				N5URI.normalizeGroupPath(path + "/" + childPaths[i]),
-				N5URI.normalizeGroupPath(children[i].getPath()));
+				N5DirectoryPath.of(path).resolve(childPaths[i]).asDirectory(),
+				N5DirectoryPath.of(children[i].getPath()));
 		}
 	}
 

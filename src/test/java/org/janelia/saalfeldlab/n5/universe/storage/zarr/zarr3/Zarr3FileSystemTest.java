@@ -16,7 +16,7 @@ public class Zarr3FileSystemTest extends ZarrStorageTests.Zarr3FactoryTest {
 	@Override protected String tempN5Location() {
 
 		try {
-			return Files.createTempDirectory("zarr-test").toUri().getPath();
+			return Files.createTempDirectory("zarr-test").toString();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
