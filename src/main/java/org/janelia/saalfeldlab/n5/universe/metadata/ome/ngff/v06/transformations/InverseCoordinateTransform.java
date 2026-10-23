@@ -37,6 +37,25 @@ public class InverseCoordinateTransform<T extends InvertibleRealTransform, C ext
 		this( "inverted-" + ct.getName(), ct );
 	}
 	
+	@SuppressWarnings("unchecked")
+	protected InverseCoordinateTransform(final InverseCoordinateTransform<T, C> other, final TransformOptions copyParams) {
+		super(other, copyParams);
+		// the copy of an invertible transform is invertible, see the covariant copy methods
+		this.transform = (C)other.transform.copy();
+	}
+
+	@Override
+	public InverseCoordinateTransform<T, C> copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public InverseCoordinateTransform<T, C> copy(final TransformOptions copyParams) {
+
+		return new InverseCoordinateTransform<>(this, copyParams);
+	}
+
 	public C getWrappedCoordinateTransform() {
 		return transform;
 	}

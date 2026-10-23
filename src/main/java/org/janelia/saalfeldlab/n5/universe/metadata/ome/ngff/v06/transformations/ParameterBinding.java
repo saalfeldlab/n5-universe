@@ -52,6 +52,8 @@ public class ParameterBinding {
 		if (n5 == null)
 			return;
 
+		// should this always re-bind?
+		// i.e. what if the previous binding was broken for some reason
 		forEachParametrized(ct, t -> {
 			if (!t.isBound())
 				t.bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));

@@ -29,6 +29,23 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 		super(other);
 	}
 
+	protected IdentityCoordinateTransform(IdentityCoordinateTransform other, TransformOptions copyParams) {
+
+		super(other, copyParams);
+	}
+
+	@Override
+	public IdentityCoordinateTransform copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public IdentityCoordinateTransform copy(final TransformOptions copyParams) {
+
+		return new IdentityCoordinateTransform(this, copyParams);
+	}
+
 	@Override
 	public InvertibleRealTransform getTransform() {
 

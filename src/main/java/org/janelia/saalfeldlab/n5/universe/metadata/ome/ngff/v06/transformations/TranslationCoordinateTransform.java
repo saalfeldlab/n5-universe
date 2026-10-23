@@ -68,6 +68,25 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 		this.translation = other.translation;
 	}
 
+	protected TranslationCoordinateTransform(TranslationCoordinateTransform other, TransformOptions copyParams) {
+
+		super(other, copyParams);
+		if (other.translation != null)
+			buildTransform(other.translation.clone());
+	}
+
+	@Override
+	public TranslationCoordinateTransform copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public TranslationCoordinateTransform copy(final TransformOptions copyParams) {
+
+		return new TranslationCoordinateTransform(this, copyParams);
+	}
+
 	@Override
 	protected double[] readParameters(final N5Reader n5, final String path, final boolean reverse) {
 

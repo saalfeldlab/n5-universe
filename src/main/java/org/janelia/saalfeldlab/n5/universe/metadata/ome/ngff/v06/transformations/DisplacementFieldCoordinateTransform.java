@@ -76,6 +76,24 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		this( null, path, interpolation, (String)null, (String)null );
 	}
 
+	protected DisplacementFieldCoordinateTransform(final DisplacementFieldCoordinateTransform<T> other, final TransformOptions copyParams) {
+		super(other, copyParams);
+		// the built transform is not shared, since transforms are not thread safe
+		buildTransform(other.field);
+	}
+
+	@Override
+	public DisplacementFieldCoordinateTransform<T> copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public DisplacementFieldCoordinateTransform<T> copy(final TransformOptions copyParams) {
+
+		return new DisplacementFieldCoordinateTransform<>(this, copyParams);
+	}
+
 	@Override
 	public String getVectorAxisType() {
 		return vectorAxisType;

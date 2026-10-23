@@ -65,12 +65,48 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.type = type;
 	}
 
-	public AbstractCoordinateTransform( CoordinateTransform<T> other )
+	protected AbstractCoordinateTransform( CoordinateTransform<T> other )
 	{
 		this.name = other.getName();
 		this.type = other.getType();
 		this.input = other.getInput();
 		this.output = other.getOutput();
+	}
+	
+	protected AbstractCoordinateTransform( CoordinateTransform<T> other, TransformOptions copyParams )
+	{
+		if (copyParams.isPathSet() && !(other instanceof ParametrizedTransform))
+			throw new UnsupportedOperationException(
+					"A " + other.getType() + " transform does not have a parameter path");
+
+		this.type = other.getType();
+		this.name = copyParams.isNameSet() ? copyParams.name : other.getName();
+		this.input = copyParams.isInputSet() ? copyParams.input : other.getInput();
+		this.output = copyParams.isOutputSet() ? copyParams.output : other.getOutput();
+	}
+
+	/**
+	 * @param array the array, may be null
+	 * @return a deep copy of the array, or null if the array is null
+	 */
+	protected static double[][] deepCopy(final double[][] array) {
+
+		if (array == null)
+			return null;
+
+		final double[][] copy = new double[array.length][];
+		for (int i = 0; i < array.length; i++)
+			copy[i] = array[i] == null ? null : array[i].clone();
+
+		return copy;
+	}
+
+	@Override
+	public abstract AbstractCoordinateTransform<T> copy(TransformOptions copyParams);
+
+	@Override
+	public AbstractCoordinateTransform<T> copy() {
+		return copy(new TransformOptions());
 	}
 
 	@Override
@@ -122,7 +158,95 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	@Override
 	public String toString()
 	{
-		return String.format("%s:(%s > %s)", name, input, output);
+		return String.format("%s:(%s → %s)", name, input, output);
+	}
+	
+	/**
+	 * Builder/helper for copying coordinate transformations with modifications.
+	 * calling a with(Field) method of this class indicates that the provided
+	 * field should be modified when copying
+	 * <p>
+	 * For example
+	 * ct.copy(new TransformOptions().withName(newName));
+	 * <p>
+	 * Fields that are not set are copied unchanged. A field explicitly set to
+	 * null is copied as null.
+	 * <p>
+	 * The parameter path can only be replaced for transforms that have one, see
+	 * {@link ParametrizedTransform}. Copying any other transform with a path set
+	 * throws an {@link UnsupportedOperationException}.
+	 */
+	public static class TransformOptions {
+
+		private boolean nameSet = false;
+		private boolean inputSet = false;
+		private boolean outputSet = false;
+		private boolean pathSet = false;
+
+		private String name;
+		private OmeNgffReference input;
+		private OmeNgffReference output;
+		private String path;
+
+		public TransformOptions withName(String name) {
+			this.name = name;
+			this.nameSet = true;
+			return this;
+		}
+
+		public TransformOptions withInput(OmeNgffReference input) {
+			this.input = input;
+			this.inputSet = true;
+			return this;
+		}
+
+		public TransformOptions withInput(String input) {
+			return withInput(input == null ? null : new OmeNgffReference(input));
+		}
+
+		public TransformOptions withOutput(OmeNgffReference output) {
+			this.output = output;
+			this.outputSet = true;
+			return this;
+		}
+
+		public TransformOptions withOutput(String output) {
+			return withOutput(output == null ? null : new OmeNgffReference(output));
+		}
+
+		/**
+		 * Replaces the path of the parameters, for transforms whose parameters are stored in an array.
+		 * The copy keeps the parameters of the original that are already in memory, and reads
+		 * from {@code path} only if it has none.
+		 *
+		 * @param path the parameter path, may be null
+		 * @return this
+		 */
+		public TransformOptions withPath(String path) {
+			this.path = path;
+			this.pathSet = true;
+			return this;
+		}
+
+		public boolean isNameSet() {
+			return nameSet;
+		}
+
+		public boolean isInputSet() {
+			return inputSet;
+		}
+
+		public boolean isOutputSet() {
+			return outputSet;
+		}
+
+		public boolean isPathSet() {
+			return pathSet;
+		}
+
+		public String getPath() {
+			return path;
+		}
 	}
 
 }

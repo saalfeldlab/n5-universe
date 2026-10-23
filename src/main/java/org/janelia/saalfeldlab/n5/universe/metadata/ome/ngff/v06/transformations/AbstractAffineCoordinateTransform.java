@@ -23,6 +23,12 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 		super(ct);
 	}
 
+	protected AbstractAffineCoordinateTransform(final AbstractAffineCoordinateTransform<T> other, final TransformOptions copyParams) {
+		super(other, copyParams);
+		this.affine = deepCopy(other.affine);
+		buildTransform();
+	}
+
 	protected AbstractAffineCoordinateTransform(final double[][] affine) {
 		super(TYPE);
 		this.affine = affine;

@@ -44,6 +44,24 @@ public class BijectionCoordinateTransform extends AbstractCoordinateTransform<Ex
 		this.inverse = inverse;
 	}
 
+	protected BijectionCoordinateTransform(final BijectionCoordinateTransform other, final TransformOptions copyParams) {
+		super(other, copyParams);
+		this.forward = other.forward == null ? null : other.forward.copy();
+		this.inverse = other.inverse == null ? null : other.inverse.copy();
+	}
+
+	@Override
+	public BijectionCoordinateTransform copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public BijectionCoordinateTransform copy(final TransformOptions copyParams) {
+
+		return new BijectionCoordinateTransform(this, copyParams);
+	}
+
 	public CoordinateTransform<?> getForward() {
 		return forward;
 	}

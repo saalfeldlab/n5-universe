@@ -102,6 +102,29 @@ public class ThinPlateSplineCoordinateTransform extends AbstractCoordinateTransf
 		numDimensions = this.tps.numSourceDimensions();
 	}
 
+	protected ThinPlateSplineCoordinateTransform(final ThinPlateSplineCoordinateTransform other, final TransformOptions copyParams) {
+		super(other, copyParams);
+		this.numDimensions = other.numDimensions;
+		this.movingPoints = deepCopy(other.movingPoints);
+		this.targetPoints = deepCopy(other.targetPoints);
+		this.affine = deepCopy(other.affine);
+		this.translation = other.translation == null ? null : other.translation.clone();
+		this.weights = other.weights == null ? null : other.weights.clone();
+		// tps is built lazily from the copied parameters
+	}
+
+	@Override
+	public ThinPlateSplineCoordinateTransform copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public ThinPlateSplineCoordinateTransform copy(final TransformOptions copyParams) {
+
+		return new ThinPlateSplineCoordinateTransform(this, copyParams);
+	}
+
 	@Override
 	public ThinplateSplineTransform getTransform() {
 

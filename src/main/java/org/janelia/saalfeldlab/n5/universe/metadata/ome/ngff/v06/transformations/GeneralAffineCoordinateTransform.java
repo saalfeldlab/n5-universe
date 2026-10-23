@@ -18,6 +18,22 @@ public class GeneralAffineCoordinateTransform extends AbstractAffineCoordinateTr
 		super(ct);
 	}
 
+	protected GeneralAffineCoordinateTransform(final GeneralAffineCoordinateTransform other, final TransformOptions copyParams) {
+		super(other, copyParams);
+	}
+
+	@Override
+	public GeneralAffineCoordinateTransform copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public GeneralAffineCoordinateTransform copy(final TransformOptions copyParams) {
+
+		return new GeneralAffineCoordinateTransform(this, copyParams);
+	}
+
 	public GeneralAffineCoordinateTransform(final double[][] affine) {
 		super(affine);
 	}

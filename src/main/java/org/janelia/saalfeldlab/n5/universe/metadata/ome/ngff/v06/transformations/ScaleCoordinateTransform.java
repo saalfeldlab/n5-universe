@@ -81,6 +81,31 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 		this.scale = other.scale;
 	}
 
+	protected ScaleCoordinateTransform(ScaleCoordinateTransform other, TransformOptions copyParams) {
+
+		super(other, copyParams);
+		if (other.scale != null)
+			buildTransform(other.scale.clone());
+	}
+
+	@Override
+	public ScaleCoordinateTransform copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public ScaleCoordinateTransform copy(final TransformOptions copyParams) {
+
+		return new ScaleCoordinateTransform(this, copyParams);
+	}
+	
+	void blah() {
+
+		ScaleCoordinateTransform s = new ScaleCoordinateTransform("name", "in", "out", new double[] {2});
+		ScaleCoordinateTransform s2 = s.copy(new TransformOptions().withInput("in2"));
+	}
+
 	@Override
 	protected double[] readParameters(final N5Reader n5, final String path, final boolean reverse) {
 
@@ -116,9 +141,5 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 		return null;
 	}
 
-//	@Override
-//	public double[] getParameters() {
-//		return getDoubleArray( n5 , getParameterPath() );
-//	}
 
 }

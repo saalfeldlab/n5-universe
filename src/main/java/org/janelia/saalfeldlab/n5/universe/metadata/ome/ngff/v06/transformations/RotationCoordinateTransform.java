@@ -31,6 +31,24 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 		super( ct );
 	}
 
+	protected RotationCoordinateTransform( RotationCoordinateTransform other, TransformOptions copyParams ) {
+		super( other, copyParams );
+		if (other.rotation != null)
+			buildTransform(deepCopy(other.rotation));
+	}
+
+	@Override
+	public RotationCoordinateTransform copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public RotationCoordinateTransform copy(final TransformOptions copyParams) {
+
+		return new RotationCoordinateTransform(this, copyParams);
+	}
+
 	public RotationCoordinateTransform(final double[] affineFlat) {
 		super(TYPE);
 		this.rotation = TransformUtils.toRotationMatrix(affineFlat);

@@ -15,6 +15,9 @@ import net.imglib2.realtransform.RealTransform;
 import net.imglib2.realtransform.RealTransformSequence;
 import net.imglib2.realtransform.StackedRealTransform;
 
+/**
+ * TODO doc this
+ */
 public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<RealTransform> {
 
 	public static final String TYPE = "byDimension";
@@ -63,6 +66,26 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		super(TYPE, name, inputRef, outputRef);
 		this.transformations = entries;
 		setTransformsAfterDeserialization();
+	}
+
+	protected ByDimensionCoordinateTransform( final ByDimensionCoordinateTransform other, final TransformOptions copyParams ) {
+		super(other, copyParams);
+		if (other.transformations != null) {
+			this.transformations = Arrays.stream(other.transformations)
+					.map(SubAxisTransformation::copy)
+					.toArray(SubAxisTransformation[]::new);
+			setTransformsAfterDeserialization();
+		}
+	}
+
+	@Override
+	public ByDimensionCoordinateTransform copy() {
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public ByDimensionCoordinateTransform copy( final TransformOptions copyParams ) {
+		return new ByDimensionCoordinateTransform(this, copyParams);
 	}
 
 	/**

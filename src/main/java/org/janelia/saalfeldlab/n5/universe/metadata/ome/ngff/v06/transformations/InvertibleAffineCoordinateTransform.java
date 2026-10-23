@@ -20,6 +20,22 @@ public class InvertibleAffineCoordinateTransform extends AbstractAffineCoordinat
 		super(ct);
 	}
 
+	protected InvertibleAffineCoordinateTransform(final InvertibleAffineCoordinateTransform other, final TransformOptions copyParams) {
+		super(other, copyParams);
+	}
+
+	@Override
+	public InvertibleAffineCoordinateTransform copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public InvertibleAffineCoordinateTransform copy(final TransformOptions copyParams) {
+
+		return new InvertibleAffineCoordinateTransform(this, copyParams);
+	}
+
 	public InvertibleAffineCoordinateTransform(final double[][] affine) {
 		super(affine);
 	}

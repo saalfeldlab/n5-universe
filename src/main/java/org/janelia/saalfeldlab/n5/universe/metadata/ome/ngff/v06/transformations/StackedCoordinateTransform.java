@@ -54,6 +54,26 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 		this( name, inputRef, outputRef, Arrays.stream( transforms ).collect( Collectors.toList() ));
 	}
 
+	protected StackedCoordinateTransform( final StackedCoordinateTransform other, final TransformOptions copyParams )
+	{
+		super( other, copyParams );
+		this.transforms = other.transforms == null ? null
+				: other.transforms.stream().map( SubAxisTransformation::copy ).collect( Collectors.toList() );
+		this.spaces = other.spaces;
+	}
+
+	@Override
+	public StackedCoordinateTransform copy()
+	{
+		return copy( new TransformOptions() );
+	}
+
+	@Override
+	public StackedCoordinateTransform copy( final TransformOptions copyParams )
+	{
+		return new StackedCoordinateTransform( this, copyParams );
+	}
+
 	public void setSpaces( final CoordinateSystems spaces )
 	{
 		this.spaces = spaces;

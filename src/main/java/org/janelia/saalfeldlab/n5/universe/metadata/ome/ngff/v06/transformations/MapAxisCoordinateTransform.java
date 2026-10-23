@@ -26,6 +26,25 @@ public class MapAxisCoordinateTransform extends AbstractCoordinateTransform<Affi
 		super(ct);
 	}
 
+	protected MapAxisCoordinateTransform(MapAxisCoordinateTransform other, TransformOptions copyParams) {
+		super(other, copyParams);
+		this.mapAxis = other.mapAxis == null ? null : other.mapAxis.clone();
+		this.inputAxes = other.inputAxes == null ? null : other.inputAxes.clone();
+		this.outputAxes = other.outputAxes == null ? null : other.outputAxes.clone();
+	}
+
+	@Override
+	public MapAxisCoordinateTransform copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public MapAxisCoordinateTransform copy(final TransformOptions copyParams) {
+
+		return new MapAxisCoordinateTransform(this, copyParams);
+	}
+
 	public MapAxisCoordinateTransform( final String name,
 			final CoordinateSystem input, final CoordinateSystem output,
 			final int[] axisMapping) {

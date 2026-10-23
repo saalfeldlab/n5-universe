@@ -182,6 +182,7 @@ public class CoordinateTransformAdapter
 		// it has one. nested transforms are bound again by their parent, which is harmless
 		if (n5 != null) {
 			if (group != null)
+				// i think the group is never actually required, right? 
 				ParameterBinding.bind(out, n5, group);
 			else
 				ParameterBinding.bindUnbound(out, n5);

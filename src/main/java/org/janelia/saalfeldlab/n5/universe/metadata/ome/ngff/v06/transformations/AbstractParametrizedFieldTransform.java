@@ -47,6 +47,14 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		this.interpolation = interpolation;
 	}
 
+	protected AbstractParametrizedFieldTransform(final AbstractParametrizedFieldTransform<T,S> other, final TransformOptions copyParams) {
+		super(other, copyParams);
+		this.interpolation = other.interpolation;
+		// the field is immutable, so it can be shared. Subclasses rebuild their transform from it.
+		this.field = other.field;
+		this.vectorAxisIndex = other.vectorAxisIndex;
+	}
+
 	public String getInterpolation() {
 		return interpolation;
 	}

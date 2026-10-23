@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import net.imglib2.realtransform.AffineGet;
@@ -65,6 +64,29 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		this.transformations = new CoordinateTransform[ transformationList.size() ];
 		for( int i = 0; i < transformationList.size(); i++ )
 			this.transformations[i] = transformationList.get( i );
+	}
+
+	protected SequenceCoordinateTransform(final SequenceCoordinateTransform other, final TransformOptions copyParams) {
+		super(other, copyParams);
+		if (other.transformations == null) {
+			this.transformations = null;
+		} else {
+			this.transformations = new CoordinateTransform[other.transformations.length];
+			for (int i = 0; i < transformations.length; i++)
+				this.transformations[i] = other.transformations[i].copy();
+		}
+	}
+
+	@Override
+	public SequenceCoordinateTransform copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public SequenceCoordinateTransform copy(final TransformOptions copyParams) {
+
+		return new SequenceCoordinateTransform(this, copyParams);
 	}
 
 	@Override

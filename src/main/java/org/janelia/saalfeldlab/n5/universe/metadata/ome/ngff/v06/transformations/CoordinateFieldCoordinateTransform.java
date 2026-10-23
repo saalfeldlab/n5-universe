@@ -76,6 +76,24 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		this( null, path, interpolation, (String)null, (String)null );
 	}
 
+	protected CoordinateFieldCoordinateTransform(final CoordinateFieldCoordinateTransform<T> other, final TransformOptions copyParams) {
+		super(other, copyParams);
+		// the built transform is not shared, since transforms are not thread safe
+		buildTransform(other.field);
+	}
+
+	@Override
+	public CoordinateFieldCoordinateTransform<T> copy() {
+
+		return copy(new TransformOptions());
+	}
+
+	@Override
+	public CoordinateFieldCoordinateTransform<T> copy(final TransformOptions copyParams) {
+
+		return new CoordinateFieldCoordinateTransform<>(this, copyParams);
+	}
+
 	@Override
 	public String getVectorAxisType() {
 		return vectorAxisType;

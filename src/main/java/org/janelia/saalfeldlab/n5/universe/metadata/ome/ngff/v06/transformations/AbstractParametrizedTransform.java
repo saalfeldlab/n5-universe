@@ -59,6 +59,16 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 		this.parameterSupplier = other.parameterSupplier;
 	}
 
+	protected AbstractParametrizedTransform( AbstractParametrizedTransform<T,P> other, TransformOptions copyParams )
+	{
+		super( other, copyParams );
+		this.path = copyParams.isPathSet() ? copyParams.getPath() : other.path;
+		// a new path has to be resolved again
+		this.absolutePath = copyParams.isPathSet() ? null : other.absolutePath;
+		// the supplier reads at the path of this transform, so it follows the new path
+		this.parameterSupplier = other.parameterSupplier;
+	}
+
 	/**
 	 * Reads this transform's parameters.
 	 *
@@ -85,6 +95,7 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 
 		parameterSupplier = () -> {
 			final String parameterPath = getParameterPath();
+			// TODO null check n5 before calling this method, dont null check here
 			return (n5 == null || parameterPath == null) ? null : readParameters(n5, parameterPath, reverse);
 		};
 	}

@@ -23,6 +23,16 @@ public class SubAxisTransformation {
 		this.outputAxes = outputAxes;
 	}
 
+	/**
+	 * @return a copy of this, with a copy of its transformation
+	 */
+	public SubAxisTransformation copy() {
+		return new SubAxisTransformation(
+				transformation == null ? null : transformation.copy(),
+				inputAxes == null ? null : inputAxes.clone(),
+				outputAxes == null ? null : outputAxes.clone());
+	}
+
 	public CoordinateTransform<?> getTransformation() {
 		return transformation;
 	}

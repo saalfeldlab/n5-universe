@@ -5,6 +5,7 @@ import java.util.Objects;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform.TransformOptions;
 
 import net.imglib2.realtransform.RealTransform;
 
@@ -42,6 +43,26 @@ public interface CoordinateTransform<T extends RealTransform> {
 	public default T getTransform( final N5Reader n5 ) {
 		ParameterBinding.bindUnbound(this, n5);
 		return getTransform();
+	}
+
+	/**
+	 * Copies this transform, replacing the fields set in {@code copyParams}.
+	 * <p>
+	 * The copy does not share mutable state with this transform, except for
+	 * data that can not be copied (e.g. a displacement field's values).
+	 *
+	 * @param copyParams the fields to replace
+	 * @return the copy
+	 * @throws UnsupportedOperationException if this transform does not support replacing one of the set fields
+	 */
+	public CoordinateTransform<T> copy(final TransformOptions copyParams);
+
+	/**
+	 * @return a copy of this transform
+	 * @see #copy(TransformOptions)
+	 */
+	public default CoordinateTransform<T> copy() {
+		return copy(new TransformOptions());
 	}
 
 	public String getName();
