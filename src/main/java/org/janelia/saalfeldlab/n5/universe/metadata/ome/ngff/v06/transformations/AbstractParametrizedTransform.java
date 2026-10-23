@@ -139,7 +139,7 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 	}
 
 	@Override
-	public void resolveAbsoluePath(final String groupPath) {
+	public void resolveAbsolutePath(final String groupPath) {
 
 		if (path == null)
 			return;

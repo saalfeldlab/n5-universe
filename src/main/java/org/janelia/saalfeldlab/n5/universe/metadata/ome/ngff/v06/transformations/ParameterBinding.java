@@ -27,7 +27,7 @@ public class ParameterBinding {
 	public static void bind(final CoordinateTransform<?> ct, final N5Reader n5, final String group) {
 
 		forEachParametrized(ct, pt -> {
-			pt.resolveAbsoluePath(group);
+			pt.resolveAbsolutePath(group);
 			pt.bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 		});
 	}

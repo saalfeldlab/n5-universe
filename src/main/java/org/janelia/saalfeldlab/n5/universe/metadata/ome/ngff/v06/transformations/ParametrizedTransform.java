@@ -10,5 +10,5 @@ public interface ParametrizedTransform<T extends RealTransform,P> extends Coordi
 
 	public P getParameters();
 
-	public void resolveAbsoluePath(final String groupPath);
+	public void resolveAbsolutePath(final String groupPath);
 }
