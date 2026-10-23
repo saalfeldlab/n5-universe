@@ -103,11 +103,11 @@ public class Orientation {
 
 	/**
 	 * @return true if the type is "anatomical" and the value is one of
-	 *         {@link Anatomical}
+	 *         {@link Anatomical}. returns true for any non-anatomical orientation.
 	 */
 	public boolean isValid() {
 
-		return ANATOMICAL.equals(type) && Anatomical.fromString(value) != null;
+		return type.equals(ANATOMICAL) && Anatomical.fromString(value) != null;
 	}
 
 	public Orientation copy() {
