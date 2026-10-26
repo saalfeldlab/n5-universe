@@ -1,8 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
 import net.imglib2.realtransform.Scale;
 import net.imglib2.realtransform.Scale2D;
@@ -22,88 +20,62 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 		super(TYPE);
 	}
 
-	public ScaleCoordinateTransform( final double[] scale ) {
-		super(TYPE);
-		this.scale = scale;
-		buildTransform( scale );
+	public ScaleCoordinateTransform(final double[] scale ) {
+		this(new ScaleOptions().withScale(scale));
 	}
 
-	public ScaleCoordinateTransform(String name,
-			final double[] scale) {
-		super(TYPE, name);
-		this.scale = scale;
-		buildTransform( scale );
+	public ScaleCoordinateTransform(ScaleOptions options) {
+		super(TYPE, options);
+		this.scale = options.scale;
+		if (this.scale != null)
+			buildTransform(this.scale.clone());
 	}
 
-	public ScaleCoordinateTransform( String name, final String inputSpace, final String outputSpace,
-			final double[] scale) {
-		super(TYPE, name, inputSpace, outputSpace );
-		this.scale = scale;
-		buildTransform( scale );
-	}
-
-	public ScaleCoordinateTransform( String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final double[] scale) {
-		super(TYPE, name, inputRef, outputRef);
-		this.scale = scale;
-		buildTransform( scale );
-	}
-
-	public ScaleCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
-		 final N5Reader n5, final String path ) {
-		super(TYPE, name, path, inputSpace, outputSpace );
-		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
-		this.scale = getParameters();
-		buildTransform( scale );
-	}
-
-	public ScaleCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
-			final String path ) {
-		super(TYPE, name, path, inputSpace, outputSpace );
-		this.scale = null;
-	}
-
-	public ScaleCoordinateTransform( final String name, final String inputSpace, final String outputSpace, final String path,
-			final double[] scale) {
-		super(TYPE, name, path, inputSpace, outputSpace );
-		this.scale = scale;
-	}
-
-	public ScaleCoordinateTransform(ScaleCoordinateTransform other, final double[] scale) {
-
-		super(other);
-		this.scale = scale;
-	}
-
-	public ScaleCoordinateTransform(ScaleCoordinateTransform other) {
-
-		super(other);
-		this.scale = other.scale;
-	}
-
-	protected ScaleCoordinateTransform(ScaleCoordinateTransform other, TransformOptions copyParams) {
+	protected ScaleCoordinateTransform(ScaleCoordinateTransform other, TransformOptions<?> copyParams) {
 
 		super(other, copyParams);
-		if (other.scale != null)
-			buildTransform(other.scale.clone());
+		final double[] newScale = (copyParams instanceof ScaleOptions && ((ScaleOptions) copyParams).isScaleSet())
+				? ((ScaleOptions) copyParams).getScale()
+				: other.scale;
+
+		if (newScale != null)
+			buildTransform(newScale.clone());
+	}
+
+	public static class ScaleOptions extends TransformOptions<ScaleOptions> {
+
+		private boolean scaleSet = false;
+		private double[] scale;
+		
+		public ScaleOptions withScale(double[] scale){ 
+			this.scale = scale;
+			this.scaleSet = true;
+			return this;
+		}
+		
+		public boolean isScaleSet() {
+			return scaleSet;
+		}
+
+		public double[] getScale() {
+			return scale;
+		}
+	}
+
+	public static ScaleOptions options() {
+		return new ScaleOptions();
 	}
 
 	@Override
 	public ScaleCoordinateTransform copy() {
 
-		return copy(new TransformOptions());
+		return copy(new BasicOptions());
 	}
 
 	@Override
-	public ScaleCoordinateTransform copy(final TransformOptions copyParams) {
+	public ScaleCoordinateTransform copy(final TransformOptions<?> copyParams) {
 
 		return new ScaleCoordinateTransform(this, copyParams);
-	}
-	
-	void blah() {
-
-		ScaleCoordinateTransform s = new ScaleCoordinateTransform("name", "in", "out", new double[] {2});
-		ScaleCoordinateTransform s2 = s.copy(new TransformOptions().withInput("in2"));
 	}
 
 	@Override
@@ -140,6 +112,5 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 
 		return null;
 	}
-
 
 }

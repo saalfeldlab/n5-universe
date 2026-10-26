@@ -19,9 +19,6 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 
 	protected transient CoordinateSystem outputCoordinateSystem;
 
-	@Override
-	public abstract T getTransform();
-
 	protected AbstractCoordinateTransform() {
 		super();
 	}
@@ -56,12 +53,7 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.output = new OmeNgffReference(outputCoordinateSystem.getName());
 	}
 
-	public AbstractCoordinateTransform( final String type, final String name ) {
-		this.type = type;
-		this.name = name;
-	}
-
-	public AbstractCoordinateTransform( final String type ) {
+	protected AbstractCoordinateTransform( final String type ) {
 		this.type = type;
 	}
 
@@ -72,18 +64,30 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		this.input = other.getInput();
 		this.output = other.getOutput();
 	}
+
+	protected AbstractCoordinateTransform(String type, TransformOptions<?> options) {
+
+		// creating a new transform: no original to fall back on, so unset fields are simply null
+		this.type = type;
+		this.name = options.name;
+		this.input = options.input;
+		this.output = options.output;
+	}
 	
-	protected AbstractCoordinateTransform( CoordinateTransform<T> other, TransformOptions copyParams )
+	protected AbstractCoordinateTransform( CoordinateTransform<T> other, TransformOptions<?> options )
 	{
-		if (copyParams.isPathSet() && !(other instanceof ParametrizedTransform))
+		if (options.isPathSet() && !(other instanceof ParametrizedTransform))
 			throw new UnsupportedOperationException(
 					"A " + other.getType() + " transform does not have a parameter path");
 
 		this.type = other.getType();
-		this.name = copyParams.isNameSet() ? copyParams.name : other.getName();
-		this.input = copyParams.isInputSet() ? copyParams.input : other.getInput();
-		this.output = copyParams.isOutputSet() ? copyParams.output : other.getOutput();
+		this.name = options.isNameSet() ? options.name : other.getName();
+		this.input = options.isInputSet() ? options.input : other.getInput();
+		this.output = options.isOutputSet() ? options.output : other.getOutput();
 	}
+
+	@Override
+	public abstract T getTransform();
 
 	/**
 	 * @param array the array, may be null
@@ -102,11 +106,11 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	}
 
 	@Override
-	public abstract AbstractCoordinateTransform<T> copy(TransformOptions copyParams);
+	public abstract AbstractCoordinateTransform<T> copy(TransformOptions<?> copyParams);
 
 	@Override
 	public AbstractCoordinateTransform<T> copy() {
-		return copy(new TransformOptions());
+		return copy(new BasicOptions());
 	}
 
 	@Override
@@ -167,16 +171,17 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	 * field should be modified when copying
 	 * <p>
 	 * For example
-	 * ct.copy(new TransformOptions().withName(newName));
+	 * ct.copy(new BasicOptions().withName(newName));
 	 * <p>
 	 * Fields that are not set are copied unchanged. A field explicitly set to
-	 * null is copied as null.
+	 * null is copied as null. When the options are used to create a new transform
+	 * rather than to copy one, there is nothing to copy from, so unset fields are null.
 	 * <p>
 	 * The parameter path can only be replaced for transforms that have one, see
 	 * {@link ParametrizedTransform}. Copying any other transform with a path set
 	 * throws an {@link UnsupportedOperationException}.
 	 */
-	public static class TransformOptions {
+	public static abstract class TransformOptions<O extends TransformOptions<O>> {
 
 		private boolean nameSet = false;
 		private boolean inputSet = false;
@@ -188,29 +193,38 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		private OmeNgffReference output;
 		private String path;
 
-		public TransformOptions withName(String name) {
+		/**
+		 * @return this, as the type of the concrete options class, so that the
+		 *         with(Field) methods of subclasses can be chained in any order
+		 */
+		@SuppressWarnings("unchecked")
+		private O self() {
+			return (O) this;
+		}
+
+		public O withName(String name) {
 			this.name = name;
 			this.nameSet = true;
-			return this;
+			return self();
 		}
 
-		public TransformOptions withInput(OmeNgffReference input) {
+		public O withInput(OmeNgffReference input) {
 			this.input = input;
 			this.inputSet = true;
-			return this;
+			return self();
 		}
 
-		public TransformOptions withInput(String input) {
+		public O withInput(String input) {
 			return withInput(input == null ? null : new OmeNgffReference(input));
 		}
 
-		public TransformOptions withOutput(OmeNgffReference output) {
+		public O withOutput(OmeNgffReference output) {
 			this.output = output;
 			this.outputSet = true;
-			return this;
+			return self();
 		}
 
-		public TransformOptions withOutput(String output) {
+		public O withOutput(String output) {
 			return withOutput(output == null ? null : new OmeNgffReference(output));
 		}
 
@@ -222,10 +236,10 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		 * @param path the parameter path, may be null
 		 * @return this
 		 */
-		public TransformOptions withPath(String path) {
+		public O withPath(String path) {
 			this.path = path;
 			this.pathSet = true;
-			return this;
+			return self();
 		}
 
 		public boolean isNameSet() {
@@ -247,6 +261,16 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		public String getPath() {
 			return path;
 		}
+
+		public TransformOptions<BasicOptions> options() {
+			return new BasicOptions();
+		}
+	}
+
+	/**
+	 * {@link TransformOptions} for transforms that have no parameters of their own to set.
+	 */
+	public static class BasicOptions extends TransformOptions<BasicOptions> {
 	}
 
 }

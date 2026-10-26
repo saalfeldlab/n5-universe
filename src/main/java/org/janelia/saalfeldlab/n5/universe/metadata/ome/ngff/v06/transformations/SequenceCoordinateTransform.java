@@ -25,50 +25,27 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 
 	public SequenceCoordinateTransform(
 			final CoordinateTransform<?>[] transformations) {
-		this("", OmeNgffReference.DUMMY, OmeNgffReference.DUMMY, transformations);
+		this(new SequenceOptions()
+				.withName("")
+				.withInput(OmeNgffReference.DUMMY)
+				.withOutput(OmeNgffReference.DUMMY)
+				.withTransformations(transformations));
 	}
 
-	public SequenceCoordinateTransform(
-			final String input, final String output,
-			final CoordinateTransform<?>[] transformations) {
-		this("", input, output, transformations );
+	public SequenceCoordinateTransform(final SequenceOptions options) {
+		super(TYPE, options);
+		// the transformations themselves are not copied, only the array that holds them
+		this.transformations = options.transformations == null
+				? new CoordinateTransform<?>[0]
+				: options.transformations.clone();
 	}
 
-	public SequenceCoordinateTransform( final String name,
-			final String input, final String output,
-			final CoordinateTransform<?>... transformations) {
-		super(TYPE, name, input, output);
-		this.transformations = transformations;
-	}
-
-	public SequenceCoordinateTransform( final String name,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final CoordinateTransform<?>... transformations) {
-		super(TYPE, name, inputRef, outputRef);
-		this.transformations = transformations;
-	}
-
-	public SequenceCoordinateTransform( final String name,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final List<CoordinateTransform<?>> transformationList ) {
-		super(TYPE, name, inputRef, outputRef);
-		this.transformations = new CoordinateTransform[ transformationList.size() ];
-		for( int i = 0; i < transformationList.size(); i++ )
-			this.transformations[i] = transformationList.get( i );
-	}
-
-	public SequenceCoordinateTransform( final String name,
-			final String input, final String output,
-			final List<CoordinateTransform<?>> transformationList ) {
-		super(TYPE, name, input, output);
-		this.transformations = new CoordinateTransform[ transformationList.size() ];
-		for( int i = 0; i < transformationList.size(); i++ )
-			this.transformations[i] = transformationList.get( i );
-	}
-
-	protected SequenceCoordinateTransform(final SequenceCoordinateTransform other, final TransformOptions copyParams) {
+	protected SequenceCoordinateTransform(final SequenceCoordinateTransform other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
-		if (other.transformations == null) {
+		if (copyParams instanceof SequenceOptions && ((SequenceOptions) copyParams).isTransformationsSet()) {
+			final CoordinateTransform<?>[] replacement = ((SequenceOptions) copyParams).getTransformations();
+			this.transformations = replacement == null ? null : replacement.clone();
+		} else if (other.transformations == null) {
 			this.transformations = null;
 		} else {
 			this.transformations = new CoordinateTransform[other.transformations.length];
@@ -77,14 +54,43 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		}
 	}
 
-	@Override
-	public SequenceCoordinateTransform copy() {
+	public static class SequenceOptions extends TransformOptions<SequenceOptions> {
 
-		return copy(new TransformOptions());
+		private boolean transformationsSet = false;
+		private CoordinateTransform<?>[] transformations;
+
+		public SequenceOptions withTransformations(final CoordinateTransform<?>... transformations) {
+			this.transformations = transformations;
+			this.transformationsSet = true;
+			return this;
+		}
+
+		public SequenceOptions withTransformations(final List<? extends CoordinateTransform<?>> transformations) {
+			return withTransformations(transformations == null ? null
+					: transformations.toArray(new CoordinateTransform<?>[0]));
+		}
+
+		public boolean isTransformationsSet() {
+			return transformationsSet;
+		}
+
+		public CoordinateTransform<?>[] getTransformations() {
+			return transformations;
+		}
+	}
+
+	public static SequenceOptions options() {
+		return new SequenceOptions();
 	}
 
 	@Override
-	public SequenceCoordinateTransform copy(final TransformOptions copyParams) {
+	public SequenceCoordinateTransform copy() {
+
+		return copy(new BasicOptions());
+	}
+
+	@Override
+	public SequenceCoordinateTransform copy(final TransformOptions<?> copyParams) {
 
 		return new SequenceCoordinateTransform(this, copyParams);
 	}
@@ -108,33 +114,19 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 	public boolean isAffine() {
 
 		return Arrays.stream(transformations)
-				.map(CoordinateTransform::create)
 				.allMatch(x -> x.getTransform() instanceof AffineGet);
 	}
 
 	public AffineGet asAffine( int nd )
 	{
 		final AffineTransform affine = new AffineTransform( nd );
-
-//		for( final CoordinateTransform<?> t : transformations )
-//		{
-//			final CoordinateTransform< ? > nt = CoordinateTransform.create( t );
-////			AffineGet tform  (AffineGet)nt.getTransform();=
-//			affine.preConcatenate(  (AffineGet)nt.getTransform() );
-//		}
-
-		for( final CoordinateTransform<?> t : transformations )
-		{
+		for (final CoordinateTransform<?> t : transformations) {
 			final RealTransform tform = t.getTransform();
-			if( tform instanceof AffineGet )
-				affine.preConcatenate(  (AffineGet)tform );
+			if (tform instanceof AffineGet)
+				affine.preConcatenate((AffineGet)tform);
 			else
 				return null;
 		}
-
-//		Arrays.stream( transformations )
-//			.map( NgffCoordinateTransformation::create )
-//			.forEach( x -> affine.preConcatenate( ( AffineGet ) x.getTransform() ));
 
 		return affine;
 	}
@@ -181,7 +173,11 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		// the inverse of a sequence needs to apply the inverse transformations in reverse order
 		Collections.reverse(invTransforms);
 
-		return new SequenceCoordinateTransform(getName() +"inv", getOutput(), getInput(), invTransforms);
+		return new SequenceCoordinateTransform(options()
+				.withName(getName() + "inv")
+				.withInput(getOutput())
+				.withOutput(getInput())
+				.withTransformations(invTransforms));
 	}
 
 }

@@ -32,24 +32,24 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 
 	public CoordinateFieldCoordinateTransform( final String name, final RealRandomAccessible<RealComposite<T>> field, final String interpolation,
 			final String input, final String output) {
-		super(TYPE, name, null, interpolation, input, output);
+		super(TYPE, new FieldOptions().withName(name).withInterpolation(interpolation).withInput(input).withOutput(output));
 		buildTransform( field );
 	}
 
 	public CoordinateFieldCoordinateTransform( final String name, final RealRandomAccessible<RealComposite<T>> field, final String interpolation,
 			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
-		super(TYPE, name, null, interpolation, inputRef, outputRef);
+		super(TYPE, new FieldOptions().withName(name).withInterpolation(interpolation).withInput(inputRef).withOutput(outputRef));
 		buildTransform( field );
 	}
 
 	public CoordinateFieldCoordinateTransform( final String name, final String path, final String interpolation,
 			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
-		super(TYPE, name, path, interpolation, inputRef, outputRef);
+		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(inputRef).withOutput(outputRef));
 	}
 
 	public CoordinateFieldCoordinateTransform(final String name, final N5Reader n5, final String path, final String interpolation,
 			final String input, final String output) {
-		super(TYPE, name, path, interpolation, input, output);
+		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
 		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 	}
 
@@ -59,13 +59,13 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 	 */
 	public CoordinateFieldCoordinateTransform( final String name, final String path, final String interpolation,
 			final String input, final String output, final PositionFieldTransform transform ) {
-		super(TYPE, name, path, interpolation, input, output);
+		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
 		this.transform = transform;
 	}
 
 	public CoordinateFieldCoordinateTransform( final String name, final String path, final String interpolation,
 			final String input, final String output) {
-		super(TYPE, name, path, interpolation, input, output);
+		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
 	}
 
 	public CoordinateFieldCoordinateTransform( final String name, final String path, final String interpolation) {
@@ -76,7 +76,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		this( null, path, interpolation, (String)null, (String)null );
 	}
 
-	protected CoordinateFieldCoordinateTransform(final CoordinateFieldCoordinateTransform<T> other, final TransformOptions copyParams) {
+	protected CoordinateFieldCoordinateTransform(final CoordinateFieldCoordinateTransform<T> other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
 		// the built transform is not shared, since transforms are not thread safe
 		buildTransform(other.field);
@@ -85,11 +85,11 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 	@Override
 	public CoordinateFieldCoordinateTransform<T> copy() {
 
-		return copy(new TransformOptions());
+		return copy(new BasicOptions());
 	}
 
 	@Override
-	public CoordinateFieldCoordinateTransform<T> copy(final TransformOptions copyParams) {
+	public CoordinateFieldCoordinateTransform<T> copy(final TransformOptions<?> copyParams) {
 
 		return new CoordinateFieldCoordinateTransform<>(this, copyParams);
 	}

@@ -65,8 +65,8 @@ public class NgffTransformDeserializationTest {
 	public void testByDimensionAxesRoundTrip() {
 
 		final ByDimensionCoordinateTransform bd = new ByDimensionCoordinateTransform("bd", "a", "b",
-				new SubAxisTransformation(new ScaleCoordinateTransform("s0", new double[]{2.0}), new int[]{1}, new int[]{1}),
-				new SubAxisTransformation(new ScaleCoordinateTransform("s1", new double[]{3.0, 4.0}), new int[]{0, 2}, new int[]{0, 2}));
+				new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{1}, new int[]{1}),
+				new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{3.0, 4.0}), new int[]{0, 2}, new int[]{0, 2}));
 
 		final Gson gson = buildGson();
 		final CoordinateTransform<?> ct = gson.fromJson(gson.toJson(bd, CoordinateTransform.class), CoordinateTransform.class);
@@ -84,8 +84,8 @@ public class NgffTransformDeserializationTest {
 	public void testByDimensionInverseSwapsAxes() {
 
 		final ByDimensionCoordinateTransform bd = new ByDimensionCoordinateTransform("bd", "a", "b",
-				new SubAxisTransformation(new ScaleCoordinateTransform("s0", new double[]{2.0}), new int[]{0}, new int[]{1}),
-				new SubAxisTransformation(new ScaleCoordinateTransform("s1", new double[]{3.0}), new int[]{1}, new int[]{0}));
+				new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{0}, new int[]{1}),
+				new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{3.0}), new int[]{1}, new int[]{0}));
 
 		final ByDimensionCoordinateTransform inv = bd.inverse();
 		assertNotNull("inverse", inv);
@@ -102,7 +102,7 @@ public class NgffTransformDeserializationTest {
 
 		final ByDimensionCoordinateTransform bd = new ByDimensionCoordinateTransform("bd", "a", "b",
 				new SubAxisTransformation(new IdentityCoordinateTransform(), new int[]{0, 1}, new int[]{0, 1}),
-				new SubAxisTransformation(new ScaleCoordinateTransform("s", new double[]{2.0}), new int[]{2}, new int[]{2}));
+				new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{2}, new int[]{2}));
 
 		final RealTransform t = bd.getTransform();
 		assertEquals(3, t.numSourceDimensions());

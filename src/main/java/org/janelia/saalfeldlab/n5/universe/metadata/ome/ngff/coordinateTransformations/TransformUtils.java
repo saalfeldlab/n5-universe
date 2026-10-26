@@ -318,7 +318,7 @@ public class TransformUtils
 	 * <p>
 	 * A 2D example, for input matrix:
 	 * 		[ xx xy tx ]
-	 * 		[ yx yy ty ]
+	 * 		[ yx yy ty ];
 	 * this method returns
 	 * 		[ yy yx ty ]
 	 * 		[ xy xx tx ]
@@ -458,7 +458,6 @@ public class TransformUtils
 	{
 		return toAffine3D(
 			Arrays.stream( seq.getTransformations() )
-				.map( x -> { return CoordinateTransform.create( x ); 	} )
 				.collect( Collectors.toList() ));
 	}
 

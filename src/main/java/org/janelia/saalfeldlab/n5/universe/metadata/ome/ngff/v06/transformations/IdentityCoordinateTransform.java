@@ -29,7 +29,7 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 		super(other);
 	}
 
-	protected IdentityCoordinateTransform(IdentityCoordinateTransform other, TransformOptions copyParams) {
+	protected IdentityCoordinateTransform(IdentityCoordinateTransform other, TransformOptions<?> copyParams) {
 
 		super(other, copyParams);
 	}
@@ -37,11 +37,11 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 	@Override
 	public IdentityCoordinateTransform copy() {
 
-		return copy(new TransformOptions());
+		return copy(new BasicOptions());
 	}
 
 	@Override
-	public IdentityCoordinateTransform copy(final TransformOptions copyParams) {
+	public IdentityCoordinateTransform copy(final TransformOptions<?> copyParams) {
 
 		return new IdentityCoordinateTransform(this, copyParams);
 	}

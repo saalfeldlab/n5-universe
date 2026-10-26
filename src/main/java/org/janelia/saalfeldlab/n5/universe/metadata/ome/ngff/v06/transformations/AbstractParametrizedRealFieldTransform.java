@@ -12,13 +12,15 @@ public abstract class AbstractParametrizedRealFieldTransform<T extends RealTrans
 
 	protected int vectorAxisIndex;
 
-	public AbstractParametrizedRealFieldTransform( final String type, final String name, final String inputSpace, final String outputSpace ) {
-		this( type, name, null, inputSpace, outputSpace );
+	protected AbstractParametrizedRealFieldTransform( final String type, final TransformOptions<?> options ) {
+		super( type, options );
 	}
 
-	public AbstractParametrizedRealFieldTransform( final String type, final String name, final String parameterPath,
-			final String inputSpace, final String outputSpace ) {
-		super( type, name, inputSpace, outputSpace );
+	protected AbstractParametrizedRealFieldTransform( final AbstractParametrizedRealFieldTransform<T,P,V> other, final TransformOptions<?> copyParams ) {
+		super( other, copyParams );
+		// the fields are immutable, so they can be shared. Subclasses rebuild their transform from them.
+		this.fields = other.fields;
+		this.vectorAxisIndex = other.vectorAxisIndex;
 	}
 
 	public int getVectorAxisIndex() {

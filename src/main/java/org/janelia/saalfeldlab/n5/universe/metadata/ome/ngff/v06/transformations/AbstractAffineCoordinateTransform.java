@@ -2,7 +2,6 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformation
 
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
@@ -19,51 +18,38 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 		super(TYPE);
 	}
 
-	protected AbstractAffineCoordinateTransform(final AbstractAffineCoordinateTransform<T> ct) {
-		super(ct);
+	protected AbstractAffineCoordinateTransform(final AffineOptions options) {
+		super(TYPE, options);
+		this.affine = deepCopy(options.affine);
+		buildTransform();
 	}
 
-	protected AbstractAffineCoordinateTransform(final AbstractAffineCoordinateTransform<T> other, final TransformOptions copyParams) {
+	protected AbstractAffineCoordinateTransform(final AbstractAffineCoordinateTransform<T> other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
-		this.affine = deepCopy(other.affine);
+		this.affine = deepCopy((copyParams instanceof AffineOptions && ((AffineOptions) copyParams).isAffineSet())
+				? ((AffineOptions) copyParams).getAffine()
+				: other.affine);
 		buildTransform();
 	}
 
-	protected AbstractAffineCoordinateTransform(final double[][] affine) {
-		super(TYPE);
-		this.affine = affine;
-		buildTransform();
-	}
+	public static class AffineOptions extends TransformOptions<AffineOptions> {
 
-	protected AbstractAffineCoordinateTransform(final String name, final String inputSpace,
-			final String outputSpace, final double[][] affine) {
-		super(TYPE, name, inputSpace, outputSpace);
-		this.affine = affine;
-		buildTransform();
-	}
+		private boolean affineSet = false;
+		private double[][] affine;
 
-	protected AbstractAffineCoordinateTransform(final String name, final OmeNgffReference inputRef,
-			final OmeNgffReference outputRef, final double[][] affine) {
-		super(TYPE, name, inputRef, outputRef);
-		this.affine = affine;
-		buildTransform();
-	}
+		public AffineOptions withAffine(double[][] affine) {
+			this.affine = affine;
+			this.affineSet = true;
+			return this;
+		}
 
-	protected AbstractAffineCoordinateTransform(final String name, final N5Reader n5, final String path,
-			final String inputSpace, final String outputSpace) {
-		super(TYPE, name, path, inputSpace, outputSpace);
-		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
-		buildTransform(getParameters());
-	}
+		public boolean isAffineSet() {
+			return affineSet;
+		}
 
-	protected AbstractAffineCoordinateTransform(final String name,
-			final String inputSpace, final String outputSpace, final String path) {
-		super(TYPE, name, path, inputSpace, outputSpace);
-	}
-
-	protected AbstractAffineCoordinateTransform(final String name,
-			final OmeNgffReference input, final OmeNgffReference output, final String path) {
-		super(TYPE, name, path, input, output);
+		public double[][] getAffine() {
+			return affine;
+		}
 	}
 
 	@Override

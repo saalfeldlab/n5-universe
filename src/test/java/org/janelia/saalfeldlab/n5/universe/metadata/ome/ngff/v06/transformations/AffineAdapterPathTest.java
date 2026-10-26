@@ -585,7 +585,7 @@ public class AffineAdapterPathTest {
 	// scale on dim 2, the affine on dims 0 and 1
 	private static ByDimensionCoordinateTransform constructedByDimension(final CoordinateTransform<?> affine) {
 
-		final ScaleCoordinateTransform scale = new ScaleCoordinateTransform("scale", new double[] { 2.0 });
+		final ScaleCoordinateTransform scale = new ScaleCoordinateTransform(new double[] { 2.0 });
 		return new ByDimensionCoordinateTransform("bd", "a", "b",
 				new SubAxisTransformation(scale, new int[] { 2 }, new int[] { 2 }),
 				new SubAxisTransformation(affine, new int[] { 0, 1 }, new int[] { 0, 1 }));

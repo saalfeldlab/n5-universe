@@ -289,9 +289,11 @@ public class SceneParsingTest {
 
 		final double[] translation = new double[]{1, 2, 3};
 		final CoordinateTransform<?>[] cts = new CoordinateTransform[]{
-				new TranslationCoordinateTransform("CBCT_to_world",
-						new OmeNgffReference("physical", "CBCT"), new OmeNgffReference("world"),
-						translation),
+				new TranslationCoordinateTransform(TranslationCoordinateTransform.options()
+						.withName("CBCT_to_world")
+						.withInput(new OmeNgffReference("physical", "CBCT"))
+						.withOutput(new OmeNgffReference("world"))
+						.withTranslation(translation)),
 				new DisplacementFieldCoordinateTransform<>("A_to_B", "coordinateTransformations/dfield", "linear",
 						new OmeNgffReference("physical", "A"), new OmeNgffReference("physical", "B"))};
 

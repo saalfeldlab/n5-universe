@@ -169,7 +169,11 @@ public class CoordinateTransformAdapter
 					final JsonElement e = ja.get(i).getAsJsonObject();
 					transforms[i] = context.deserialize( e, CoordinateTransform.class );
 				}
-				out = new SequenceCoordinateTransform(id.getName(), id.getInput(), id.getOutput(), transforms);
+				out = new SequenceCoordinateTransform(SequenceCoordinateTransform.options()
+						.withName(id.getName())
+						.withInput(id.getInput())
+						.withOutput(id.getOutput())
+						.withTransformations(transforms));
 			}
 			else {
 				out = null;

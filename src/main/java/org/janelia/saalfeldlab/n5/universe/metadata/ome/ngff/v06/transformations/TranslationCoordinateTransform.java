@@ -1,8 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations;
 
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.Translation;
@@ -24,65 +22,61 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 		super(TYPE);
 	}
 
-	public TranslationCoordinateTransform( final double[] translation) {
-		this("", translation);
+	public TranslationCoordinateTransform(final double[] translation) {
+		this(new TranslationOptions().withTranslation(translation));
 	}
 
-	public TranslationCoordinateTransform( String name,
-			final double[] translation) {
-		super(TYPE, name);
-		this.translation = translation;
-		buildTransform( translation );
+	public TranslationCoordinateTransform(TranslationOptions options) {
+		super(TYPE, options);
+		this.translation = options.translation;
+		if (this.translation != null)
+			buildTransform(this.translation.clone());
 	}
 
-	public TranslationCoordinateTransform( String name, final String inputSpace, final String outputSpace,
-			final double[] translation) {
-		super(TYPE, name, inputSpace, outputSpace );
-		this.translation = translation;
-		buildTransform( translation );
-	}
-
-	public TranslationCoordinateTransform( String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final double[] translation) {
-		super(TYPE, name, inputRef, outputRef);
-		this.translation = translation;
-		buildTransform( translation );
-	}
-
-	public TranslationCoordinateTransform( String name, final String inputSpace, final String outputSpace,
-			final N5Reader n5, final String path) {
-		super(TYPE, name, path, inputSpace, outputSpace );
-		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
-		this.translation = getParameters();
-		buildTransform( translation );
-	}
-
-	public TranslationCoordinateTransform( String name, final String inputSpace, final String outputSpace,
-			final String path) {
-		super(TYPE, name, path, inputSpace, outputSpace );
-		this.translation = null;
-	}
-
-	public TranslationCoordinateTransform(TranslationCoordinateTransform other) {
-		super(other);
-		this.translation = other.translation;
-	}
-
-	protected TranslationCoordinateTransform(TranslationCoordinateTransform other, TransformOptions copyParams) {
+	protected TranslationCoordinateTransform(TranslationCoordinateTransform other, TransformOptions<?> copyParams) {
 
 		super(other, copyParams);
-		if (other.translation != null)
-			buildTransform(other.translation.clone());
+		final double[] newTranslation = (copyParams instanceof TranslationOptions
+				&& ((TranslationOptions) copyParams).isTranslationSet())
+						? ((TranslationOptions) copyParams).getTranslation()
+						: other.translation;
+
+		if (newTranslation != null)
+			buildTransform(newTranslation.clone());
+	}
+
+	public static class TranslationOptions extends TransformOptions<TranslationOptions> {
+
+		private boolean translationSet = false;
+		private double[] translation;
+
+		public TranslationOptions withTranslation(double[] translation) {
+			this.translation = translation;
+			this.translationSet = true;
+			return this;
+		}
+
+		public boolean isTranslationSet() {
+			return translationSet;
+		}
+
+		public double[] getTranslation() {
+			return translation;
+		}
+	}
+
+	public static TranslationOptions options() {
+		return new TranslationOptions();
 	}
 
 	@Override
 	public TranslationCoordinateTransform copy() {
 
-		return copy(new TransformOptions());
+		return copy(new BasicOptions());
 	}
 
 	@Override
-	public TranslationCoordinateTransform copy(final TransformOptions copyParams) {
+	public TranslationCoordinateTransform copy(final TransformOptions<?> copyParams) {
 
 		return new TranslationCoordinateTransform(this, copyParams);
 	}

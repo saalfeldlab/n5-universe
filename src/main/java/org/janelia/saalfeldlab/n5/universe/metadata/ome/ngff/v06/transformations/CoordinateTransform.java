@@ -5,6 +5,7 @@ import java.util.Objects;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform.BasicOptions;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform.TransformOptions;
 
 import net.imglib2.realtransform.RealTransform;
@@ -55,14 +56,18 @@ public interface CoordinateTransform<T extends RealTransform> {
 	 * @return the copy
 	 * @throws UnsupportedOperationException if this transform does not support replacing one of the set fields
 	 */
-	public CoordinateTransform<T> copy(final TransformOptions copyParams);
+	public CoordinateTransform<T> copy(final TransformOptions<?> copyParams);
 
 	/**
 	 * @return a copy of this transform
 	 * @see #copy(TransformOptions)
 	 */
 	public default CoordinateTransform<T> copy() {
-		return copy(new TransformOptions());
+		return copy(new BasicOptions());
+	}
+
+	public static BasicOptions options() {
+		return new BasicOptions();
 	}
 
 	public String getName();
@@ -129,24 +134,6 @@ public interface CoordinateTransform<T extends RealTransform> {
 				return ((ByDimensionCoordinateTransform)ct).inverse();
 		} catch (final Exception e) {}
 
-		return null;
-	}
-
-	public static CoordinateTransform<?> create(CoordinateTransform<?> ct) {
-		if (ct instanceof CoordinateTransform) {
-			return (CoordinateTransform<?>) ct;
-		}
-
-		// TODO finish for the rest of the types
-		switch (ct.getType()) {
-		case IdentityCoordinateTransform.TYPE:
-			return new IdentityCoordinateTransform();
-		case ScaleCoordinateTransform.TYPE:
-			return new ScaleCoordinateTransform((ScaleCoordinateTransform) ct);
-		case TranslationCoordinateTransform.TYPE:
-			return new TranslationCoordinateTransform((TranslationCoordinateTransform) ct);
-
-		}
 		return null;
 	}
 

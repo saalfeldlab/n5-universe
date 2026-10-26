@@ -4,7 +4,6 @@ import org.ejml.data.DMatrixRMaj;
 import org.ejml.dense.row.CommonOps_DDRM;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
@@ -27,75 +26,61 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 		super(TYPE);
 	}
 
-	public RotationCoordinateTransform( RotationCoordinateTransform ct ) {
-		super( ct );
+	public RotationCoordinateTransform(final double[] affineFlat) {
+		this(new RotationOptions().withRotation(TransformUtils.toRotationMatrix(affineFlat)));
+		buildTransform(affineFlat);
 	}
 
-	protected RotationCoordinateTransform( RotationCoordinateTransform other, TransformOptions copyParams ) {
+	public RotationCoordinateTransform(final double[][] rotation) {
+		this(new RotationOptions().withRotation(rotation));
+	}
+
+	public RotationCoordinateTransform(RotationOptions options) {
+		super(TYPE, options);
+		if (options.rotation != null)
+			buildTransform(deepCopy(options.rotation));
+	}
+
+	protected RotationCoordinateTransform( RotationCoordinateTransform other, TransformOptions<?> copyParams ) {
 		super( other, copyParams );
-		if (other.rotation != null)
-			buildTransform(deepCopy(other.rotation));
+		final double[][] newRotation = (copyParams instanceof RotationOptions && ((RotationOptions) copyParams).isRotationSet())
+				? ((RotationOptions) copyParams).getRotation()
+				: other.rotation;
+
+		if (newRotation != null)
+			buildTransform(deepCopy(newRotation));
+	}
+
+	public static class RotationOptions extends TransformOptions<RotationOptions> {
+
+		private boolean rotationSet = false;
+		private double[][] rotation;
+
+		public RotationOptions withRotation(double[][] rotation) {
+			this.rotation = rotation;
+			this.rotationSet = true;
+			return this;
+		}
+
+		public boolean isRotationSet() {
+			return rotationSet;
+		}
+
+		public double[][] getRotation() {
+			return rotation;
+		}
 	}
 
 	@Override
 	public RotationCoordinateTransform copy() {
 
-		return copy(new TransformOptions());
+		return copy(new BasicOptions());
 	}
 
 	@Override
-	public RotationCoordinateTransform copy(final TransformOptions copyParams) {
+	public RotationCoordinateTransform copy(final TransformOptions<?> copyParams) {
 
 		return new RotationCoordinateTransform(this, copyParams);
-	}
-
-	public RotationCoordinateTransform(final double[] affineFlat) {
-		super(TYPE);
-		this.rotation = TransformUtils.toRotationMatrix(affineFlat);
-		buildTransform(affineFlat);
-	}
-
-	public RotationCoordinateTransform(final String name, final String inputSpace, final String outputSpace,
-			final double[] affineFlat) {
-		super(TYPE, name, inputSpace, outputSpace);
-		this.rotation = TransformUtils.toRotationMatrix(affineFlat);
-		buildTransform(affineFlat);
-	}
-
-	public RotationCoordinateTransform(final String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final double[] affineFlat) {
-		super(TYPE, name, inputRef, outputRef);
-		this.rotation = TransformUtils.toRotationMatrix(affineFlat);
-		buildTransform(affineFlat);
-	}
-
-	public RotationCoordinateTransform(final String name, final N5Reader n5, final String path,
-			final String inputSpace, final String outputSpace) {
-		super(TYPE, name, path, inputSpace, outputSpace );
-		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
-		buildTransform(getParameters());
-	}
-
-	public RotationCoordinateTransform(final double[][] affine) {
-		super(TYPE);
-		buildTransform(affine);
-	}
-
-	public RotationCoordinateTransform( final String name, final String inputSpace, final String outputSpace,
-			final double[][] affine) {
-		super(TYPE, name, inputSpace, outputSpace);
-		buildTransform(affine);
-	}
-
-	public RotationCoordinateTransform(final String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final double[][] affine) {
-		super(TYPE, name, inputRef, outputRef);
-		buildTransform(affine);
-	}
-
-	public RotationCoordinateTransform(final String name,
-			final String inputSpace, final String outputSpace, final String path) {
-		super(TYPE, name, path, inputSpace, outputSpace);
 	}
 
 	@Override

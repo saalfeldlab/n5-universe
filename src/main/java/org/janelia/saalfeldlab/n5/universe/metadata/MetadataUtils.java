@@ -14,10 +14,13 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform.BasicOptions;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform.ScaleOptions;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.SequenceCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform.TranslationOptions;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -147,17 +150,22 @@ public class MetadataUtils {
 
 		if (scale != null && translation != null)
 			return new CoordinateTransform<?>[]{
-					new SequenceCoordinateTransform(null, input, output,
-							new ScaleCoordinateTransform(scale),
-							new TranslationCoordinateTransform((String)null, translation))};
+					new SequenceCoordinateTransform(SequenceCoordinateTransform.options()
+							.withInput(input)
+							.withOutput(output)
+							.withTransformations(
+									new ScaleCoordinateTransform(scale),
+									new TranslationCoordinateTransform(translation)))};
 
 		if (scale != null)
 			return new CoordinateTransform<?>[]{
-					new ScaleCoordinateTransform(null, input, output, scale)};
+					new ScaleCoordinateTransform(new ScaleOptions()
+							.withScale(scale).withInput(input).withOutput(output))};
 
 		if (translation != null)
 			return new CoordinateTransform<?>[]{
-					new TranslationCoordinateTransform(null, input, output, translation)};
+					new TranslationCoordinateTransform(new TranslationOptions()
+							.withTranslation(translation).withInput(input).withOutput(output))};
 
 		return new CoordinateTransform<?>[0];
 	}
@@ -190,28 +198,14 @@ public class MetadataUtils {
 		final OmeNgffReference output = new OmeNgffReference(outputName, null);
 
 		if (cts.length == 1) {
-
-			final CoordinateTransform<?> ct = cts[0];
-
-			if (ct instanceof ScaleCoordinateTransform)
-				return new CoordinateTransform<?>[]{new ScaleCoordinateTransform(
-						ct.getName(), input, output, ((ScaleCoordinateTransform)ct).scale)};
-
-			if (ct instanceof TranslationCoordinateTransform)
-				return new CoordinateTransform<?>[]{new TranslationCoordinateTransform(
-						ct.getName(), input, output, ((TranslationCoordinateTransform)ct).translation)};
-
-			// already a sequence (e.g. a composed scale+translation): restamp its
-			// input/output references rather than wrapping it in another sequence,
-			// which would nest a sequence inside a sequence and defeat the
-			// affine flattening in TransformUtils.toAffine.
-			if (ct instanceof SequenceCoordinateTransform)
-				return new CoordinateTransform<?>[]{new SequenceCoordinateTransform(
-						ct.getName(), input, output, ((SequenceCoordinateTransform)ct).getTransformations())};
+			return new CoordinateTransform[] { cts[0].copy(CoordinateTransform.options().withInput(input).withOutput(output)) };
 		}
 
 		return new CoordinateTransform<?>[]{
-				new SequenceCoordinateTransform(null, input, output, cts)};
+				new SequenceCoordinateTransform(SequenceCoordinateTransform.options()
+						.withInput(input)
+						.withOutput(output)
+						.withTransformations(cts))};
 	}
 
 	public static ScaleAndTranslation scaleTranslationFromCoordinateTransformations(final CoordinateTransform<?>[] cts) {

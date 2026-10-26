@@ -5,7 +5,6 @@ import java.util.function.Supplier;
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5URI;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import net.imglib2.realtransform.RealTransform;
 
@@ -22,44 +21,21 @@ public abstract class AbstractParametrizedTransform<T extends RealTransform,P> e
 		path = null;
 	}
 
-	public AbstractParametrizedTransform( String type ) {
-		this( type, null );
-	}
-
-	public AbstractParametrizedTransform( String type, String name ) {
-		super( type, name );
-		this.path = null;
-	}
-
-	public AbstractParametrizedTransform( String type, String name, String inputSpace, String outputSpace ) {
-		this( type, name, null, inputSpace, outputSpace );
-	}
-
-	public AbstractParametrizedTransform( String type, String name, String parameterPath,
-			String inputSpace, String outputSpace ) {
-		super( type, name, inputSpace, outputSpace );
-		this.path = parameterPath;
-	}
-
-	public AbstractParametrizedTransform( String type, String name, OmeNgffReference inputRef, OmeNgffReference outputRef ) {
-		this( type, name, null, inputRef, outputRef );
-	}
-
-	public AbstractParametrizedTransform( String type, String name, String parameterPath,
-			OmeNgffReference inputRef, OmeNgffReference outputRef ) {
-		super( type, name, inputRef, outputRef );
-		this.path = parameterPath;
-	}
-
-	public AbstractParametrizedTransform( AbstractParametrizedTransform<T,P> other )
+	protected AbstractParametrizedTransform( String type )
 	{
-		super( other );
-		this.path = other.path;
-		this.absolutePath = other.absolutePath;
-		this.parameterSupplier = other.parameterSupplier;
+		this(type, new BasicOptions());
 	}
 
-	protected AbstractParametrizedTransform( AbstractParametrizedTransform<T,P> other, TransformOptions copyParams )
+	protected AbstractParametrizedTransform( String type, TransformOptions<?> copyParams )
+	{
+		super(type, copyParams);
+		this.path = copyParams.getPath();
+		// a new path has to be resolved again, and the transform needs binding
+		this.absolutePath = null;
+		this.parameterSupplier = null;
+	}
+
+	protected AbstractParametrizedTransform( AbstractParametrizedTransform<T,P> other, TransformOptions<?> copyParams )
 	{
 		super( other, copyParams );
 		this.path = copyParams.isPathSet() ? copyParams.getPath() : other.path;

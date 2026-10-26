@@ -54,7 +54,7 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 		this( name, inputRef, outputRef, Arrays.stream( transforms ).collect( Collectors.toList() ));
 	}
 
-	protected StackedCoordinateTransform( final StackedCoordinateTransform other, final TransformOptions copyParams )
+	protected StackedCoordinateTransform( final StackedCoordinateTransform other, final TransformOptions<?> copyParams )
 	{
 		super( other, copyParams );
 		this.transforms = other.transforms == null ? null
@@ -65,11 +65,11 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 	@Override
 	public StackedCoordinateTransform copy()
 	{
-		return copy( new TransformOptions() );
+		return copy( new BasicOptions() );
 	}
 
 	@Override
-	public StackedCoordinateTransform copy( final TransformOptions copyParams )
+	public StackedCoordinateTransform copy( final TransformOptions<?> copyParams )
 	{
 		return new StackedCoordinateTransform( this, copyParams );
 	}

@@ -68,7 +68,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		setTransformsAfterDeserialization();
 	}
 
-	protected ByDimensionCoordinateTransform( final ByDimensionCoordinateTransform other, final TransformOptions copyParams ) {
+	protected ByDimensionCoordinateTransform( final ByDimensionCoordinateTransform other, final TransformOptions<?> copyParams ) {
 		super(other, copyParams);
 		if (other.transformations != null) {
 			this.transformations = Arrays.stream(other.transformations)
@@ -80,11 +80,11 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 
 	@Override
 	public ByDimensionCoordinateTransform copy() {
-		return copy(new TransformOptions());
+		return copy(new BasicOptions());
 	}
 
 	@Override
-	public ByDimensionCoordinateTransform copy( final TransformOptions copyParams ) {
+	public ByDimensionCoordinateTransform copy( final TransformOptions<?> copyParams ) {
 		return new ByDimensionCoordinateTransform(this, copyParams);
 	}
 
@@ -237,7 +237,6 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 	public boolean isAffine() {
 
 		return Arrays.stream(transforms)
-				.map(CoordinateTransform::create)
 				.allMatch(x -> x.getTransform() instanceof AffineGet);
 	}
 

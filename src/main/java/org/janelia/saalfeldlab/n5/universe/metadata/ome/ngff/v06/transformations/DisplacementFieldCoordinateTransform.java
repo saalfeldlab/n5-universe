@@ -32,24 +32,24 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 
 	public DisplacementFieldCoordinateTransform( final String name, final RealRandomAccessible<RealComposite<T>> fields, final String interpolation,
 			final String input, final String output) {
-		super(TYPE, name, null, interpolation, input, output);
+		super(TYPE, new FieldOptions().withName(name).withInterpolation(interpolation).withInput(input).withOutput(output));
 		buildTransform( fields );
 	}
 
 	public DisplacementFieldCoordinateTransform( final String name, final RealRandomAccessible<RealComposite<T>> fields, final String interpolation,
 			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
-		super(TYPE, name, null, interpolation, inputRef, outputRef);
+		super(TYPE, new FieldOptions().withName(name).withInterpolation(interpolation).withInput(inputRef).withOutput(outputRef));
 		buildTransform( fields );
 	}
 
 	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation,
 			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
-		super(TYPE, name, path, interpolation, inputRef, outputRef);
+		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(inputRef).withOutput(outputRef));
 	}
 
 	public DisplacementFieldCoordinateTransform(final String name, final N5Reader n5, final String path, final String interpolation,
 			final String input, final String output) {
-		super(TYPE, name, path, interpolation, input, output);
+		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
 		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 	}
 
@@ -59,13 +59,13 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 	 */
 	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation,
 			final String input, final String output, final DisplacementFieldTransform transform ) {
-		super(TYPE, name, path, interpolation, input, output);
+		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
 		this.transform = transform;
 	}
 
 	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation,
 			final String input, final String output) {
-		super(TYPE, name, path, interpolation, input, output);
+		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
 	}
 
 	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation) {
@@ -76,7 +76,7 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		this( null, path, interpolation, (String)null, (String)null );
 	}
 
-	protected DisplacementFieldCoordinateTransform(final DisplacementFieldCoordinateTransform<T> other, final TransformOptions copyParams) {
+	protected DisplacementFieldCoordinateTransform(final DisplacementFieldCoordinateTransform<T> other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
 		// the built transform is not shared, since transforms are not thread safe
 		buildTransform(other.field);
@@ -85,11 +85,11 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 	@Override
 	public DisplacementFieldCoordinateTransform<T> copy() {
 
-		return copy(new TransformOptions());
+		return copy(new BasicOptions());
 	}
 
 	@Override
-	public DisplacementFieldCoordinateTransform<T> copy(final TransformOptions copyParams) {
+	public DisplacementFieldCoordinateTransform<T> copy(final TransformOptions<?> copyParams) {
 
 		return new DisplacementFieldCoordinateTransform<>(this, copyParams);
 	}

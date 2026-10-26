@@ -32,7 +32,7 @@ public class ReferencedCoordinateTransform<T extends RealTransform> extends Abst
 	@Override
 	public ReferencedCoordinateTransform<T> copy() {
 
-		return copy(new TransformOptions());
+		return copy(new BasicOptions());
 	}
 
 	/**
@@ -42,7 +42,7 @@ public class ReferencedCoordinateTransform<T extends RealTransform> extends Abst
 	 * @throws UnsupportedOperationException if any field is set in {@code copyParams}
 	 */
 	@Override
-	public ReferencedCoordinateTransform<T> copy(final TransformOptions copyParams) {
+	public ReferencedCoordinateTransform<T> copy(final TransformOptions<?> copyParams) {
 
 		if (copyParams.isNameSet() || copyParams.isInputSet() || copyParams.isOutputSet() || copyParams.isPathSet())
 			throw new UnsupportedOperationException(

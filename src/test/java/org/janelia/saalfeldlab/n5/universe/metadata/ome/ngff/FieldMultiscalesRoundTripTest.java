@@ -55,7 +55,8 @@ public class FieldMultiscalesRoundTripTest {
 			final OmeNgffMultiScaleMetadata.OmeNgffDataset dset = new OmeNgffMultiScaleMetadata.OmeNgffDataset();
 			dset.path = ".";
 			dset.coordinateTransformations = new CoordinateTransform[] {
-					new ScaleCoordinateTransform("", ".", "field", new double[] { 1, 2, 3 }) };
+					new ScaleCoordinateTransform(ScaleCoordinateTransform.options()
+							.withName("").withInput(".").withOutput("field").withScale(new double[] { 1, 2, 3 })) };
 
 			final OmeNgffMultiScaleMetadata ms = new OmeNgffMultiScaleMetadata(
 					3, "/", null, null, "0.5", null,

@@ -1,7 +1,8 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations;
 
+import java.util.Objects;
+
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import net.imglib2.RealRandomAccessible;
 import net.imglib2.realtransform.RealTransform;
@@ -22,37 +23,49 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 	protected transient int vectorAxisIndex;
 
 	public AbstractParametrizedFieldTransform(final String type) {
-		super(type);
-		interpolation = "linear";
+		this(type, new FieldOptions());
 	}
 
-	public AbstractParametrizedFieldTransform( final String type, final String name, final String input, final String output) {
-		this( type, name, null, LINEAR_INTERPOLATION, input, output);
+	protected AbstractParametrizedFieldTransform(final String type, final FieldOptions options) {
+		super(type, options);
+		this.interpolation = options.getInterpolation();
 	}
 
-	public AbstractParametrizedFieldTransform( final String type, final String name, final String parameterPath, final String interpolation,
-			final String input, final String output) {
-		super( type, name, parameterPath, input, output);
-		this.interpolation = interpolation;
-	}
-
-	public AbstractParametrizedFieldTransform( final String type, final String name,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
-		this( type, name, null, LINEAR_INTERPOLATION, inputRef, outputRef);
-	}
-
-	public AbstractParametrizedFieldTransform( final String type, final String name, final String parameterPath, final String interpolation,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
-		super( type, name, parameterPath, inputRef, outputRef);
-		this.interpolation = interpolation;
-	}
-
-	protected AbstractParametrizedFieldTransform(final AbstractParametrizedFieldTransform<T,S> other, final TransformOptions copyParams) {
+	protected AbstractParametrizedFieldTransform(final AbstractParametrizedFieldTransform<T,S> other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
+		// the field was read with the interpolation of the original, so it can not be changed here
+		if (copyParams instanceof FieldOptions && ((FieldOptions) copyParams).isInterpolationSet()
+				&& !Objects.equals(other.interpolation, ((FieldOptions) copyParams).getInterpolation()))
+			throw new UnsupportedOperationException("The interpolation of a field transform can not be changed when copying");
+
 		this.interpolation = other.interpolation;
 		// the field is immutable, so it can be shared. Subclasses rebuild their transform from it.
 		this.field = other.field;
 		this.vectorAxisIndex = other.vectorAxisIndex;
+	}
+
+	/**
+	 * {@link TransformOptions} for creating field transforms. The interpolation
+	 * defaults to {@link AbstractParametrizedFieldTransform#LINEAR_INTERPOLATION linear}.
+	 */
+	public static class FieldOptions extends TransformOptions<FieldOptions> {
+
+		private boolean interpolationSet = false;
+		private String interpolation = LINEAR_INTERPOLATION;
+
+		public FieldOptions withInterpolation(String interpolation) {
+			this.interpolation = interpolation;
+			this.interpolationSet = true;
+			return this;
+		}
+
+		public boolean isInterpolationSet() {
+			return interpolationSet;
+		}
+
+		public String getInterpolation() {
+			return interpolation;
+		}
 	}
 
 	public String getInterpolation() {

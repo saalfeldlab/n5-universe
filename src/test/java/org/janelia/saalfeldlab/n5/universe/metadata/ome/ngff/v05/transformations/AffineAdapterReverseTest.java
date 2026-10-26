@@ -120,9 +120,11 @@ public class AffineAdapterReverseTest {
 	 */
 	@Test
 	public void affineAndSiblingScaleAgree() {
-		final ScaleCoordinateTransform scale = new ScaleCoordinateTransform("s", "in", "mid", new double[] { 1, 2, 3 });
-		final SequenceCoordinateTransform seq = new SequenceCoordinateTransform("seq", "in", "out",
-				new CoordinateTransform[] { scale, sample() });
+		final ScaleCoordinateTransform scale = new ScaleCoordinateTransform(ScaleCoordinateTransform.options()
+				.withName("s").withInput("in").withOutput("mid").withScale(new double[] { 1, 2, 3 }));
+		final SequenceCoordinateTransform seq = new SequenceCoordinateTransform(SequenceCoordinateTransform.options()
+				.withName("seq").withInput("in").withOutput("out")
+				.withTransformations(scale, sample()));
 
 		for (final boolean reverse : new boolean[] { false, true }) {
 			final com.google.gson.JsonArray xfms = gsonHierarchy(reverse)

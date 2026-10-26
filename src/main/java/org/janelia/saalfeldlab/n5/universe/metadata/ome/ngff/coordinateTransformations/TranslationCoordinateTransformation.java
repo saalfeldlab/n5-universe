@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations;
 
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform.TransformOptions;
+
 import net.imglib2.realtransform.Translation;
 import net.imglib2.realtransform.Translation2D;
 import net.imglib2.realtransform.Translation3D;
@@ -16,8 +18,13 @@ public class TranslationCoordinateTransformation extends AbstractCoordinateTrans
 		this.translation = translation;
 	}
 
-	public TranslationCoordinateTransformation(TranslationCoordinateTransformation other) {
+	protected TranslationCoordinateTransformation(TranslationCoordinateTransformation other) {
 		this(other.translation);
+	}
+
+	protected TranslationCoordinateTransformation(TranslationCoordinateTransformation other, TransformOptions<?> copyParams) {
+		super(TYPE);
+		this.translation = other.translation == null ? null : other.translation.clone();
 	}
 
 	public double[] getTranslation() {
@@ -34,5 +41,15 @@ public class TranslationCoordinateTransformation extends AbstractCoordinateTrans
 			return new Translation3D( getTranslation() );
 		else
 			return new Translation( getTranslation() );
+	}
+
+	@Override
+	public TranslationCoordinateTransformation copy() {
+		return new TranslationCoordinateTransformation(this.translation);
+	}
+
+	@Override
+	public TranslationCoordinateTransformation copy(final TransformOptions<?> copyParams) {
+		return copy();
 	}
 }

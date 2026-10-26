@@ -8,15 +8,36 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform.TransformOptions;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform.BasicOptions;
 import org.junit.Test;
 
 public class CoordinateTransformCopyTest {
 
+	private static ScaleCoordinateTransform scale(final String name, final String input, final String output,
+			final double... scale) {
+
+		return new ScaleCoordinateTransform(ScaleCoordinateTransform.options()
+				.withName(name).withInput(input).withOutput(output).withScale(scale));
+	}
+
+	private static TranslationCoordinateTransform translation(final String name, final String input, final String output,
+			final double... translation) {
+
+		return new TranslationCoordinateTransform(TranslationCoordinateTransform.options()
+				.withName(name).withInput(input).withOutput(output).withTranslation(translation));
+	}
+
+	private static SequenceCoordinateTransform sequence(final String name, final String input, final String output,
+			final CoordinateTransform<?>... transformations) {
+
+		return new SequenceCoordinateTransform(SequenceCoordinateTransform.options()
+				.withName(name).withInput(input).withOutput(output).withTransformations(transformations));
+	}
+
 	@Test
 	public void testCopyKeepsFields() {
 
-		final ScaleCoordinateTransform ct = new ScaleCoordinateTransform("s", "in", "out", new double[]{2, 3});
+		final ScaleCoordinateTransform ct = scale("s", "in", "out", 2, 3);
 		final ScaleCoordinateTransform copy = ct.copy();
 
 		assertNotSame(ct, copy);
@@ -33,14 +54,14 @@ public class CoordinateTransformCopyTest {
 	@Test
 	public void testCopyReplacesSetFields() {
 
-		final TranslationCoordinateTransform ct = new TranslationCoordinateTransform("t", "in", "out", new double[]{1, 2});
+		final TranslationCoordinateTransform ct = translation("t", "in", "out", 1, 2);
 
-		final TranslationCoordinateTransform renamed = ct.copy(new TransformOptions().withName("t2"));
+		final TranslationCoordinateTransform renamed = ct.copy(new BasicOptions().withName("t2"));
 		assertEquals("t2", renamed.getName());
 		assertEquals("in", renamed.getInput().getName());
 		assertEquals("out", renamed.getOutput().getName());
 
-		final TranslationCoordinateTransform moved = ct.copy(new TransformOptions().withInput("a").withOutput("b"));
+		final TranslationCoordinateTransform moved = ct.copy(new BasicOptions().withInput("a").withOutput("b"));
 		assertEquals("t", moved.getName());
 		assertEquals("a", moved.getInput().getName());
 		assertEquals("b", moved.getOutput().getName());
@@ -54,7 +75,7 @@ public class CoordinateTransformCopyTest {
 	public void testCopySetToNull() {
 
 		final IdentityCoordinateTransform ct = new IdentityCoordinateTransform("id", "in", "out");
-		final IdentityCoordinateTransform copy = ct.copy(new TransformOptions().withName(null).withInput((String)null));
+		final IdentityCoordinateTransform copy = ct.copy(new BasicOptions().withName(null).withInput((String)null));
 
 		assertNull(copy.getName());
 		assertNull(copy.getInput());
@@ -77,11 +98,11 @@ public class CoordinateTransformCopyTest {
 	@Test
 	public void testSequenceCopiesChildren() {
 
-		final ScaleCoordinateTransform scale = new ScaleCoordinateTransform("s", "a", "b", new double[]{2, 2});
-		final TranslationCoordinateTransform translation = new TranslationCoordinateTransform("t", "b", "c", new double[]{1, 1});
-		final SequenceCoordinateTransform seq = new SequenceCoordinateTransform("seq", "a", "c", scale, translation);
+		final ScaleCoordinateTransform scale = scale("s", "a", "b", 2, 2);
+		final TranslationCoordinateTransform translation = translation("t", "b", "c", 1, 1);
+		final SequenceCoordinateTransform seq = sequence("seq", "a", "c", scale, translation);
 
-		final SequenceCoordinateTransform copy = seq.copy(new TransformOptions().withName("seq2"));
+		final SequenceCoordinateTransform copy = seq.copy(new BasicOptions().withName("seq2"));
 
 		assertEquals("seq2", copy.getName());
 		assertEquals(2, copy.getTransformations().length);
@@ -99,7 +120,7 @@ public class CoordinateTransformCopyTest {
 	@Test
 	public void testInverseCopiesWrapped() {
 
-		final ScaleCoordinateTransform scale = new ScaleCoordinateTransform("s", "a", "b", new double[]{2, 4});
+		final ScaleCoordinateTransform scale = scale("s", "a", "b", 2, 4);
 		final InverseCoordinateTransform<?, ?> inv = new InverseCoordinateTransform<>(scale);
 		final InverseCoordinateTransform<?, ?> copy = inv.copy();
 
@@ -116,17 +137,18 @@ public class CoordinateTransformCopyTest {
 	@Test
 	public void testWithPath() {
 
-		final ScaleCoordinateTransform ct = new ScaleCoordinateTransform("s", "in", "out", "a/scale");
+		final ScaleCoordinateTransform ct = new ScaleCoordinateTransform(ScaleCoordinateTransform.options()
+				.withName("s").withInput("in").withOutput("out").withPath("a/scale"));
 		assertEquals("a/scale", ct.getParameterPath());
 
-		final ScaleCoordinateTransform copy = ct.copy(new TransformOptions().withPath("b/scale"));
+		final ScaleCoordinateTransform copy = ct.copy(new BasicOptions().withPath("b/scale"));
 		assertEquals("b/scale", copy.getParameterPath());
 		assertEquals("a/scale", ct.getParameterPath());
 		assertEquals("s", copy.getName());
 
 		// unset keeps the path, null clears it
 		assertEquals("a/scale", ct.copy().getParameterPath());
-		assertNull(ct.copy(new TransformOptions().withPath(null)).getParameterPath());
+		assertNull(ct.copy(new BasicOptions().withPath(null)).getParameterPath());
 	}
 
 	@Test
@@ -137,7 +159,7 @@ public class CoordinateTransformCopyTest {
 		assertEquals("group/rel/affine", ct.getParameterPath());
 		assertEquals("group/rel/affine", ct.copy().getParameterPath());
 
-		final InvertibleAffineCoordinateTransform copy = ct.copy(new TransformOptions().withPath("other/affine"));
+		final InvertibleAffineCoordinateTransform copy = ct.copy(new BasicOptions().withPath("other/affine"));
 		assertEquals("other/affine", copy.getParameterPath());
 	}
 
@@ -146,7 +168,7 @@ public class CoordinateTransformCopyTest {
 
 		final InvertibleAffineCoordinateTransform ct = new InvertibleAffineCoordinateTransform(
 				"a", "in", "out", new double[][]{{1, 0, 5}, {0, 2, 6}});
-		final InvertibleAffineCoordinateTransform copy = ct.copy(new TransformOptions().withPath("some/path"));
+		final InvertibleAffineCoordinateTransform copy = ct.copy(new BasicOptions().withPath("some/path"));
 
 		assertEquals("some/path", copy.getParameterPath());
 		assertArrayEquals(ct.affine[1], copy.affine[1], 0.0);
@@ -157,13 +179,13 @@ public class CoordinateTransformCopyTest {
 	public void testWithPathUnsupported() {
 
 		try {
-			new IdentityCoordinateTransform("id", "in", "out").copy(new TransformOptions().withPath("p"));
+			new IdentityCoordinateTransform("id", "in", "out").copy(new BasicOptions().withPath("p"));
 			fail("identity has no parameter path");
 		} catch (final UnsupportedOperationException e) {}
 
 		try {
-			final ScaleCoordinateTransform scale = new ScaleCoordinateTransform("s", "a", "b", new double[]{2, 2});
-			new SequenceCoordinateTransform("seq", "a", "b", scale).copy(new TransformOptions().withPath("p"));
+			final ScaleCoordinateTransform scale = scale("s", "a", "b", 2, 2);
+			sequence("seq", "a", "b", scale).copy(new BasicOptions().withPath("p"));
 			fail("sequence has no parameter path");
 		} catch (final UnsupportedOperationException e) {}
 	}

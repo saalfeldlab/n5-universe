@@ -543,11 +543,10 @@ public class Common {
 		final Gson gson = gsonBuilder().create();
 		final JsonElement elem = gson.fromJson( string, JsonElement.class );
 
-//		final CoordinateTransformation ct = gson.fromJson( elem.getAsJsonArray().get( 0 ), CoordinateTransformation.class );
 		final CoordinateTransform<?> ct = gson.fromJson( elem, CoordinateTransform.class );
 		if( ct != null )
 		{
-			final CoordinateTransform< ? > nct = CoordinateTransform.create( ct );
+			final CoordinateTransform< ? > nct = ct.copy();
 			return nct;
 		} else if( elem.isJsonObject()) {
 			// TODO figure out what should be returned here
