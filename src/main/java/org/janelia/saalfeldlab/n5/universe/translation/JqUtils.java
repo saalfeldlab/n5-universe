@@ -21,12 +21,22 @@ import com.google.gson.GsonBuilder;
  */
 public class JqUtils {
 
-	public static GsonBuilder gsonBuilder( final N5Reader n5 ) {
-		final GsonBuilder gsonBuilder;
-		if (n5 instanceof GsonN5Reader) {
-			gsonBuilder = ((GsonN5Reader)n5).getGson().newBuilder();
-		} else gsonBuilder = new GsonBuilder();
-		gsonBuilder.registerTypeAdapter(SpatialTransform.class, new SpatialTransformAdapter( n5 ));
+	public static GsonBuilder gsonBuilder(final N5Reader n5) {
+		return gsonBuilder(n5 instanceof GsonN5Reader ? ((GsonN5Reader) n5).getGson() : null, n5);
+	}
+
+	/**
+	 * @param base
+	 * 		the {@code Gson} to extend (keeping its adapters), or {@code null}
+	 * 		to start from scratch
+	 * @param n5
+	 * 		the reader that {@link SpatialTransformAdapter} reads the
+	 * 		parameters of parametrized transforms from. It is only stored here,
+	 * 		and used during deserialization.
+	 */
+	public static GsonBuilder gsonBuilder(final Gson base, final N5Reader n5) {
+		final GsonBuilder gsonBuilder = base != null ? base.newBuilder() : new GsonBuilder();
+		gsonBuilder.registerTypeAdapter(SpatialTransform.class, new SpatialTransformAdapter(n5));
 		gsonBuilder.registerTypeAdapter(CanonicalMetadata.class, new CanonicalMetadataAdapter());
 		gsonBuilder.registerTypeAdapter(DataType.class, new DataType.JsonAdapter());
 		gsonBuilder.registerTypeAdapter(TransformAxes.class, new TransformAxesMetadataAdapter());
@@ -36,7 +46,7 @@ public class JqUtils {
 		return gsonBuilder;
 	}
 
-	public static Gson buildGson( final N5Reader n5 ) {
+	public static Gson buildGson(final N5Reader n5) {
 		return gsonBuilder(n5).create();
 	}
 

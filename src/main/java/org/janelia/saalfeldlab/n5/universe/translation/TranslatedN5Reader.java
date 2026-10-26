@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.translation;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import java.net.URI;
@@ -87,9 +88,15 @@ public class TranslatedN5Reader implements GsonN5Reader {
 		translated = new DirectoryStore(forward.translate(original));
 		inverse = new JqTranslation(dialect, invTranslation);
 
-		containerDialect = new NotifyingDialect(
-				delegate.getContainerDialect().withStore(translated),
-				this::onModified);
+		// NB: The canonical Gson is derived from the dialect *after* withStore,
+		// because withStore may change the Gson (Hdf5Dialect falls back to an
+		// N5Dialect with additional n5 type adapters).
+		// NB: `this` escapes into SpatialTransformAdapter before construction
+		// is complete. That is fine only because the adapter merely stores it,
+		// and uses it while deserializing, which never happens in here.
+		final ContainerDialect onTranslated = delegate.getContainerDialect().withStore(translated);
+		final Gson gson = JqUtils.gsonBuilder(onTranslated.getGson(), this).create();
+		containerDialect = new NotifyingDialect(onTranslated.withGson(gson), this::onModified);
 	}
 
 	@Override
