@@ -66,6 +66,11 @@ final class NotifyingDialect implements ContainerDialect {
 		return new NotifyingDialect(delegate.withStore(store), onModified);
 	}
 
+	@Override
+	public ContainerDialect withGson(final Gson gson) {
+		return new NotifyingDialect(delegate.withGson(gson), onModified);
+	}
+
 
 	// -- read: delegate only --
 
