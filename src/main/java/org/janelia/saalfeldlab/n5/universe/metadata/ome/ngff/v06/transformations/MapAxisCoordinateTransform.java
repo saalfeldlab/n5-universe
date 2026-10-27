@@ -22,7 +22,7 @@ public class MapAxisCoordinateTransform extends AbstractCoordinateTransform<Affi
 		super(TYPE);
 	}
 
-	private MapAxisCoordinateTransform(final MapAxisOptions options) {
+	private MapAxisCoordinateTransform(final Options options) {
 		super(TYPE, options);
 		this.mapAxis = options.axisMapping == null ? null : options.axisMapping.clone();
 
@@ -34,11 +34,11 @@ public class MapAxisCoordinateTransform extends AbstractCoordinateTransform<Affi
 		}
 	}
 
-	public static class MapAxisOptions extends TransformOptions<MapAxisOptions> {
+	public static class Options extends TransformOptions<Options> {
 
 		private int[] axisMapping;
 
-		public MapAxisOptions withAxisMapping(final int[] axisMapping) {
+		public Options withAxisMapping(final int[] axisMapping) {
 			this.axisMapping = axisMapping;
 			return this;
 		}
@@ -48,8 +48,8 @@ public class MapAxisCoordinateTransform extends AbstractCoordinateTransform<Affi
 		}
 	}
 
-	public static MapAxisOptions options() {
-		return new MapAxisOptions();
+	public static Options options() {
+		return new Options();
 	}
 
 	protected MapAxisCoordinateTransform(MapAxisCoordinateTransform other, TransformOptions<?> copyParams) {

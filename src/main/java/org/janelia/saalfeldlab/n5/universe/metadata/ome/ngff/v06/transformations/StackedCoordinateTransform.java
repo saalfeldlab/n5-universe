@@ -22,23 +22,23 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 
 	private transient RealTransform totalTransform;
 
-	private StackedCoordinateTransform( final StackedOptions options )
+	private StackedCoordinateTransform( final Options options )
 	{
 		super( TYPE, options );
 		this.transforms = options.transforms == null ? new ArrayList<>() : new ArrayList<>( options.transforms );
 	}
 
-	public static class StackedOptions extends TransformOptions<StackedOptions>
+	public static class Options extends TransformOptions<Options>
 	{
 		private List<SubAxisTransformation> transforms;
 
-		public StackedOptions withTransforms( final List<SubAxisTransformation> transforms )
+		public Options withTransforms( final List<SubAxisTransformation> transforms )
 		{
 			this.transforms = transforms;
 			return this;
 		}
 
-		public StackedOptions withTransforms( final SubAxisTransformation... transforms )
+		public Options withTransforms( final SubAxisTransformation... transforms )
 		{
 			return withTransforms( transforms == null ? null : Arrays.asList( transforms ) );
 		}
@@ -49,9 +49,9 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 		}
 	}
 
-	public static StackedOptions options()
+	public static Options options()
 	{
-		return new StackedOptions();
+		return new Options();
 	}
 
 	protected StackedCoordinateTransform( final StackedCoordinateTransform other, final TransformOptions<?> copyParams )

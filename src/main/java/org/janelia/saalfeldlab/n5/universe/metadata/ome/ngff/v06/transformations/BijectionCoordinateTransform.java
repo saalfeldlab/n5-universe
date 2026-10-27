@@ -18,7 +18,7 @@ public class BijectionCoordinateTransform extends AbstractCoordinateTransform<Ex
 		inverse = null;
 	}
 
-	private BijectionCoordinateTransform(final BijectionOptions options) {
+	private BijectionCoordinateTransform(final Options options) {
 		super(TYPE, options);
 		this.forward = options.forward;
 		this.inverse = options.inverse;
@@ -30,17 +30,17 @@ public class BijectionCoordinateTransform extends AbstractCoordinateTransform<Ex
 		this.inverse = other.inverse == null ? null : other.inverse.copy();
 	}
 
-	public static class BijectionOptions extends TransformOptions<BijectionOptions> {
+	public static class Options extends TransformOptions<Options> {
 
 		private CoordinateTransform<?> forward;
 		private CoordinateTransform<?> inverse;
 
-		public BijectionOptions withForward(final CoordinateTransform<?> forward) {
+		public Options withForward(final CoordinateTransform<?> forward) {
 			this.forward = forward;
 			return this;
 		}
 
-		public BijectionOptions withInverse(final CoordinateTransform<?> inverse) {
+		public Options withInverse(final CoordinateTransform<?> inverse) {
 			this.inverse = inverse;
 			return this;
 		}
@@ -50,8 +50,8 @@ public class BijectionCoordinateTransform extends AbstractCoordinateTransform<Ex
 		}
 	}
 
-	public static BijectionOptions options() {
-		return new BijectionOptions();
+	public static Options options() {
+		return new Options();
 	}
 
 	@Override

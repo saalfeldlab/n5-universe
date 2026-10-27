@@ -30,7 +30,7 @@ public class ThinPlateSplineCoordinateTransform extends AbstractCoordinateTransf
 				.withPoints(movingPoints, targetPoints));
 	}
 
-	private ThinPlateSplineCoordinateTransform(final ThinPlateSplineOptions options) {
+	private ThinPlateSplineCoordinateTransform(final Options options) {
 		super(TYPE, options);
 
 		if (options.kernelTransform != null) {
@@ -55,24 +55,24 @@ public class ThinPlateSplineCoordinateTransform extends AbstractCoordinateTransf
 	 * {@link #withPoints moving and target points}, or as a {@link #withTransform transform}
 	 * that has already been built.
 	 */
-	public static class ThinPlateSplineOptions extends TransformOptions<ThinPlateSplineOptions> {
+	public static class Options extends TransformOptions<Options> {
 
 		private double[][] movingPoints;
 		private double[][] targetPoints;
 		private ThinPlateR2LogRSplineKernelTransform kernelTransform;
 
-		public ThinPlateSplineOptions withPoints(final double[][] movingPoints, final double[][] targetPoints) {
+		public Options withPoints(final double[][] movingPoints, final double[][] targetPoints) {
 			this.movingPoints = movingPoints;
 			this.targetPoints = targetPoints;
 			this.kernelTransform = null;
 			return this;
 		}
 
-		public ThinPlateSplineOptions withTransform(final ThinplateSplineTransform tps) {
+		public Options withTransform(final ThinplateSplineTransform tps) {
 			return withTransform(tps.getKernelTransform());
 		}
 
-		public ThinPlateSplineOptions withTransform(final ThinPlateR2LogRSplineKernelTransform kernelTransform) {
+		public Options withTransform(final ThinPlateR2LogRSplineKernelTransform kernelTransform) {
 			this.kernelTransform = kernelTransform;
 			this.movingPoints = null;
 			this.targetPoints = null;
@@ -84,8 +84,8 @@ public class ThinPlateSplineCoordinateTransform extends AbstractCoordinateTransf
 		}
 	}
 
-	public static ThinPlateSplineOptions options() {
-		return new ThinPlateSplineOptions();
+	public static Options options() {
+		return new Options();
 	}
 
 	protected ThinPlateSplineCoordinateTransform(final ThinPlateSplineCoordinateTransform other, final TransformOptions<?> copyParams) {

@@ -25,14 +25,14 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 
 	public SequenceCoordinateTransform(
 			final CoordinateTransform<?>[] transformations) {
-		this(new SequenceOptions()
+		this(new Options()
 				.withName("")
 				.withInput(OmeNgffReference.DUMMY)
 				.withOutput(OmeNgffReference.DUMMY)
 				.withTransformations(transformations));
 	}
 
-	private SequenceCoordinateTransform(final SequenceOptions options) {
+	private SequenceCoordinateTransform(final Options options) {
 		super(TYPE, options);
 		// the transformations themselves are not copied, only the array that holds them
 		this.transformations = options.transformations == null
@@ -42,8 +42,8 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 
 	protected SequenceCoordinateTransform(final SequenceCoordinateTransform other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
-		if (copyParams instanceof SequenceOptions && ((SequenceOptions) copyParams).isTransformationsSet()) {
-			final CoordinateTransform<?>[] replacement = ((SequenceOptions) copyParams).getTransformations();
+		if (copyParams instanceof Options && ((Options) copyParams).isTransformationsSet()) {
+			final CoordinateTransform<?>[] replacement = ((Options) copyParams).getTransformations();
 			this.transformations = replacement == null ? null : replacement.clone();
 		} else if (other.transformations == null) {
 			this.transformations = null;
@@ -54,18 +54,18 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		}
 	}
 
-	public static class SequenceOptions extends TransformOptions<SequenceOptions> {
+	public static class Options extends TransformOptions<Options> {
 
 		private boolean transformationsSet = false;
 		private CoordinateTransform<?>[] transformations;
 
-		public SequenceOptions withTransformations(final CoordinateTransform<?>... transformations) {
+		public Options withTransformations(final CoordinateTransform<?>... transformations) {
 			this.transformations = transformations;
 			this.transformationsSet = true;
 			return this;
 		}
 
-		public SequenceOptions withTransformations(final List<? extends CoordinateTransform<?>> transformations) {
+		public Options withTransformations(final List<? extends CoordinateTransform<?>> transformations) {
 			return withTransformations(transformations == null ? null
 					: transformations.toArray(new CoordinateTransform<?>[0]));
 		}
@@ -83,8 +83,8 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		}
 	}
 
-	public static SequenceOptions options() {
-		return new SequenceOptions();
+	public static Options options() {
+		return new Options();
 	}
 
 	@Override

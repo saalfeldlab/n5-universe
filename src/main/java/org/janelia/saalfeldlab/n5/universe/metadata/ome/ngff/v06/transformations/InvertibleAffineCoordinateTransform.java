@@ -30,23 +30,23 @@ public class InvertibleAffineCoordinateTransform extends AbstractAffineCoordinat
 		return new InvertibleAffineCoordinateTransform(this, copyParams);
 	}
 
-	private InvertibleAffineCoordinateTransform(final InvertibleAffineOptions options) {
+	private InvertibleAffineCoordinateTransform(final Options options) {
 		super(options);
 	}
 
 	public InvertibleAffineCoordinateTransform(final double[][] affine) {
-		this(new InvertibleAffineOptions().withAffine(affine));
+		this(new Options().withAffine(affine));
 	}
 
-	public static class InvertibleAffineOptions extends AbstractAffineOptions<InvertibleAffineOptions> {
+	public static class Options extends AbstractAffineOptions<Options> {
 
 		public InvertibleAffineCoordinateTransform build() {
 			return new InvertibleAffineCoordinateTransform(this);
 		}
 	}
 
-	public static InvertibleAffineOptions options() {
-		return new InvertibleAffineOptions();
+	public static Options options() {
+		return new Options();
 	}
 
 	@Override

@@ -27,15 +27,15 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 	}
 
 	public RotationCoordinateTransform(final double[] affineFlat) {
-		this(new RotationOptions().withRotation(TransformUtils.toRotationMatrix(affineFlat)));
+		this(new Options().withRotation(TransformUtils.toRotationMatrix(affineFlat)));
 		buildTransform(affineFlat);
 	}
 
 	public RotationCoordinateTransform(final double[][] rotation) {
-		this(new RotationOptions().withRotation(rotation));
+		this(new Options().withRotation(rotation));
 	}
 
-	private RotationCoordinateTransform(RotationOptions options) {
+	private RotationCoordinateTransform(Options options) {
 		super(TYPE, options);
 		if (options.rotation != null)
 			buildTransform(deepCopy(options.rotation));
@@ -43,20 +43,20 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 
 	protected RotationCoordinateTransform( RotationCoordinateTransform other, TransformOptions<?> copyParams ) {
 		super( other, copyParams );
-		final double[][] newRotation = (copyParams instanceof RotationOptions && ((RotationOptions) copyParams).isRotationSet())
-				? ((RotationOptions) copyParams).getRotation()
+		final double[][] newRotation = (copyParams instanceof Options && ((Options) copyParams).isRotationSet())
+				? ((Options) copyParams).getRotation()
 				: other.rotation;
 
 		if (newRotation != null)
 			buildTransform(deepCopy(newRotation));
 	}
 
-	public static class RotationOptions extends TransformOptions<RotationOptions> {
+	public static class Options extends TransformOptions<Options> {
 
 		private boolean rotationSet = false;
 		private double[][] rotation;
 
-		public RotationOptions withRotation(double[][] rotation) {
+		public Options withRotation(double[][] rotation) {
 			this.rotation = rotation;
 			this.rotationSet = true;
 			return this;
@@ -75,8 +75,8 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 		}
 	}
 
-	public static RotationOptions options() {
-		return new RotationOptions();
+	public static Options options() {
+		return new Options();
 	}
 
 	@Override

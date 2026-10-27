@@ -22,10 +22,10 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 
 	public ScaleCoordinateTransform(final double[] scale) {
 		// less weird if we stored the options as the field
-		this(new ScaleOptions().withScale(scale));
+		this(new Options().withScale(scale));
 	}
 
-	private ScaleCoordinateTransform(ScaleOptions options) {
+	private ScaleCoordinateTransform(Options options) {
 		super(TYPE, options);
 		this.scale = options.scale;
 		if (this.scale != null)
@@ -35,21 +35,20 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 	protected ScaleCoordinateTransform(ScaleCoordinateTransform other, TransformOptions<?> copyParams) {
 
 		super(other, copyParams);
-		final double[] newScale = (copyParams instanceof ScaleOptions && ((ScaleOptions) copyParams).isScaleSet())
-				? ((ScaleOptions) copyParams).getScale()
+		final double[] newScale = (copyParams instanceof Options && ((Options) copyParams).isScaleSet())
+				? ((Options) copyParams).getScale()
 				: other.scale;
 
 		if (newScale != null)
 			buildTransform(newScale.clone());
 	}
 
-	// TODO rename to ScaleOptions
-	public static class ScaleOptions extends TransformOptions<ScaleOptions> {
+	public static class Options extends TransformOptions<Options> {
 
 		private boolean scaleSet = false;
 		private double[] scale;
 		
-		public ScaleOptions withScale(double[] scale){ 
+		public Options withScale(double[] scale){ 
 			this.scale = scale;
 			this.scaleSet = true;
 			return this;
@@ -69,8 +68,8 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 	}
 
 	// TODO return options that store the current configuration
-	public static ScaleOptions options() {
-		return new ScaleOptions();
+	public static Options options() {
+		return new Options();
 	}
 
 	@Override

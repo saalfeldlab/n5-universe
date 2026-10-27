@@ -32,7 +32,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		transformations = null;
 	}
 
-	private ByDimensionCoordinateTransform(final ByDimensionOptions options) {
+	private ByDimensionCoordinateTransform(final Options options) {
 		super(TYPE, options);
 		this.transformations = options.transformations == null
 				? new SubAxisTransformation[0]
@@ -44,11 +44,11 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 			validate(transformations, inputCoordinateSystem.numDimensions(), outputCoordinateSystem.numDimensions());
 	}
 
-	public static class ByDimensionOptions extends TransformOptions<ByDimensionOptions> {
+	public static class Options extends TransformOptions<Options> {
 
 		private SubAxisTransformation[] transformations;
 
-		public ByDimensionOptions withTransformations(final SubAxisTransformation... transformations) {
+		public Options withTransformations(final SubAxisTransformation... transformations) {
 			this.transformations = transformations;
 			return this;
 		}
@@ -58,8 +58,8 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		}
 	}
 
-	public static ByDimensionOptions options() {
-		return new ByDimensionOptions();
+	public static Options options() {
+		return new Options();
 	}
 
 	protected ByDimensionCoordinateTransform( final ByDimensionCoordinateTransform other, final TransformOptions<?> copyParams ) {

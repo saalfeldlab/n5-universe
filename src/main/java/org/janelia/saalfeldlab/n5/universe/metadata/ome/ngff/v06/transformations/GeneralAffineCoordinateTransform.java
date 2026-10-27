@@ -28,23 +28,23 @@ public class GeneralAffineCoordinateTransform extends AbstractAffineCoordinateTr
 		return new GeneralAffineCoordinateTransform(this, copyParams);
 	}
 
-	private GeneralAffineCoordinateTransform(final GeneralAffineOptions options) {
+	private GeneralAffineCoordinateTransform(final Options options) {
 		super(options);
 	}
 
 	public GeneralAffineCoordinateTransform(final double[][] affine) {
-		this(new GeneralAffineOptions().withAffine(affine));
+		this(new Options().withAffine(affine));
 	}
 
-	public static class GeneralAffineOptions extends AbstractAffineOptions<GeneralAffineOptions> {
+	public static class Options extends AbstractAffineOptions<Options> {
 
 		public GeneralAffineCoordinateTransform build() {
 			return new GeneralAffineCoordinateTransform(this);
 		}
 	}
 
-	public static GeneralAffineOptions options() {
-		return new GeneralAffineOptions();
+	public static Options options() {
+		return new Options();
 	}
 
 	@Override

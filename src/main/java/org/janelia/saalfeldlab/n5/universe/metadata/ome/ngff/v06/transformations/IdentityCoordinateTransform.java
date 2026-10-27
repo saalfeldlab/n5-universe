@@ -14,7 +14,7 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 		super(TYPE);
 	}
 
-	private IdentityCoordinateTransform(final IdentityOptions options) {
+	private IdentityCoordinateTransform(final Options options) {
 
 		super(TYPE, options);
 	}
@@ -24,15 +24,15 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 		super(other, copyParams);
 	}
 
-	public static class IdentityOptions extends TransformOptions<IdentityOptions> {
+	public static class Options extends TransformOptions<Options> {
 
 		public IdentityCoordinateTransform build() {
 			return new IdentityCoordinateTransform(this);
 		}
 	}
 
-	public static IdentityOptions options() {
-		return new IdentityOptions();
+	public static Options options() {
+		return new Options();
 	}
 
 	@Override

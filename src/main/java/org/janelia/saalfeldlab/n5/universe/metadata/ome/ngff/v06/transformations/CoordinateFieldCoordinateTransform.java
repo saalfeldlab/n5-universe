@@ -28,7 +28,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		super(TYPE);
 	}
 
-	private CoordinateFieldCoordinateTransform(final CoordinateFieldOptions<T> options) {
+	private CoordinateFieldCoordinateTransform(final Options<T> options) {
 		super(TYPE, options);
 		buildTransform(options.field);
 	}
@@ -36,7 +36,7 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 	protected CoordinateFieldCoordinateTransform(final CoordinateFieldCoordinateTransform<T> other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
 		// the field can not be replaced, since a path that is set refers to the field
-		if (copyParams instanceof CoordinateFieldOptions && ((CoordinateFieldOptions<?>) copyParams).isFieldSet())
+		if (copyParams instanceof Options && ((Options<?>) copyParams).isFieldSet())
 			throw new UnsupportedOperationException("The field of a coordinate field transform can not be changed when copying");
 
 		// the built transform is not shared, since transforms are not thread safe
@@ -50,12 +50,12 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 	 *
 	 * @param <T> the type of the field's values
 	 */
-	public static class CoordinateFieldOptions<T extends RealType<T>> extends AbstractFieldOptions<CoordinateFieldOptions<T>> {
+	public static class Options<T extends RealType<T>> extends AbstractFieldOptions<Options<T>> {
 
 		private boolean fieldSet = false;
 		private RealRandomAccessible<RealComposite<T>> field;
 
-		public CoordinateFieldOptions<T> withField(final RealRandomAccessible<RealComposite<T>> field) {
+		public Options<T> withField(final RealRandomAccessible<RealComposite<T>> field) {
 			this.field = field;
 			this.fieldSet = true;
 			return this;
@@ -74,8 +74,8 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		}
 	}
 
-	public static <T extends RealType<T>> CoordinateFieldOptions<T> options() {
-		return new CoordinateFieldOptions<>();
+	public static <T extends RealType<T>> Options<T> options() {
+		return new Options<>();
 	}
 
 	@Override

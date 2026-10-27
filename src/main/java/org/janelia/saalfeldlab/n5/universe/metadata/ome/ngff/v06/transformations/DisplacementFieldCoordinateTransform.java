@@ -28,7 +28,7 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		super(TYPE);
 	}
 
-	private DisplacementFieldCoordinateTransform(final DisplacementFieldOptions<T> options) {
+	private DisplacementFieldCoordinateTransform(final Options<T> options) {
 		super(TYPE, options);
 		buildTransform(options.field);
 	}
@@ -36,7 +36,7 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 	protected DisplacementFieldCoordinateTransform(final DisplacementFieldCoordinateTransform<T> other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
 		// the field can not be replaced, since a path that is set refers to the field
-		if (copyParams instanceof DisplacementFieldOptions && ((DisplacementFieldOptions<?>) copyParams).isFieldSet())
+		if (copyParams instanceof Options && ((Options<?>) copyParams).isFieldSet())
 			throw new UnsupportedOperationException("The field of a displacement field transform can not be changed when copying");
 
 		// the built transform is not shared, since transforms are not thread safe
@@ -50,12 +50,12 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 	 *
 	 * @param <T> the type of the field's values
 	 */
-	public static class DisplacementFieldOptions<T extends RealType<T>> extends AbstractFieldOptions<DisplacementFieldOptions<T>> {
+	public static class Options<T extends RealType<T>> extends AbstractFieldOptions<Options<T>> {
 
 		private boolean fieldSet = false;
 		private RealRandomAccessible<RealComposite<T>> field;
 
-		public DisplacementFieldOptions<T> withField(final RealRandomAccessible<RealComposite<T>> field) {
+		public Options<T> withField(final RealRandomAccessible<RealComposite<T>> field) {
 			this.field = field;
 			this.fieldSet = true;
 			return this;
@@ -74,8 +74,8 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		}
 	}
 
-	public static <T extends RealType<T>> DisplacementFieldOptions<T> options() {
-		return new DisplacementFieldOptions<>();
+	public static <T extends RealType<T>> Options<T> options() {
+		return new Options<>();
 	}
 
 	@Override

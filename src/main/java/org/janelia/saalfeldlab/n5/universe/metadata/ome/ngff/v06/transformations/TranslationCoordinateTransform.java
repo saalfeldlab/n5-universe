@@ -23,10 +23,10 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 	}
 
 	public TranslationCoordinateTransform(final double[] translation) {
-		this(new TranslationOptions().withTranslation(translation));
+		this(new Options().withTranslation(translation));
 	}
 
-	private TranslationCoordinateTransform(TranslationOptions options) {
+	private TranslationCoordinateTransform(Options options) {
 		super(TYPE, options);
 		this.translation = options.translation;
 		if (this.translation != null)
@@ -36,21 +36,21 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 	protected TranslationCoordinateTransform(TranslationCoordinateTransform other, TransformOptions<?> copyParams) {
 
 		super(other, copyParams);
-		final double[] newTranslation = (copyParams instanceof TranslationOptions
-				&& ((TranslationOptions) copyParams).isTranslationSet())
-						? ((TranslationOptions) copyParams).getTranslation()
+		final double[] newTranslation = (copyParams instanceof Options
+				&& ((Options) copyParams).isTranslationSet())
+						? ((Options) copyParams).getTranslation()
 						: other.translation;
 
 		if (newTranslation != null)
 			buildTransform(newTranslation.clone());
 	}
 
-	public static class TranslationOptions extends TransformOptions<TranslationOptions> {
+	public static class Options extends TransformOptions<Options> {
 
 		private boolean translationSet = false;
 		private double[] translation;
 
-		public TranslationOptions withTranslation(double[] translation) {
+		public Options withTranslation(double[] translation) {
 			this.translation = translation;
 			this.translationSet = true;
 			return this;
@@ -69,8 +69,8 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 		}
 	}
 
-	public static TranslationOptions options() {
-		return new TranslationOptions();
+	public static Options options() {
+		return new Options();
 	}
 
 	@Override

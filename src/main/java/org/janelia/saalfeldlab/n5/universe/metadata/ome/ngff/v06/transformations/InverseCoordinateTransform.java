@@ -11,7 +11,7 @@ public class InverseCoordinateTransform<T extends InvertibleRealTransform, C ext
 
 	protected C transform;
 
-	private InverseCoordinateTransform( final InverseOptions<T, C> options ) {
+	private InverseCoordinateTransform( final Options<T, C> options ) {
 		super(TYPE, options.withDefaults());
 		this.transform = options.transform;
 	}
@@ -23,7 +23,7 @@ public class InverseCoordinateTransform<T extends InvertibleRealTransform, C ext
 	 * @param ct the transform to invert
 	 */
 	public InverseCoordinateTransform( final C ct ) {
-		this( new InverseOptions<T, C>().withTransform(ct) );
+		this( new Options<T, C>().withTransform(ct) );
 	}
 
 	/**
@@ -34,17 +34,17 @@ public class InverseCoordinateTransform<T extends InvertibleRealTransform, C ext
 	 * @param <T> the type of the transform
 	 * @param <C> the type of the coordinate transform
 	 */
-	public static class InverseOptions<T extends InvertibleRealTransform, C extends InvertibleCoordinateTransform<T>>
-			extends TransformOptions<InverseOptions<T, C>> {
+	public static class Options<T extends InvertibleRealTransform, C extends InvertibleCoordinateTransform<T>>
+			extends TransformOptions<Options<T, C>> {
 
 		private C transform;
 
-		public InverseOptions<T, C> withTransform( final C transform ) {
+		public Options<T, C> withTransform( final C transform ) {
 			this.transform = transform;
 			return this;
 		}
 
-		private InverseOptions<T, C> withDefaults() {
+		private Options<T, C> withDefaults() {
 			if (transform != null) {
 				if (!isNameSet())
 					withName("inverted-" + transform.getName());
@@ -61,8 +61,8 @@ public class InverseCoordinateTransform<T extends InvertibleRealTransform, C ext
 		}
 	}
 
-	public static <T extends InvertibleRealTransform, C extends InvertibleCoordinateTransform<T>> InverseOptions<T, C> options() {
-		return new InverseOptions<>();
+	public static <T extends InvertibleRealTransform, C extends InvertibleCoordinateTransform<T>> Options<T, C> options() {
+		return new Options<>();
 	}
 
 	@SuppressWarnings("unchecked")
