@@ -2,11 +2,11 @@ package org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr3;
 
 import com.google.cloud.storage.Storage;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueAccess;
+import org.janelia.saalfeldlab.n5.googlecloud.GoogleCloudStorageKeyValueRoot;
 import org.janelia.saalfeldlab.n5.googlecloud.N5GoogleCloudStorageTests;
 import org.janelia.saalfeldlab.n5.googlecloud.backend.BackendGoogleCloudStorageFactory;
 import org.janelia.saalfeldlab.n5.googlecloud.mock.MockGoogleCloudStorageFactory;
-import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.factory.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.storage.zarr.ZarrStorageTests;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -21,17 +21,15 @@ public abstract class Zarr3GoogleCloudFactoryTest extends ZarrStorageTests.Zarr3
 
 	protected static String testBucket = N5GoogleCloudStorageTests.tempBucketName();
 	protected static Storage storage = null;
-	protected static N5Factory FACTORY = new N5Factory() {
-
-		@Override protected Storage createGoogleCloudStorage() {
-
-			return storage;
-		}
-	};
+	/* Pin the client through GoogleCloudOptions.clientProvider, the hook that replaces
+	 * overriding createGoogleCloudStorage() on the old factory. `storage` is set by each
+	 * subclass constructor, so it is read per dispatch rather than captured. */
+	protected static N5Factory FACTORY = new N5Factory()
+			.options(o -> o.backend().googleCloud().clientProvider(() -> storage));
 
 	@Override public Class<?> getBackendTargetClass() {
 
-		return GoogleCloudStorageKeyValueAccess.class;
+		return GoogleCloudStorageKeyValueRoot.class;
 	}
 
 	@AfterClass

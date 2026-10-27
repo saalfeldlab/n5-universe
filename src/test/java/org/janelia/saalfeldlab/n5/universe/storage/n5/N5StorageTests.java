@@ -4,8 +4,8 @@ import com.google.gson.GsonBuilder;
 import org.janelia.saalfeldlab.n5.AbstractN5Test;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.universe.N5Factory;
-import org.janelia.saalfeldlab.n5.universe.StorageFormat;
+import org.janelia.saalfeldlab.n5.universe.factory.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.factory.StorageFormat;
 import org.janelia.saalfeldlab.n5.universe.StorageSchemeWrappedN5Test;
 import org.junit.After;
 import org.junit.runner.RunWith;
@@ -45,7 +45,7 @@ public class N5StorageTests {
 
 		@Override protected N5Reader createN5Reader(String location, GsonBuilder gson) {
 
-			factory.gsonBuilder(gson);
+			factory.getOptions().gsonBuilder(gson);
 			return createN5Writer(location);
 		}
 
@@ -56,7 +56,7 @@ public class N5StorageTests {
 
 		@Override protected N5Writer createN5Writer(String location, GsonBuilder gson) {
 
-			factory.gsonBuilder(gson);
+			factory.getOptions().gsonBuilder(gson);
 			return createN5Writer(location);
 		}
 
