@@ -1,9 +1,10 @@
-# Shared jq definitions for translated containers, dialect independent.
+# Shared jq definitions for translated containers: values only.
+# They work on plain json (attribute objects, transforms, axes, affines, scale arrays)
+# and know nothing about Directory nodes or the dialect accessors. Definitions that
+# take a node or a tree belong in tree.jq.
 # Concatenated after dialect-<x>.jq and before tree.jq; see JqTranslation.
 
 def cleanPath: . | sub("^\\.(?<x>.*)\\/.+"; "\(.x)"; "g");
-
-def parentPath: if length <= 1 then "" elif length == 2 then .[0] else .[0:-1] | map(select( . != "children")) | join("/") end;
 
 def id3d: [1,0,0,0, 0,1,0,0, 0,0,1,0];
 
@@ -207,22 +208,11 @@ def ijAxes: .pixelUnit as $unit | ijDimensions as $czt |
      | if ($czt | .[1]) > 1 then . + [axis("z";"space";$unit)] else . end
      | if ($czt | .[2]) > 1 then . + [axis("t";"time";"s")] else . end;
 
-def isMultiChannel: type == "object" and has("children") and ( .children | has("c0"));
-
 def getScales: .multiscales | .[0] | .metadata | .scale;
 
 def arrMultiply( $s1; $s2 ): [$s1, $s2] | transpose | map(.[0] * .[1]) ;
 
 def scaleTransform( $scales ): { "type" : "scale", "scale" : $scales };
-
-def toTreePath: ltrimstr( "/") | split("/") | map_values( ["children", . ] ) | flatten;
-
-def fromTreePath: if (length == 0) then "" else [.[range(1;length;2)]] | join("/") end;
-
-def getSubTree( $path ): getpath( $path | toTreePath );
-
-def moveSubTree( $srcPath; $dstPath ): getSubTree( $srcPath ) as $subTree | setpath( $dstPath | toTreePath; $subTree )
-    | delpaths([$srcPath | toTreePath]);
 
 def canonicalAxis( $type; $lbl; $unit ): {
     "type" : $type,

@@ -36,10 +36,11 @@ import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
  * <p>
  * If the expression starts with {@code include "n5";}, that is replaced by the
  * shared definitions, assembled from three resources: the {@link
- * DialectInfo#jqResource() dialect accessors}, then {@code /common.jq} (value
- * helpers, dialect independent), then {@code /tree.jq} (definitions that
- * depend on the {@link Directory} tree shape). The order matters: each part may
- * only use definitions from the parts before it.
+ * DialectInfo#jqResource() dialect accessors}, then {@code /common.jq}
+ * (definitions on plain json values, which know nothing of nodes or dialects),
+ * then {@code /tree.jq} (definitions that take a {@link Directory} node or tree:
+ * children, tree paths, and the dialect accessors). The order matters: each part
+ * may only use definitions from the parts before it.
  */
 final class JqTranslation {
 
