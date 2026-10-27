@@ -20,11 +20,12 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 		super(TYPE);
 	}
 
-	public ScaleCoordinateTransform(final double[] scale ) {
+	public ScaleCoordinateTransform(final double[] scale) {
+		// less weird if we stored the options as the field
 		this(new ScaleOptions().withScale(scale));
 	}
 
-	public ScaleCoordinateTransform(ScaleOptions options) {
+	private ScaleCoordinateTransform(ScaleOptions options) {
 		super(TYPE, options);
 		this.scale = options.scale;
 		if (this.scale != null)
@@ -42,6 +43,7 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 			buildTransform(newScale.clone());
 	}
 
+	// TODO rename to ScaleOptions
 	public static class ScaleOptions extends TransformOptions<ScaleOptions> {
 
 		private boolean scaleSet = false;
@@ -60,8 +62,13 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 		public double[] getScale() {
 			return scale;
 		}
+
+		public ScaleCoordinateTransform build() {
+			return new ScaleCoordinateTransform(this);
+		}
 	}
 
+	// TODO return options that store the current configuration
 	public static ScaleOptions options() {
 		return new ScaleOptions();
 	}
@@ -77,6 +84,13 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 
 		return new ScaleCoordinateTransform(this, copyParams);
 	}
+	
+	void blah() {
+		copy(options().withInput("new_input"));
+//		CoordinateTransform ct = new ScaleCoordinateTransform(null);
+//		ct.options().withScale()
+	}
+
 
 	@Override
 	protected double[] readParameters(final N5Reader n5, final String path, final boolean reverse) {

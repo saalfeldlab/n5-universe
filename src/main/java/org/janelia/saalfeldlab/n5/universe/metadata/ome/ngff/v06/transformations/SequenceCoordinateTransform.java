@@ -32,7 +32,7 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 				.withTransformations(transformations));
 	}
 
-	public SequenceCoordinateTransform(final SequenceOptions options) {
+	private SequenceCoordinateTransform(final SequenceOptions options) {
 		super(TYPE, options);
 		// the transformations themselves are not copied, only the array that holds them
 		this.transformations = options.transformations == null
@@ -76,6 +76,10 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 
 		public CoordinateTransform<?>[] getTransformations() {
 			return transformations;
+		}
+
+		public SequenceCoordinateTransform build() {
+			return new SequenceCoordinateTransform(this);
 		}
 	}
 

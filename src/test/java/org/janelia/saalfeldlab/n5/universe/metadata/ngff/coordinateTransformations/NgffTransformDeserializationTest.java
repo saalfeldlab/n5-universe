@@ -64,9 +64,12 @@ public class NgffTransformDeserializationTest {
 	@Test
 	public void testByDimensionAxesRoundTrip() {
 
-		final ByDimensionCoordinateTransform bd = new ByDimensionCoordinateTransform("bd", "a", "b",
-				new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{1}, new int[]{1}),
-				new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{3.0, 4.0}), new int[]{0, 2}, new int[]{0, 2}));
+		final ByDimensionCoordinateTransform bd = ByDimensionCoordinateTransform.options()
+				.withName("bd").withInput("a").withOutput("b")
+				.withTransformations(
+						new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{1}, new int[]{1}),
+						new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{3.0, 4.0}), new int[]{0, 2}, new int[]{0, 2}))
+				.build();
 
 		final Gson gson = buildGson();
 		final CoordinateTransform<?> ct = gson.fromJson(gson.toJson(bd, CoordinateTransform.class), CoordinateTransform.class);
@@ -83,9 +86,12 @@ public class NgffTransformDeserializationTest {
 	@Test
 	public void testByDimensionInverseSwapsAxes() {
 
-		final ByDimensionCoordinateTransform bd = new ByDimensionCoordinateTransform("bd", "a", "b",
-				new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{0}, new int[]{1}),
-				new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{3.0}), new int[]{1}, new int[]{0}));
+		final ByDimensionCoordinateTransform bd = ByDimensionCoordinateTransform.options()
+				.withName("bd").withInput("a").withOutput("b")
+				.withTransformations(
+						new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{0}, new int[]{1}),
+						new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{3.0}), new int[]{1}, new int[]{0}))
+				.build();
 
 		final ByDimensionCoordinateTransform inv = bd.inverse();
 		assertNotNull("inverse", inv);
@@ -100,9 +106,12 @@ public class NgffTransformDeserializationTest {
 	@Test
 	public void testByDimensionIdentityChildTakesDimensionsFromAxes() {
 
-		final ByDimensionCoordinateTransform bd = new ByDimensionCoordinateTransform("bd", "a", "b",
-				new SubAxisTransformation(new IdentityCoordinateTransform(), new int[]{0, 1}, new int[]{0, 1}),
-				new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{2}, new int[]{2}));
+		final ByDimensionCoordinateTransform bd = ByDimensionCoordinateTransform.options()
+				.withName("bd").withInput("a").withOutput("b")
+				.withTransformations(
+						new SubAxisTransformation(new IdentityCoordinateTransform(), new int[]{0, 1}, new int[]{0, 1}),
+						new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{2}, new int[]{2}))
+				.build();
 
 		final RealTransform t = bd.getTransform();
 		assertEquals(3, t.numSourceDimensions());

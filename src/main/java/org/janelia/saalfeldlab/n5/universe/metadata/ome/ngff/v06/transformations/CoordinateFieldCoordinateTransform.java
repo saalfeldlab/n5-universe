@@ -2,13 +2,11 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformation
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
 import net.imglib2.RandomAccessibleInterval;
@@ -30,56 +28,54 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		super(TYPE);
 	}
 
-	public CoordinateFieldCoordinateTransform( final String name, final RealRandomAccessible<RealComposite<T>> field, final String interpolation,
-			final String input, final String output) {
-		super(TYPE, new FieldOptions().withName(name).withInterpolation(interpolation).withInput(input).withOutput(output));
-		buildTransform( field );
-	}
-
-	public CoordinateFieldCoordinateTransform( final String name, final RealRandomAccessible<RealComposite<T>> field, final String interpolation,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
-		super(TYPE, new FieldOptions().withName(name).withInterpolation(interpolation).withInput(inputRef).withOutput(outputRef));
-		buildTransform( field );
-	}
-
-	public CoordinateFieldCoordinateTransform( final String name, final String path, final String interpolation,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
-		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(inputRef).withOutput(outputRef));
-	}
-
-	public CoordinateFieldCoordinateTransform(final String name, final N5Reader n5, final String path, final String interpolation,
-			final String input, final String output) {
-		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
-		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
-	}
-
-	/**
-	 * A transform whose parameters are at {@code path}, with its transform already built,
-	 * e.g. from the field that was just written there.
-	 */
-	public CoordinateFieldCoordinateTransform( final String name, final String path, final String interpolation,
-			final String input, final String output, final PositionFieldTransform transform ) {
-		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
-		this.transform = transform;
-	}
-
-	public CoordinateFieldCoordinateTransform( final String name, final String path, final String interpolation,
-			final String input, final String output) {
-		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
-	}
-
-	public CoordinateFieldCoordinateTransform( final String name, final String path, final String interpolation) {
-		this( name, path, interpolation, (String)null, (String)null );
-	}
-
-	public CoordinateFieldCoordinateTransform(final String path, final String interpolation) {
-		this( null, path, interpolation, (String)null, (String)null );
+	private CoordinateFieldCoordinateTransform(final CoordinateFieldOptions<T> options) {
+		super(TYPE, options);
+		buildTransform(options.field);
 	}
 
 	protected CoordinateFieldCoordinateTransform(final CoordinateFieldCoordinateTransform<T> other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
+		// the field can not be replaced, since a path that is set refers to the field
+		if (copyParams instanceof CoordinateFieldOptions && ((CoordinateFieldOptions<?>) copyParams).isFieldSet())
+			throw new UnsupportedOperationException("The field of a coordinate field transform can not be changed when copying");
+
 		// the built transform is not shared, since transforms are not thread safe
 		buildTransform(other.field);
+	}
+
+	/**
+	 * Options for a coordinate field transform. A transform is given either the
+	 * {@link #withField field} itself, or a {@link #withPath path} to read it from, or both
+	 * (e.g. for a field that was just written to that path).
+	 *
+	 * @param <T> the type of the field's values
+	 */
+	public static class CoordinateFieldOptions<T extends RealType<T>> extends AbstractFieldOptions<CoordinateFieldOptions<T>> {
+
+		private boolean fieldSet = false;
+		private RealRandomAccessible<RealComposite<T>> field;
+
+		public CoordinateFieldOptions<T> withField(final RealRandomAccessible<RealComposite<T>> field) {
+			this.field = field;
+			this.fieldSet = true;
+			return this;
+		}
+
+		public boolean isFieldSet() {
+			return fieldSet;
+		}
+
+		public RealRandomAccessible<RealComposite<T>> getField() {
+			return field;
+		}
+
+		public CoordinateFieldCoordinateTransform<T> build() {
+			return new CoordinateFieldCoordinateTransform<>(this);
+		}
+	}
+
+	public static <T extends RealType<T>> CoordinateFieldOptions<T> options() {
+		return new CoordinateFieldOptions<>();
 	}
 
 	@Override
@@ -179,8 +175,14 @@ public class CoordinateFieldCoordinateTransform<T extends RealType<T>> extends A
 		final RealRandomAccessible<RealComposite<T>> field = FieldTransformParsing.buildField(
 				coordinateField, 0, interpolation, FieldTransformParsing.selectPixelToPhysical(transforms, input.getName()));
 
-		return new CoordinateFieldCoordinateTransform<>("", dataset, interpolation, input.getName(), output.getName(),
-				new PositionFieldTransform(field));
+		return CoordinateFieldCoordinateTransform.<T>options()
+				.withName("")
+				.withPath(dataset)
+				.withInterpolation(interpolation)
+				.withInput(input.getName())
+				.withOutput(output.getName())
+				.withField(field)
+				.build();
 	}
 
 	public static CoordinateSystem createPositionFieldCoordinateSystem(final CoordinateSystem output) {

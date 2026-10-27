@@ -43,8 +43,8 @@ public class FieldMultiscalesSerializeTest {
 		final OmeNgffMultiScaleMetadata.OmeNgffDataset dset = new OmeNgffMultiScaleMetadata.OmeNgffDataset();
 		dset.path = ".";
 		dset.coordinateTransformations = new CoordinateTransform[] {
-				new ScaleCoordinateTransform(ScaleCoordinateTransform.options()
-						.withName("").withInput(".").withOutput("field").withScale(new double[] { 1, 2, 3 })) };
+				ScaleCoordinateTransform.options()
+						.withName("").withInput(".").withOutput("field").withScale(new double[] { 1, 2, 3 }).build() };
 
 		return new OmeNgffMultiScaleMetadata(
 				3, "/", null, null, "0.5", null,

@@ -1,10 +1,10 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.graph.CoordinateSystems;
 
 import net.imglib2.realtransform.RealComponentMappingTransform;
@@ -14,44 +14,44 @@ import net.imglib2.realtransform.StackedRealTransform;
 
 public class StackedCoordinateTransform extends AbstractCoordinateTransform<RealTransform> {
 
+	public static final String TYPE = "stacked";
+
 	private final List<SubAxisTransformation> transforms;
 
 	private transient CoordinateSystems spaces;
 
 	private transient RealTransform totalTransform;
 
-	public StackedCoordinateTransform(
-			final String name,
-			final String inputSpace, final String outputSpace,
-			final List<SubAxisTransformation> transforms )
+	private StackedCoordinateTransform( final StackedOptions options )
 	{
-		super( "stacked", name, inputSpace, outputSpace );
-		this.transforms = transforms;
+		super( TYPE, options );
+		this.transforms = options.transforms == null ? new ArrayList<>() : new ArrayList<>( options.transforms );
 	}
 
-	public StackedCoordinateTransform(
-			final String name,
-			final String inputSpace, final String outputSpace,
-			final SubAxisTransformation[] transforms )
+	public static class StackedOptions extends TransformOptions<StackedOptions>
 	{
-		this( name, inputSpace, outputSpace, Arrays.stream( transforms ).collect( Collectors.toList() ));
+		private List<SubAxisTransformation> transforms;
+
+		public StackedOptions withTransforms( final List<SubAxisTransformation> transforms )
+		{
+			this.transforms = transforms;
+			return this;
+		}
+
+		public StackedOptions withTransforms( final SubAxisTransformation... transforms )
+		{
+			return withTransforms( transforms == null ? null : Arrays.asList( transforms ) );
+		}
+
+		public StackedCoordinateTransform build()
+		{
+			return new StackedCoordinateTransform( this );
+		}
 	}
 
-	public StackedCoordinateTransform(
-			final String name,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final List<SubAxisTransformation> transforms )
+	public static StackedOptions options()
 	{
-		super( "stacked", name, inputRef, outputRef );
-		this.transforms = transforms;
-	}
-
-	public StackedCoordinateTransform(
-			final String name,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final SubAxisTransformation[] transforms )
-	{
-		this( name, inputRef, outputRef, Arrays.stream( transforms ).collect( Collectors.toList() ));
+		return new StackedOptions();
 	}
 
 	protected StackedCoordinateTransform( final StackedCoordinateTransform other, final TransformOptions<?> copyParams )

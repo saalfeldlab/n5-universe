@@ -55,8 +55,8 @@ public class FieldMultiscalesRoundTripTest {
 			final OmeNgffMultiScaleMetadata.OmeNgffDataset dset = new OmeNgffMultiScaleMetadata.OmeNgffDataset();
 			dset.path = ".";
 			dset.coordinateTransformations = new CoordinateTransform[] {
-					new ScaleCoordinateTransform(ScaleCoordinateTransform.options()
-							.withName("").withInput(".").withOutput("field").withScale(new double[] { 1, 2, 3 })) };
+					ScaleCoordinateTransform.options()
+							.withName("").withInput(".").withOutput("field").withScale(new double[] { 1, 2, 3 }).build() };
 
 			final OmeNgffMultiScaleMetadata ms = new OmeNgffMultiScaleMetadata(
 					3, "/", null, null, "0.5", null,
@@ -85,8 +85,10 @@ public class FieldMultiscalesRoundTripTest {
 			assertEquals(3.0, scale[2], 1e-9);
 
 			// full field read: parseVectorAxisIndex reads coordinateSystems from multiscales
-			final DisplacementFieldCoordinateTransform<FloatType> df =
-					new DisplacementFieldCoordinateTransform<>("df", zarr, GROUP, "linear", "field", "world");
+			final DisplacementFieldCoordinateTransform<FloatType> df = DisplacementFieldCoordinateTransform.<FloatType>options()
+					.withName("df").withPath(GROUP).withInterpolation("linear").withInput("field").withOutput("world")
+					.build();
+			df.bindParameters(zarr, OmeNgffMetadataParser.storesDimensionsReversed(zarr));
 			assertEquals("displacement axis index", 0, FieldTransformParsing.parseVectorAxisIndex(zarr, df.getParameterPath(), df.getVectorAxisType()));
 			assertNotNull("field parameters resolve end-to-end", df.getParameters());
 		}

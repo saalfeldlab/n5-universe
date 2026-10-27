@@ -41,6 +41,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
 import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.numeric.real.FloatType;
 
 public class SceneParsingTest {
 
@@ -289,13 +290,19 @@ public class SceneParsingTest {
 
 		final double[] translation = new double[]{1, 2, 3};
 		final CoordinateTransform<?>[] cts = new CoordinateTransform[]{
-				new TranslationCoordinateTransform(TranslationCoordinateTransform.options()
+				TranslationCoordinateTransform.options()
 						.withName("CBCT_to_world")
 						.withInput(new OmeNgffReference("physical", "CBCT"))
 						.withOutput(new OmeNgffReference("world"))
-						.withTranslation(translation)),
-				new DisplacementFieldCoordinateTransform<>("A_to_B", "coordinateTransformations/dfield", "linear",
-						new OmeNgffReference("physical", "A"), new OmeNgffReference("physical", "B"))};
+						.withTranslation(translation)
+						.build(),
+				DisplacementFieldCoordinateTransform.<FloatType>options()
+						.withName("A_to_B")
+						.withPath("coordinateTransformations/dfield")
+						.withInterpolation("linear")
+						.withInput(new OmeNgffReference("physical", "A"))
+						.withOutput(new OmeNgffReference("physical", "B"))
+						.build()};
 
 		final File root = Files.createTempDirectory("scene-write-").toFile();
 		root.deleteOnExit();
@@ -347,8 +354,12 @@ public class SceneParsingTest {
 			zarr.setAttribute("", OmeNgffSceneParser.VERSION_KEY, "0.6.dev4");
 
 			final CoordinateTransform<?>[] cts = new CoordinateTransform[]{
-					new DisplacementFieldCoordinateTransform<>(null, "coordinateTransformations/dfield", "linear",
-							new OmeNgffReference("physical", "A"), new OmeNgffReference("physical", "B"))};
+					DisplacementFieldCoordinateTransform.<FloatType>options()
+							.withPath("coordinateTransformations/dfield")
+							.withInterpolation("linear")
+							.withInput(new OmeNgffReference("physical", "A"))
+							.withOutput(new OmeNgffReference("physical", "B"))
+							.build()};
 
 			new OmeNgffSceneParser(zarr).writeMetadata(new NgffSceneMetadata("", new NgffScene(cts)), zarr, "");
 

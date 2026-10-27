@@ -2,13 +2,11 @@ package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformation
 
 import org.janelia.saalfeldlab.n5.Compression;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 
 import net.imglib2.RandomAccessibleInterval;
@@ -30,56 +28,54 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		super(TYPE);
 	}
 
-	public DisplacementFieldCoordinateTransform( final String name, final RealRandomAccessible<RealComposite<T>> fields, final String interpolation,
-			final String input, final String output) {
-		super(TYPE, new FieldOptions().withName(name).withInterpolation(interpolation).withInput(input).withOutput(output));
-		buildTransform( fields );
-	}
-
-	public DisplacementFieldCoordinateTransform( final String name, final RealRandomAccessible<RealComposite<T>> fields, final String interpolation,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
-		super(TYPE, new FieldOptions().withName(name).withInterpolation(interpolation).withInput(inputRef).withOutput(outputRef));
-		buildTransform( fields );
-	}
-
-	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef) {
-		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(inputRef).withOutput(outputRef));
-	}
-
-	public DisplacementFieldCoordinateTransform(final String name, final N5Reader n5, final String path, final String interpolation,
-			final String input, final String output) {
-		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
-		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
-	}
-
-	/**
-	 * A transform whose parameters are at {@code path}, with its transform already built,
-	 * e.g. from the field that was just written there.
-	 */
-	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation,
-			final String input, final String output, final DisplacementFieldTransform transform ) {
-		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
-		this.transform = transform;
-	}
-
-	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation,
-			final String input, final String output) {
-		super(TYPE, new FieldOptions().withName(name).withPath(path).withInterpolation(interpolation).withInput(input).withOutput(output));
-	}
-
-	public DisplacementFieldCoordinateTransform( final String name, final String path, final String interpolation) {
-		this( name, path, interpolation, (String)null, (String)null );
-	}
-
-	public DisplacementFieldCoordinateTransform(final String path, final String interpolation) {
-		this( null, path, interpolation, (String)null, (String)null );
+	private DisplacementFieldCoordinateTransform(final DisplacementFieldOptions<T> options) {
+		super(TYPE, options);
+		buildTransform(options.field);
 	}
 
 	protected DisplacementFieldCoordinateTransform(final DisplacementFieldCoordinateTransform<T> other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
+		// the field can not be replaced, since a path that is set refers to the field
+		if (copyParams instanceof DisplacementFieldOptions && ((DisplacementFieldOptions<?>) copyParams).isFieldSet())
+			throw new UnsupportedOperationException("The field of a displacement field transform can not be changed when copying");
+
 		// the built transform is not shared, since transforms are not thread safe
 		buildTransform(other.field);
+	}
+
+	/**
+	 * Options for a displacement field transform. A transform is given either the
+	 * {@link #withField field} itself, or a {@link #withPath path} to read it from, or both
+	 * (e.g. for a field that was just written to that path).
+	 *
+	 * @param <T> the type of the field's values
+	 */
+	public static class DisplacementFieldOptions<T extends RealType<T>> extends AbstractFieldOptions<DisplacementFieldOptions<T>> {
+
+		private boolean fieldSet = false;
+		private RealRandomAccessible<RealComposite<T>> field;
+
+		public DisplacementFieldOptions<T> withField(final RealRandomAccessible<RealComposite<T>> field) {
+			this.field = field;
+			this.fieldSet = true;
+			return this;
+		}
+
+		public boolean isFieldSet() {
+			return fieldSet;
+		}
+
+		public RealRandomAccessible<RealComposite<T>> getField() {
+			return field;
+		}
+
+		public DisplacementFieldCoordinateTransform<T> build() {
+			return new DisplacementFieldCoordinateTransform<>(this);
+		}
+	}
+
+	public static <T extends RealType<T>> DisplacementFieldOptions<T> options() {
+		return new DisplacementFieldOptions<>();
 	}
 
 	@Override
@@ -185,8 +181,14 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		final RealRandomAccessible<RealComposite<T>> field = FieldTransformParsing.buildField(
 				displacementField, 0, interpolation, FieldTransformParsing.selectPixelToPhysical(transforms, input.getName()));
 
-		return new DisplacementFieldCoordinateTransform<>("", dataset, interpolation, input.getName(), output.getName(),
-				new DisplacementFieldTransform(field));
+		return DisplacementFieldCoordinateTransform.<T>options()
+				.withName("")
+				.withPath(dataset)
+				.withInterpolation(interpolation)
+				.withInput(input.getName())
+				.withOutput(output.getName())
+				.withField(field)
+				.build();
 	}
 
 	public static CoordinateSystem createVectorFieldCoordinateSystem(final CoordinateSystem output) {

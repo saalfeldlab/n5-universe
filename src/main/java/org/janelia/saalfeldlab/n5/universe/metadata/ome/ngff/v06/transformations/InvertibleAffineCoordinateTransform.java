@@ -1,8 +1,5 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations;
 
-import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 
 import net.imglib2.realtransform.AffineGet;
@@ -33,39 +30,23 @@ public class InvertibleAffineCoordinateTransform extends AbstractAffineCoordinat
 		return new InvertibleAffineCoordinateTransform(this, copyParams);
 	}
 
-	public InvertibleAffineCoordinateTransform(final AffineOptions options) {
+	private InvertibleAffineCoordinateTransform(final InvertibleAffineOptions options) {
 		super(options);
 	}
 
 	public InvertibleAffineCoordinateTransform(final double[][] affine) {
-		this(new AffineOptions().withAffine(affine));
+		this(new InvertibleAffineOptions().withAffine(affine));
 	}
 
-	public InvertibleAffineCoordinateTransform(final String name, final String inputSpace,
-			final String outputSpace, final double[][] affine) {
-		this(new AffineOptions().withName(name).withInput(inputSpace).withOutput(outputSpace).withAffine(affine));
+	public static class InvertibleAffineOptions extends AbstractAffineOptions<InvertibleAffineOptions> {
+
+		public InvertibleAffineCoordinateTransform build() {
+			return new InvertibleAffineCoordinateTransform(this);
+		}
 	}
 
-	public InvertibleAffineCoordinateTransform(final String name, final OmeNgffReference inputRef,
-			final OmeNgffReference outputRef, final double[][] affine) {
-		this(new AffineOptions().withName(name).withInput(inputRef).withOutput(outputRef).withAffine(affine));
-	}
-
-	public InvertibleAffineCoordinateTransform(final String name, final N5Reader n5, final String path,
-			final String inputSpace, final String outputSpace) {
-		this(new AffineOptions().withName(name).withInput(inputSpace).withOutput(outputSpace).withPath(path));
-		bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
-		buildTransform(getParameters());
-	}
-
-	public InvertibleAffineCoordinateTransform(final String name,
-			final String inputSpace, final String outputSpace, final String path) {
-		this(new AffineOptions().withName(name).withInput(inputSpace).withOutput(outputSpace).withPath(path));
-	}
-
-	public InvertibleAffineCoordinateTransform(final String name,
-			final OmeNgffReference inputSpace, final OmeNgffReference outputSpace, final String path) {
-		this(new AffineOptions().withName(name).withInput(inputSpace).withOutput(outputSpace).withPath(path));
+	public static InvertibleAffineOptions options() {
+		return new InvertibleAffineOptions();
 	}
 
 	@Override

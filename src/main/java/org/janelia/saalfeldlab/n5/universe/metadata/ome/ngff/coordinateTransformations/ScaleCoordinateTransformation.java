@@ -24,15 +24,6 @@ public class ScaleCoordinateTransformation extends AbstractCoordinateTransformat
 		this.scale = options.getScale();
 	}
 
-	protected  ScaleCoordinateTransformation(ScaleCoordinateTransformation other) {
-		this(other.scale);
-	}
-
-	protected ScaleCoordinateTransformation(ScaleCoordinateTransformation other, TransformOptions<?> copyParams) {
-		super(TYPE);
-		this.scale = other.scale == null ? null : other.scale.clone();
-	}
-
 	public double[] getScale() {
 		return scale;
 	}

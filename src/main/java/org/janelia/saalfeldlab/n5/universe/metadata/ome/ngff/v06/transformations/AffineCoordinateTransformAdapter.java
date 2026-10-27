@@ -80,9 +80,19 @@ public class AffineCoordinateTransformAdapter implements
 			final GeneralAffineCoordinateTransform base = BASE_GSON.fromJson(jobj, GeneralAffineCoordinateTransform.class);
 			final AbstractAffineCoordinateTransform tf;
 			if (affine != null && sourceDimsEqualTargetDims(affine)) {
-				tf = new InvertibleAffineCoordinateTransform(base.getName(), base.getInput(), base.getOutput(), affine);
+				tf = InvertibleAffineCoordinateTransform.options()
+						.withName(base.getName())
+						.withInput(base.getInput())
+						.withOutput(base.getOutput())
+						.withAffine(affine)
+						.build();
 			} else {
-				tf = new GeneralAffineCoordinateTransform(base.getName(), base.getInput(), base.getOutput(), affine);
+				tf = GeneralAffineCoordinateTransform.options()
+						.withName(base.getName())
+						.withInput(base.getInput())
+						.withOutput(base.getOutput())
+						.withAffine(affine)
+						.build();
 			}
 			return tf;
 		} else {

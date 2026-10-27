@@ -17,10 +17,8 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform.BasicOptions;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform.ScaleOptions;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.SequenceCoordinateTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform.TranslationOptions;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -150,22 +148,23 @@ public class MetadataUtils {
 
 		if (scale != null && translation != null)
 			return new CoordinateTransform<?>[]{
-					new SequenceCoordinateTransform(SequenceCoordinateTransform.options()
+					SequenceCoordinateTransform.options()
 							.withInput(input)
 							.withOutput(output)
 							.withTransformations(
 									new ScaleCoordinateTransform(scale),
-									new TranslationCoordinateTransform(translation)))};
+									new TranslationCoordinateTransform(translation))
+							.build()};
 
 		if (scale != null)
 			return new CoordinateTransform<?>[]{
-					new ScaleCoordinateTransform(new ScaleOptions()
-							.withScale(scale).withInput(input).withOutput(output))};
+					ScaleCoordinateTransform.options()
+							.withScale(scale).withInput(input).withOutput(output).build()};
 
 		if (translation != null)
 			return new CoordinateTransform<?>[]{
-					new TranslationCoordinateTransform(new TranslationOptions()
-							.withTranslation(translation).withInput(input).withOutput(output))};
+					TranslationCoordinateTransform.options()
+							.withTranslation(translation).withInput(input).withOutput(output).build()};
 
 		return new CoordinateTransform<?>[0];
 	}
@@ -198,14 +197,15 @@ public class MetadataUtils {
 		final OmeNgffReference output = new OmeNgffReference(outputName, null);
 
 		if (cts.length == 1) {
-			return new CoordinateTransform[] { cts[0].copy(CoordinateTransform.options().withInput(input).withOutput(output)) };
+			return new CoordinateTransform[] { cts[0].copy(new BasicOptions().withInput(input).withOutput(output)) };
 		}
 
 		return new CoordinateTransform<?>[]{
-				new SequenceCoordinateTransform(SequenceCoordinateTransform.options()
+				SequenceCoordinateTransform.options()
 						.withInput(input)
 						.withOutput(output)
-						.withTransformations(cts))};
+						.withTransformations(cts)
+						.build()};
 	}
 
 	public static ScaleAndTranslation scaleTranslationFromCoordinateTransformations(final CoordinateTransform<?>[] cts) {

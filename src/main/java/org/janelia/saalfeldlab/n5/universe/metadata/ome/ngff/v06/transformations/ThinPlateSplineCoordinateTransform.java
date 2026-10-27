@@ -26,80 +26,66 @@ public class ThinPlateSplineCoordinateTransform extends AbstractCoordinateTransf
 	public ThinPlateSplineCoordinateTransform(
 			final double[][] movingPoints,
 			final double[][] targetPoints) {
-		this("", OmeNgffReference.DUMMY, OmeNgffReference.DUMMY, 
-				movingPoints, targetPoints );
+		this(options().withName("").withInput(OmeNgffReference.DUMMY).withOutput(OmeNgffReference.DUMMY)
+				.withPoints(movingPoints, targetPoints));
 	}
 
-	public ThinPlateSplineCoordinateTransform(
-			final String input, final String output,
-			final double[][] movingPoints,
-			final double[][] targetPoints) {
-		this("", input, output, movingPoints, targetPoints );
+	private ThinPlateSplineCoordinateTransform(final ThinPlateSplineOptions options) {
+		super(TYPE, options);
+
+		if (options.kernelTransform != null) {
+			final ThinPlateR2LogRSplineKernelTransform kernel = options.kernelTransform;
+			this.movingPoints = kernel.getSourceLandmarks();
+			this.affine = kernel.getAffine();
+			this.translation = kernel.getTranslation();
+			this.weights = kernel.getKnotWeights();
+
+			this.tps = new ThinplateSplineTransform(kernel);
+			numDimensions = this.tps.numSourceDimensions();
+		} else if (options.movingPoints != null && options.targetPoints != null) {
+			this.movingPoints = options.movingPoints;
+			this.targetPoints = options.targetPoints;
+			this.tps = new ThinplateSplineTransform(movingPoints, targetPoints);
+			numDimensions = movingPoints.length;
+		}
 	}
 
-	public ThinPlateSplineCoordinateTransform( final String name,
-			final String input, final String output,
-			final double[][] movingPoints,
-			final double[][] targetPoints) {
-		super(TYPE, name, input, output);
-		this.movingPoints = movingPoints;
-		this.targetPoints = targetPoints;
-		this.tps = new ThinplateSplineTransform(movingPoints, targetPoints);
-		numDimensions = movingPoints.length;
+	/**
+	 * Options for a thin plate spline transform. Its parameters are given either as the
+	 * {@link #withPoints moving and target points}, or as a {@link #withTransform transform}
+	 * that has already been built.
+	 */
+	public static class ThinPlateSplineOptions extends TransformOptions<ThinPlateSplineOptions> {
+
+		private double[][] movingPoints;
+		private double[][] targetPoints;
+		private ThinPlateR2LogRSplineKernelTransform kernelTransform;
+
+		public ThinPlateSplineOptions withPoints(final double[][] movingPoints, final double[][] targetPoints) {
+			this.movingPoints = movingPoints;
+			this.targetPoints = targetPoints;
+			this.kernelTransform = null;
+			return this;
+		}
+
+		public ThinPlateSplineOptions withTransform(final ThinplateSplineTransform tps) {
+			return withTransform(tps.getKernelTransform());
+		}
+
+		public ThinPlateSplineOptions withTransform(final ThinPlateR2LogRSplineKernelTransform kernelTransform) {
+			this.kernelTransform = kernelTransform;
+			this.movingPoints = null;
+			this.targetPoints = null;
+			return this;
+		}
+
+		public ThinPlateSplineCoordinateTransform build() {
+			return new ThinPlateSplineCoordinateTransform(this);
+		}
 	}
 
-	public ThinPlateSplineCoordinateTransform( final String name,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final double[][] movingPoints,
-			final double[][] targetPoints) {
-		super(TYPE, name, inputRef, outputRef);
-		this.movingPoints = movingPoints;
-		this.targetPoints = targetPoints;
-		this.tps = new ThinplateSplineTransform(movingPoints, targetPoints);
-		numDimensions = movingPoints.length;
-	}
-
-	public ThinPlateSplineCoordinateTransform(
-			ThinplateSplineTransform tps) {
-		this("", null, null, tps );
-	}
-
-	public ThinPlateSplineCoordinateTransform(
-			final String input, final String output,
-			ThinplateSplineTransform tps) {
-		this("", input, output, tps);
-	}
-
-	public ThinPlateSplineCoordinateTransform(final String name,
-			final String input, final String output,
-			ThinplateSplineTransform tps) {
-
-		this(name, input, output, tps.getKernelTransform());
-	}
-
-	public ThinPlateSplineCoordinateTransform(
-			ThinPlateR2LogRSplineKernelTransform tps) {
-		this("", null, null, tps );
-	}
-
-	public ThinPlateSplineCoordinateTransform(
-			final String input, final String output,
-			ThinPlateR2LogRSplineKernelTransform tps) {
-		this("", input, output, tps);
-	}
-
-	public ThinPlateSplineCoordinateTransform(final String name,
-			final String input, final String output,
-			ThinPlateR2LogRSplineKernelTransform tps) {
-
-		super(TYPE, name, input, output);
-		this.movingPoints = tps.getSourceLandmarks();
-		this.affine = tps.getAffine();
-		this.translation = tps.getTranslation();
-		this.weights = tps.getKnotWeights();
-
-		this.tps = new ThinplateSplineTransform(tps);
-		numDimensions = this.tps.numSourceDimensions();
+	public static ThinPlateSplineOptions options() {
+		return new ThinPlateSplineOptions();
 	}
 
 	protected ThinPlateSplineCoordinateTransform(final ThinPlateSplineCoordinateTransform other, final TransformOptions<?> copyParams) {

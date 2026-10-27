@@ -66,10 +66,6 @@ public interface CoordinateTransform<T extends RealTransform> {
 		return copy(new BasicOptions());
 	}
 
-	public static BasicOptions options() {
-		return new BasicOptions();
-	}
-
 	public String getName();
 
 	public String getType();

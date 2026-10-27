@@ -26,7 +26,7 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 		this(new TranslationOptions().withTranslation(translation));
 	}
 
-	public TranslationCoordinateTransform(TranslationOptions options) {
+	private TranslationCoordinateTransform(TranslationOptions options) {
 		super(TYPE, options);
 		this.translation = options.translation;
 		if (this.translation != null)
@@ -62,6 +62,10 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 
 		public double[] getTranslation() {
 			return translation;
+		}
+
+		public TranslationCoordinateTransform build() {
+			return new TranslationCoordinateTransform(this);
 		}
 	}
 

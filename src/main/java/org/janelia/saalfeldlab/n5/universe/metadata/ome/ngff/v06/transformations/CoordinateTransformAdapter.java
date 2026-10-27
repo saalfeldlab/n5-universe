@@ -152,7 +152,13 @@ public class CoordinateTransformAdapter
 			else {
 				final CoordinateTransform<?> fwd = context.deserialize( btmp.get("forward"), CoordinateTransform.class );
 				final CoordinateTransform<?> inv = context.deserialize( btmp.get("inverse"), CoordinateTransform.class );
-				out = new BijectionCoordinateTransform(bid.getName(), bid.getInput(), bid.getOutput(), fwd, inv );
+				out = BijectionCoordinateTransform.options()
+						.withName(bid.getName())
+						.withInput(bid.getInput())
+						.withOutput(bid.getOutput())
+						.withForward(fwd)
+						.withInverse(inv)
+						.build();
 			}
 			break;
 		case("sequence"):
@@ -169,11 +175,12 @@ public class CoordinateTransformAdapter
 					final JsonElement e = ja.get(i).getAsJsonObject();
 					transforms[i] = context.deserialize( e, CoordinateTransform.class );
 				}
-				out = new SequenceCoordinateTransform(SequenceCoordinateTransform.options()
+				out = SequenceCoordinateTransform.options()
 						.withName(id.getName())
 						.withInput(id.getInput())
 						.withOutput(id.getOutput())
-						.withTransformations(transforms));
+						.withTransformations(transforms)
+						.build();
 			}
 			else {
 				out = null;

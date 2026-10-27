@@ -418,20 +418,20 @@ public class NgffTests {
 
 		final double[] resolution = AxisUtils.permute(DEFAULT_RESOLUTION, permutation);
 		final double[] translation = AxisUtils.permute(unpermutedTranslation, permutation);
-
-		final NgffSingleScaleAxesMetadata s0Meta = new NgffSingleScaleAxesMetadata("s0", resolution, translation, dsetAttrs);
-		final OmeNgffDataset[] dsets = new OmeNgffDataset[] { new OmeNgffDataset() };
-		dsets[0].path = s0Meta.getPath();
-		dsets[0].coordinateTransformations = s0Meta.getCoordinateTransformations();
-
-
 		final Axis[] axes = AxisUtils.defaultAxes(axesLabels);
 
+		// zarr c-order stores axes in reverse; reverse everything *before* it is
+		// copied into the metadata objects below
 		if (cOrder) {
 			ArrayUtils.reverse(resolution);
 			ArrayUtils.reverse(translation);
 			ArrayUtils.reverse(axes);
 		}
+
+		final NgffSingleScaleAxesMetadata s0Meta = new NgffSingleScaleAxesMetadata("s0", resolution, translation, axes, dsetAttrs);
+		final OmeNgffDataset[] dsets = new OmeNgffDataset[] { new OmeNgffDataset() };
+		dsets[0].path = s0Meta.getPath();
+		dsets[0].coordinateTransformations = s0Meta.getCoordinateTransformations();
 
 		final int nd = axes.length;
 		return new OmeNgffMultiScaleMetadata(

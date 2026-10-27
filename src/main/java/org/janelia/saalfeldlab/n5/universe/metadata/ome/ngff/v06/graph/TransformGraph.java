@@ -159,9 +159,12 @@ public class TransformGraph
 				tList.add(t);
 		}
 
-		final StackedCoordinateTransform totalTransform = new StackedCoordinateTransform(
-				from.getName() + " > " + to.getName(), from.getName(), to.getName(),
-				stackedEntries(tList, from, to));
+		final StackedCoordinateTransform totalTransform = StackedCoordinateTransform.options()
+				.withName(from.getName() + " > " + to.getName())
+				.withInput(from.getName())
+				.withOutput(to.getName())
+				.withTransforms(stackedEntries(tList, from, to))
+				.build();
 
 		totalTransform.setSpaces(spaces);
 		totalTransform.buildTransform();
@@ -181,8 +184,12 @@ public class TransformGraph
 				}).findAny().ifPresent( t -> tList.add( t ));
 		}
 
-		final StackedCoordinateTransform totalTransform = new StackedCoordinateTransform(
-				"name", from.getName(), to.getName(), stackedEntries(tList, from, to));
+		final StackedCoordinateTransform totalTransform = StackedCoordinateTransform.options()
+				.withName("name")
+				.withInput(from.getName())
+				.withOutput(to.getName())
+				.withTransforms(stackedEntries(tList, from, to))
+				.build();
 
 		return totalTransform;
 	}
@@ -231,7 +238,8 @@ public class TransformGraph
 			return Optional.empty();
 		else if( from.equals(to))
 			return Optional.of( new TransformPath(
-					new IdentityCoordinateTransform("identity", from.getName(), to.getName())));
+					IdentityCoordinateTransform.options()
+							.withName("identity").withInput(from.getName()).withOutput(to.getName()).build()));
 
 		return allPaths( from ).stream().filter( p -> spaces.getSpace(p.getEnd()).equals(to)).findAny();
 	}

@@ -23,20 +23,23 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 	protected transient int vectorAxisIndex;
 
 	public AbstractParametrizedFieldTransform(final String type) {
-		this(type, new FieldOptions());
+		super(type);
+		this.interpolation = LINEAR_INTERPOLATION;
 	}
 
-	protected AbstractParametrizedFieldTransform(final String type, final FieldOptions options) {
+	protected AbstractParametrizedFieldTransform(final String type, final AbstractFieldOptions<?> options) {
 		super(type, options);
 		this.interpolation = options.getInterpolation();
 	}
 
 	protected AbstractParametrizedFieldTransform(final AbstractParametrizedFieldTransform<T,S> other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
-		// the field was read with the interpolation of the original, so it can not be changed here
-		if (copyParams instanceof FieldOptions && ((FieldOptions) copyParams).isInterpolationSet()
-				&& !Objects.equals(other.interpolation, ((FieldOptions) copyParams).getInterpolation()))
-			throw new UnsupportedOperationException("The interpolation of a field transform can not be changed when copying");
+		if (copyParams instanceof AbstractFieldOptions) {
+			final AbstractFieldOptions<?> options = (AbstractFieldOptions<?>) copyParams;
+			// the field was read with the interpolation of the original, so it can not be changed here
+			if (options.isInterpolationSet() && !Objects.equals(other.interpolation, options.getInterpolation()))
+				throw new UnsupportedOperationException("The interpolation of a field transform can not be changed when copying");
+		}
 
 		this.interpolation = other.interpolation;
 		// the field is immutable, so it can be shared. Subclasses rebuild their transform from it.
@@ -45,18 +48,21 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 	}
 
 	/**
-	 * {@link TransformOptions} for creating field transforms. The interpolation
-	 * defaults to {@link AbstractParametrizedFieldTransform#LINEAR_INTERPOLATION linear}.
+	 * The options shared by field transforms. The interpolation defaults to
+	 * {@link AbstractParametrizedFieldTransform#LINEAR_INTERPOLATION linear}. Each
+	 * transform type has a concrete subclass that builds that type.
+	 *
+	 * @param <O> the type of the concrete options class
 	 */
-	public static class FieldOptions extends TransformOptions<FieldOptions> {
+	public static abstract class AbstractFieldOptions<O extends AbstractFieldOptions<O>> extends TransformOptions<O> {
 
 		private boolean interpolationSet = false;
 		private String interpolation = LINEAR_INTERPOLATION;
 
-		public FieldOptions withInterpolation(String interpolation) {
+		public O withInterpolation(String interpolation) {
 			this.interpolation = interpolation;
 			this.interpolationSet = true;
-			return this;
+			return self();
 		}
 
 		public boolean isInterpolationSet() {

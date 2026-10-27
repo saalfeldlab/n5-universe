@@ -1,9 +1,5 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations;
 
-import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
-
 import net.imglib2.realtransform.ExplicitInvertibleRealTransform;
 
 public class BijectionCoordinateTransform extends AbstractCoordinateTransform<ExplicitInvertibleRealTransform> 
@@ -22,32 +18,40 @@ public class BijectionCoordinateTransform extends AbstractCoordinateTransform<Ex
 		inverse = null;
 	}
 
-	public BijectionCoordinateTransform(final String name,
-			final CoordinateSystem input, final CoordinateSystem output,
-			final CoordinateTransform<?> forward, final CoordinateTransform<?> inverse) {
-		super(TYPE, name, input, output);
-		this.forward = forward;
-		this.inverse = inverse;
-	}
-
-	public BijectionCoordinateTransform(final String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final CoordinateTransform<?> forward, final CoordinateTransform<?> inverse) {
-		super(TYPE, name, inputRef, outputRef);
-		this.forward = forward;
-		this.inverse = inverse;
-	}
-
-	public BijectionCoordinateTransform(final String name, final String inputSpace, final String outputSpace,
-			final CoordinateTransform<?> forward, final CoordinateTransform<?> inverse) {
-		super(TYPE, name, inputSpace, outputSpace);
-		this.forward = forward;
-		this.inverse = inverse;
+	private BijectionCoordinateTransform(final BijectionOptions options) {
+		super(TYPE, options);
+		this.forward = options.forward;
+		this.inverse = options.inverse;
 	}
 
 	protected BijectionCoordinateTransform(final BijectionCoordinateTransform other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
 		this.forward = other.forward == null ? null : other.forward.copy();
 		this.inverse = other.inverse == null ? null : other.inverse.copy();
+	}
+
+	public static class BijectionOptions extends TransformOptions<BijectionOptions> {
+
+		private CoordinateTransform<?> forward;
+		private CoordinateTransform<?> inverse;
+
+		public BijectionOptions withForward(final CoordinateTransform<?> forward) {
+			this.forward = forward;
+			return this;
+		}
+
+		public BijectionOptions withInverse(final CoordinateTransform<?> inverse) {
+			this.inverse = inverse;
+			return this;
+		}
+
+		public BijectionCoordinateTransform build() {
+			return new BijectionCoordinateTransform(this);
+		}
+	}
+
+	public static BijectionOptions options() {
+		return new BijectionOptions();
 	}
 
 	@Override

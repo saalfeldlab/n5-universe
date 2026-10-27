@@ -11,7 +11,6 @@ import com.google.gson.JsonSerializer;
 import java.lang.reflect.Type;
 
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.RotationCoordinateTransform.RotationOptions;
 
 public class RotationCoordinateTransformAdapter implements JsonSerializer< RotationCoordinateTransform >, JsonDeserializer< RotationCoordinateTransform > {
 
@@ -63,11 +62,12 @@ public class RotationCoordinateTransformAdapter implements JsonSerializer< Rotat
 		if( rotationMtxStored != null ) {
 			rotation = reverse ? TransformUtils.reverseCoordinates(rotationMtxStored) : rotationMtxStored;
 			final RotationCoordinateTransform tf;
-			tf = new RotationCoordinateTransform(new RotationOptions()
+			tf = RotationCoordinateTransform.options()
 					.withName(base.getName())
 					.withInput(base.getInput())
 					.withOutput(base.getOutput())
-					.withRotation(rotation));
+					.withRotation(rotation)
+					.build();
 			return tf;
 		} else {
 

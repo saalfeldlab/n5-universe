@@ -19,23 +19,6 @@ public interface CoordinateTransformation<T extends AffineGet> extends Coordinat
 
 	public String getType();
 
-	public static CoordinateTransformation<?> create(CoordinateTransformation<?> ct) {
-		if (ct instanceof CoordinateTransformation) {
-			return (CoordinateTransformation<?>) ct;
-		}
-
-		switch (ct.getType()) {
-		case IdentityCoordinateTransformation.TYPE:
-			return new IdentityCoordinateTransformation();
-		case ScaleCoordinateTransformation.TYPE:
-			return new ScaleCoordinateTransformation((ScaleCoordinateTransformation) ct);
-		case TranslationCoordinateTransformation.TYPE:
-			return new TranslationCoordinateTransformation((TranslationCoordinateTransformation) ct);
-
-		}
-		return null;
-	}
-
 	default String getName() {
 		return "";
 	}

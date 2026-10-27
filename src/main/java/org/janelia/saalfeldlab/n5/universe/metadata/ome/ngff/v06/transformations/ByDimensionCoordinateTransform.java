@@ -6,8 +6,6 @@ import java.util.stream.Collectors;
 
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.RealComponentMappingTransform;
@@ -34,38 +32,34 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		transformations = null;
 	}
 
-	public ByDimensionCoordinateTransform(
-			final String name,
-			final CoordinateSystem inputSpace, final CoordinateSystem outputSpace,
-			final SubAxisTransformation... entries ) {
-		super(TYPE, name, inputSpace, outputSpace);
-		this.transformations = entries;
+	private ByDimensionCoordinateTransform(final ByDimensionOptions options) {
+		super(TYPE, options);
+		this.transformations = options.transformations == null
+				? new SubAxisTransformation[0]
+				: options.transformations.clone();
 		setTransformsAfterDeserialization();
-		validate(entries, inputSpace.numDimensions(), outputSpace.numDimensions());
+
+		// the entries can be checked against the coordinate systems, if they were given
+		if (inputCoordinateSystem != null && outputCoordinateSystem != null)
+			validate(transformations, inputCoordinateSystem.numDimensions(), outputCoordinateSystem.numDimensions());
 	}
 
-	public ByDimensionCoordinateTransform(
-			final CoordinateSystem inputSpace, final CoordinateSystem outputSpace,
-			final SubAxisTransformation... entries ) {
-		this(null, inputSpace, outputSpace, entries);
+	public static class ByDimensionOptions extends TransformOptions<ByDimensionOptions> {
+
+		private SubAxisTransformation[] transformations;
+
+		public ByDimensionOptions withTransformations(final SubAxisTransformation... transformations) {
+			this.transformations = transformations;
+			return this;
+		}
+
+		public ByDimensionCoordinateTransform build() {
+			return new ByDimensionCoordinateTransform(this);
+		}
 	}
 
-	public ByDimensionCoordinateTransform(
-			final String name,
-			final String inputSpace, final String outputSpace,
-			final SubAxisTransformation... entries ) {
-		super(TYPE, name, inputSpace, outputSpace);
-		this.transformations = entries;
-		setTransformsAfterDeserialization();
-	}
-
-	public ByDimensionCoordinateTransform(
-			final String name,
-			final OmeNgffReference inputRef, final OmeNgffReference outputRef,
-			final SubAxisTransformation... entries ) {
-		super(TYPE, name, inputRef, outputRef);
-		this.transformations = entries;
-		setTransformsAfterDeserialization();
+	public static ByDimensionOptions options() {
+		return new ByDimensionOptions();
 	}
 
 	protected ByDimensionCoordinateTransform( final ByDimensionCoordinateTransform other, final TransformOptions<?> copyParams ) {
@@ -228,10 +222,12 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 			invEntries[i] = new SubAxisTransformation(inv, transformations[i].getOutputAxes(), transformations[i].getInputAxes());
 		}
 
-		return new ByDimensionCoordinateTransform(
-				getName() == null ? null : getName() + "-inv",
-				getOutput(), getInput(),
-				invEntries);
+		return options()
+				.withName(getName() == null ? null : getName() + "-inv")
+				.withInput(getOutput())
+				.withOutput(getInput())
+				.withTransformations(invEntries)
+				.build();
 	}
 
 	public boolean isAffine() {

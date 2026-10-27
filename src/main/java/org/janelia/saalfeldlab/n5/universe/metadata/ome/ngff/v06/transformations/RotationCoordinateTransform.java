@@ -35,7 +35,7 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 		this(new RotationOptions().withRotation(rotation));
 	}
 
-	public RotationCoordinateTransform(RotationOptions options) {
+	private RotationCoordinateTransform(RotationOptions options) {
 		super(TYPE, options);
 		if (options.rotation != null)
 			buildTransform(deepCopy(options.rotation));
@@ -69,6 +69,14 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 		public double[][] getRotation() {
 			return rotation;
 		}
+
+		public RotationCoordinateTransform build() {
+			return new RotationCoordinateTransform(this);
+		}
+	}
+
+	public static RotationOptions options() {
+		return new RotationOptions();
 	}
 
 	@Override

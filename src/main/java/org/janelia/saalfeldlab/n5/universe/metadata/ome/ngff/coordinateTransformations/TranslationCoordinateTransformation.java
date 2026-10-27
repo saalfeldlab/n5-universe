@@ -18,15 +18,6 @@ public class TranslationCoordinateTransformation extends AbstractCoordinateTrans
 		this.translation = translation;
 	}
 
-	protected TranslationCoordinateTransformation(TranslationCoordinateTransformation other) {
-		this(other.translation);
-	}
-
-	protected TranslationCoordinateTransformation(TranslationCoordinateTransformation other, TransformOptions<?> copyParams) {
-		super(TYPE);
-		this.translation = other.translation == null ? null : other.translation.clone();
-	}
-
 	public double[] getTranslation() {
 		return translation;
 	}

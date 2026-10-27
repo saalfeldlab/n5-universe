@@ -18,7 +18,7 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 		super(TYPE);
 	}
 
-	protected AbstractAffineCoordinateTransform(final AffineOptions options) {
+	protected AbstractAffineCoordinateTransform(final AbstractAffineOptions<?> options) {
 		super(TYPE, options);
 		this.affine = deepCopy(options.affine);
 		buildTransform();
@@ -26,21 +26,27 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 
 	protected AbstractAffineCoordinateTransform(final AbstractAffineCoordinateTransform<T> other, final TransformOptions<?> copyParams) {
 		super(other, copyParams);
-		this.affine = deepCopy((copyParams instanceof AffineOptions && ((AffineOptions) copyParams).isAffineSet())
-				? ((AffineOptions) copyParams).getAffine()
+		this.affine = deepCopy((copyParams instanceof AbstractAffineOptions && ((AbstractAffineOptions<?>) copyParams).isAffineSet())
+				? ((AbstractAffineOptions<?>) copyParams).getAffine()
 				: other.affine);
 		buildTransform();
 	}
 
-	public static class AffineOptions extends TransformOptions<AffineOptions> {
+	/**
+	 * The options shared by the transforms that store their parameters in an affine matrix. Each
+	 * transform type has a concrete subclass that builds that type.
+	 *
+	 * @param <O> the type of the concrete options class
+	 */
+	public static abstract class AbstractAffineOptions<O extends AbstractAffineOptions<O>> extends TransformOptions<O> {
 
 		private boolean affineSet = false;
 		private double[][] affine;
 
-		public AffineOptions withAffine(double[][] affine) {
+		public O withAffine(double[][] affine) {
 			this.affine = affine;
 			this.affineSet = true;
-			return this;
+			return self();
 		}
 
 		public boolean isAffineSet() {

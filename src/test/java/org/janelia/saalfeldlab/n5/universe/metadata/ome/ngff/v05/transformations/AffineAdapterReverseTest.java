@@ -55,7 +55,8 @@ public class AffineAdapterReverseTest {
 	}
 
 	private static InvertibleAffineCoordinateTransform sample() {
-		return new InvertibleAffineCoordinateTransform("aff", "in", "out", copy(A));
+		return InvertibleAffineCoordinateTransform.options()
+				.withName("aff").withInput("in").withOutput("out").withAffine(copy(A)).build();
 	}
 
 	/** As registered by BigWarpInit.gsonBuilder(reverse): affine as a reverse-aware type-hierarchy adapter. */
@@ -120,11 +121,11 @@ public class AffineAdapterReverseTest {
 	 */
 	@Test
 	public void affineAndSiblingScaleAgree() {
-		final ScaleCoordinateTransform scale = new ScaleCoordinateTransform(ScaleCoordinateTransform.options()
-				.withName("s").withInput("in").withOutput("mid").withScale(new double[] { 1, 2, 3 }));
-		final SequenceCoordinateTransform seq = new SequenceCoordinateTransform(SequenceCoordinateTransform.options()
+		final ScaleCoordinateTransform scale = ScaleCoordinateTransform.options()
+				.withName("s").withInput("in").withOutput("mid").withScale(new double[] { 1, 2, 3 }).build();
+		final SequenceCoordinateTransform seq = SequenceCoordinateTransform.options()
 				.withName("seq").withInput("in").withOutput("out")
-				.withTransformations(scale, sample()));
+				.withTransformations(scale, sample()).build();
 
 		for (final boolean reverse : new boolean[] { false, true }) {
 			final com.google.gson.JsonArray xfms = gsonHierarchy(reverse)

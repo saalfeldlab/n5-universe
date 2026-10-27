@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Optional;
 
 import org.janelia.saalfeldlab.n5.N5Exception;
+import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.RawCompression;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
@@ -24,6 +25,7 @@ import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.StorageFormat;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.axes.AxisAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffSceneParser;
@@ -87,6 +89,42 @@ public class AffineAdapterPathTest {
 	private static final double[] P = { 1.5, -2.0, 7.0 };
 
 	private static final double EPS = 1e-9;
+
+	private static InvertibleAffineCoordinateTransform invertible(final String name, final String input,
+			final String output, final double[][] matrix) {
+
+		return InvertibleAffineCoordinateTransform.options()
+				.withName(name).withInput(input).withOutput(output).withAffine(matrix).build();
+	}
+
+	private static GeneralAffineCoordinateTransform general(final String name, final String input,
+			final String output, final double[][] matrix) {
+
+		return GeneralAffineCoordinateTransform.options()
+				.withName(name).withInput(input).withOutput(output).withAffine(matrix).build();
+	}
+
+	/** an affine that reads its matrix from {@code path}, and has already read it */
+	private static InvertibleAffineCoordinateTransform invertibleFrom(final String name, final N5Reader n5,
+			final String path, final String input, final String output) {
+
+		final InvertibleAffineCoordinateTransform ct = InvertibleAffineCoordinateTransform.options()
+				.withName(name).withInput(input).withOutput(output).withPath(path).build();
+		ct.bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
+		ct.buildTransform(ct.getParameters());
+		return ct;
+	}
+
+	/** an affine that reads its matrix from {@code path}, and has already read it */
+	private static GeneralAffineCoordinateTransform generalFrom(final String name, final N5Reader n5,
+			final String path, final String input, final String output) {
+
+		final GeneralAffineCoordinateTransform ct = GeneralAffineCoordinateTransform.options()
+				.withName(name).withInput(input).withOutput(output).withPath(path).build();
+		ct.bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
+		ct.buildTransform(ct.getParameters());
+		return ct;
+	}
 
 	@Parameters(name = "{0}")
 	public static Collection<Object[]> formats() {
@@ -180,9 +218,9 @@ public class AffineAdapterPathTest {
 	@Test
 	public void writeThenGetParameters() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+		invertible("aff", "in", "out",A).write(n5, "affine");
 
-		final InvertibleAffineCoordinateTransform ct = new InvertibleAffineCoordinateTransform("aff", n5, "affine", "in", "out");
+		final InvertibleAffineCoordinateTransform ct = invertibleFrom("aff", n5,"affine", "in", "out");
 		assertMatrixEquals("square affine parameters", A, ct.getParameters());
 	}
 
@@ -193,7 +231,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void writeReturnsPathTransform() {
 
-		final AbstractAffineCoordinateTransform<?> written = new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+		final AbstractAffineCoordinateTransform<?> written = invertible("aff", "in", "out",A).write(n5, "affine");
 		assertTrue("same type", written instanceof InvertibleAffineCoordinateTransform);
 		assertEquals("affine", written.getParameterPath());
 		assertArrayEquals(apply(A, P), apply(written.getTransform(), P), EPS);
@@ -207,9 +245,9 @@ public class AffineAdapterPathTest {
 	@Test
 	public void nonSquareWriteThenGetParameters() {
 
-		new GeneralAffineCoordinateTransform("aff", "in", "out", G).write(n5, "affine");
+		general("aff", "in", "out", G).write(n5, "affine");
 
-		final GeneralAffineCoordinateTransform ct = new GeneralAffineCoordinateTransform("aff", n5, "affine", "in", "out");
+		final GeneralAffineCoordinateTransform ct = generalFrom("aff", n5,"affine", "in", "out");
 		assertMatrixEquals("non-square affine parameters", G, ct.getParameters());
 	}
 
@@ -220,7 +258,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void writtenShapeIsRowsCols() throws IOException {
 
-		new GeneralAffineCoordinateTransform("aff", "in", "out", G).write(n5, "affine");
+		general("aff", "in", "out", G).write(n5, "affine");
 
 		final String file;
 		final String key;
@@ -262,16 +300,16 @@ public class AffineAdapterPathTest {
 		N5Utils.save(ArrayImgs.doubles(TransformUtils.flatten(A_CORDER), 4, 3),
 				n5, "affine", new int[] { 4, 3 }, new RawCompression());
 
-		final InvertibleAffineCoordinateTransform ct = new InvertibleAffineCoordinateTransform("aff", n5, "affine", "in", "out");
+		final InvertibleAffineCoordinateTransform ct = invertibleFrom("aff", n5,"affine", "in", "out");
 		assertMatrixEquals("affine parameters from a C-order zarr array", A, ct.getParameters());
 	}
 
 	@Test
 	public void constructorWithReaderBuildsTransform() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+		invertible("aff", "in", "out",A).write(n5, "affine");
 
-		final InvertibleAffineCoordinateTransform ct = new InvertibleAffineCoordinateTransform("aff", n5, "affine", "in", "out");
+		final InvertibleAffineCoordinateTransform ct = invertibleFrom("aff", n5,"affine", "in", "out");
 		assertNotNull("transform built by constructor", ct.getTransform());
 		assertArrayEquals(apply(A, P), apply(ct.getTransform(), P), EPS);
 	}
@@ -284,7 +322,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void deserializeFromPathThenGetTransform() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+		invertible("aff", "in", "out",A).write(n5, "affine");
 
 		final CoordinateTransform<?> ct = readTransform(pathAffineJson("affine"));
 		assertNotNull("deserialized", ct);
@@ -306,7 +344,7 @@ public class AffineAdapterPathTest {
 	@Test(expected = N5Exception.class)
 	public void unboundPathAffineThrows() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+		invertible("aff", "in", "out",A).write(n5, "affine");
 
 		final CoordinateTransform<?> ct = gson().fromJson(pathAffineJson("affine"), CoordinateTransform.class);
 		ct.getTransform();
@@ -320,7 +358,7 @@ public class AffineAdapterPathTest {
 	@SuppressWarnings("deprecation")
 	public void deprecatedGetTransformWithReaderBinds() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+		invertible("aff", "in", "out",A).write(n5, "affine");
 
 		final CoordinateTransform<?> ct = gson().fromJson(pathAffineJson("affine"), CoordinateTransform.class);
 		assertArrayEquals(apply(A, P), apply(ct.getTransform(n5), P), EPS);
@@ -329,7 +367,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void deserializeNonSquareFromPathThenGetTransform() {
 
-		new GeneralAffineCoordinateTransform("aff", "in", "out", G).write(n5, "affine");
+		general("aff", "in", "out", G).write(n5, "affine");
 
 		final CoordinateTransform<?> ct = readTransform(pathAffineJson("affine"));
 		assertNotNull("deserialized", ct);
@@ -348,7 +386,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void deserializedSquarePathAffineIsInvertible() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+		invertible("aff", "in", "out",A).write(n5, "affine");
 
 		// the graph builds inverse edges when it is built, which reads the matrix, so it must be bound
 		final CoordinateTransform<?> ct = readTransform(pathAffineJson("affine"));
@@ -369,7 +407,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void pathAffineInSequenceIsInvertible() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+		invertible("aff", "in", "out",A).write(n5, "affine");
 
 		final CoordinateTransform<?> ct = readTransform(sequenceJson("affine"));
 
@@ -388,7 +426,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void missingParametersReturnNull() {
 
-		final GeneralAffineCoordinateTransform ct = new GeneralAffineCoordinateTransform("aff", n5, "doesNotExist", "in", "out");
+		final GeneralAffineCoordinateTransform ct = generalFrom("aff", n5,"doesNotExist", "in", "out");
 		assertNull(ct.getParameters());
 	}
 
@@ -399,7 +437,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void pathAffineInSequence() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+		invertible("aff", "in", "out",A).write(n5, "affine");
 
 		final CoordinateTransform<?> ct = readTransform(sequenceJson("affine"));
 		assertTrue("is a sequence", ct instanceof SequenceCoordinateTransform);
@@ -415,7 +453,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void pathAffineInSequenceThroughGraph() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "affine");
+		invertible("aff", "in", "out",A).write(n5, "affine");
 
 		final CoordinateTransform<?> ct = readTransform(sequenceJson("affine"));
 		final TransformGraph graph = new TransformGraph(
@@ -470,7 +508,7 @@ public class AffineAdapterPathTest {
 	// a scene at group "scene" with an affine a -> b whose matrix is at "params/affine", relative to the scene
 	private void writeSceneWithPathAffine() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", A).write(n5, "scene/params/affine");
+		invertible("aff", "in", "out",A).write(n5, "scene/params/affine");
 
 		final String axes = "[{\"name\":\"x\",\"type\":\"space\"},{\"name\":\"y\",\"type\":\"space\"},{\"name\":\"z\",\"type\":\"space\"}]";
 		final JsonObject ome = JsonParser.parseString("{\"version\":\"0.6\",\"scene\":{"
@@ -490,7 +528,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void pathAffineInByDimension() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
+		invertible("aff", "in", "out",B).write(n5, "affine");
 
 		final CoordinateTransform<?> ct = readTransform(byDimensionJson("affine"));
 		assertTrue("is a byDimension", ct instanceof ByDimensionCoordinateTransform);
@@ -506,7 +544,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void pathAffineInByDimensionThroughGraph() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
+		invertible("aff", "in", "out",B).write(n5, "affine");
 
 		final CoordinateTransform<?> ct = readTransform(byDimensionJson("affine"));
 		final TransformGraph graph = new TransformGraph(
@@ -527,9 +565,10 @@ public class AffineAdapterPathTest {
 	@Test
 	public void constructedPathAffineInByDimension() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
+		invertible("aff", "in", "out",B).write(n5, "affine");
 
-		final GeneralAffineCoordinateTransform affine = new GeneralAffineCoordinateTransform("aff", "in", "out", "affine");
+		final GeneralAffineCoordinateTransform affine = GeneralAffineCoordinateTransform.options()
+				.withName("aff").withInput("in").withOutput("out").withPath("affine").build();
 		final ByDimensionCoordinateTransform ct = constructedByDimension(affine);
 
 		try {
@@ -550,9 +589,9 @@ public class AffineAdapterPathTest {
 	@Test
 	public void constructedReaderAffineInByDimension() {
 
-		new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
+		invertible("aff", "in", "out",B).write(n5, "affine");
 
-		final GeneralAffineCoordinateTransform affine = new GeneralAffineCoordinateTransform("aff", n5, "affine", "in", "out");
+		final GeneralAffineCoordinateTransform affine = generalFrom("aff", n5,"affine", "in", "out");
 		final ByDimensionCoordinateTransform ct = constructedByDimension(affine);
 
 		final RealTransform t = ct.getTransform();
@@ -567,7 +606,7 @@ public class AffineAdapterPathTest {
 	@Test
 	public void writtenAffineInByDimensionThroughGraph() {
 
-		final AbstractAffineCoordinateTransform<?> affine = new InvertibleAffineCoordinateTransform("aff", "in", "out", B).write(n5, "affine");
+		final AbstractAffineCoordinateTransform<?> affine = invertible("aff", "in", "out",B).write(n5, "affine");
 		final ByDimensionCoordinateTransform ct = constructedByDimension(affine);
 
 		final TransformGraph graph = new TransformGraph(
@@ -586,9 +625,12 @@ public class AffineAdapterPathTest {
 	private static ByDimensionCoordinateTransform constructedByDimension(final CoordinateTransform<?> affine) {
 
 		final ScaleCoordinateTransform scale = new ScaleCoordinateTransform(new double[] { 2.0 });
-		return new ByDimensionCoordinateTransform("bd", "a", "b",
-				new SubAxisTransformation(scale, new int[] { 2 }, new int[] { 2 }),
-				new SubAxisTransformation(affine, new int[] { 0, 1 }, new int[] { 0, 1 }));
+		return ByDimensionCoordinateTransform.options()
+				.withName("bd").withInput("a").withOutput("b")
+				.withTransformations(
+						new SubAxisTransformation(scale, new int[] { 2 }, new int[] { 2 }),
+						new SubAxisTransformation(affine, new int[] { 0, 1 }, new int[] { 0, 1 }))
+				.build();
 	}
 
 	// byDimension: scale by 2 on one axis, the path affine B on the other two. Axis indices in the

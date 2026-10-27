@@ -1,7 +1,5 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations;
 
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
-
 import net.imglib2.RealLocalizable;
 import net.imglib2.RealPositionable;
 import net.imglib2.realtransform.InvertibleRealTransform;
@@ -16,22 +14,25 @@ public class IdentityCoordinateTransform extends AbstractCoordinateTransform<Inv
 		super(TYPE);
 	}
 
-	public IdentityCoordinateTransform( final String name, final String input, final String output ) {
-		super(TYPE, name, input, output );
-	}
+	private IdentityCoordinateTransform(final IdentityOptions options) {
 
-	public IdentityCoordinateTransform( final String name, final OmeNgffReference inputRef, final OmeNgffReference outputRef ) {
-		super(TYPE, name, inputRef, outputRef);
-	}
-
-	public IdentityCoordinateTransform(IdentityCoordinateTransform other) {
-
-		super(other);
+		super(TYPE, options);
 	}
 
 	protected IdentityCoordinateTransform(IdentityCoordinateTransform other, TransformOptions<?> copyParams) {
 
 		super(other, copyParams);
+	}
+
+	public static class IdentityOptions extends TransformOptions<IdentityOptions> {
+
+		public IdentityCoordinateTransform build() {
+			return new IdentityCoordinateTransform(this);
+		}
+	}
+
+	public static IdentityOptions options() {
+		return new IdentityOptions();
 	}
 
 	@Override

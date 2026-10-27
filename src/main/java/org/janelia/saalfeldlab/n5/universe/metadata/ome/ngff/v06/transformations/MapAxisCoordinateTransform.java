@@ -22,8 +22,34 @@ public class MapAxisCoordinateTransform extends AbstractCoordinateTransform<Affi
 		super(TYPE);
 	}
 
-	public MapAxisCoordinateTransform(MapAxisCoordinateTransform ct) {
-		super(ct);
+	private MapAxisCoordinateTransform(final MapAxisOptions options) {
+		super(TYPE, options);
+		this.mapAxis = options.axisMapping == null ? null : options.axisMapping.clone();
+
+		// the mapping can be checked against the coordinate systems, if they were given
+		if (inputCoordinateSystem != null && outputCoordinateSystem != null) {
+			inputAxes = inputCoordinateSystem.getAxisNames();
+			outputAxes = outputCoordinateSystem.getAxisNames();
+			validate(mapAxis, inputAxes, outputAxes);
+		}
+	}
+
+	public static class MapAxisOptions extends TransformOptions<MapAxisOptions> {
+
+		private int[] axisMapping;
+
+		public MapAxisOptions withAxisMapping(final int[] axisMapping) {
+			this.axisMapping = axisMapping;
+			return this;
+		}
+
+		public MapAxisCoordinateTransform build() {
+			return new MapAxisCoordinateTransform(this);
+		}
+	}
+
+	public static MapAxisOptions options() {
+		return new MapAxisOptions();
 	}
 
 	protected MapAxisCoordinateTransform(MapAxisCoordinateTransform other, TransformOptions<?> copyParams) {
@@ -43,23 +69,6 @@ public class MapAxisCoordinateTransform extends AbstractCoordinateTransform<Affi
 	public MapAxisCoordinateTransform copy(final TransformOptions<?> copyParams) {
 
 		return new MapAxisCoordinateTransform(this, copyParams);
-	}
-
-	public MapAxisCoordinateTransform( final String name,
-			final CoordinateSystem input, final CoordinateSystem output,
-			final int[] axisMapping) {
-		super(TYPE, name, input, output);
-
-		inputAxes = input.getAxisNames();
-		outputAxes = output.getAxisNames();
-		this.mapAxis = axisMapping;
-
-		validate(axisMapping, inputAxes, outputAxes);
-	}
-
-	public MapAxisCoordinateTransform(final CoordinateSystem input, CoordinateSystem output,
-			final int[] axisMapping) {
-		this(null, input, output, axisMapping);
 	}
 
 	public int[] getAxisMapping() {
