@@ -23,12 +23,12 @@ public class InverseCoordinateTransform<T extends InvertibleRealTransform, C ext
 	 * @param ct the transform to invert
 	 */
 	public InverseCoordinateTransform( final C ct ) {
-		this( new Options<T, C>().withTransform(ct) );
+		this( new Options<T, C>().transform(ct) );
 	}
 
 	/**
 	 * Options for an inverse transform. If the name, input, or output are not set, they are those of
-	 * the inverse of the {@link #withTransform transform}: its input and output swapped, and the name
+	 * the inverse of the {@link #transform transform}: its input and output swapped, and the name
 	 * of the transform with "inverted-" in front.
 	 *
 	 * @param <T> the type of the transform
@@ -39,7 +39,7 @@ public class InverseCoordinateTransform<T extends InvertibleRealTransform, C ext
 
 		private C transform;
 
-		public Options<T, C> withTransform( final C transform ) {
+		public Options<T, C> transform( final C transform ) {
 			this.transform = transform;
 			return this;
 		}
@@ -47,11 +47,11 @@ public class InverseCoordinateTransform<T extends InvertibleRealTransform, C ext
 		private Options<T, C> withDefaults() {
 			if (transform != null) {
 				if (!isNameSet())
-					withName("inverted-" + transform.getName());
+					name("inverted-" + transform.getName());
 				if (!isInputSet())
-					withInput(transform.getOutput());
+					input(transform.getOutput());
 				if (!isOutputSet())
-					withOutput(transform.getInput());
+					output(transform.getInput());
 			}
 			return this;
 		}

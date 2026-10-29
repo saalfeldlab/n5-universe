@@ -22,8 +22,8 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 		super(TYPE);
 	}
 
-	public TranslationCoordinateTransform(final double[] translation) {
-		this(new Options().withTranslation(translation));
+	public TranslationCoordinateTransform(final double... translation) {
+		this(new Options().translation(translation));
 	}
 
 	private TranslationCoordinateTransform(Options options) {
@@ -50,7 +50,7 @@ public class TranslationCoordinateTransform extends AbstractParametrizedTransfor
 		private boolean translationSet = false;
 		private double[] translation;
 
-		public Options withTranslation(double[] translation) {
+		public Options translation(double... translation) {
 			this.translation = translation;
 			this.translationSet = true;
 			return this;

@@ -44,7 +44,7 @@ public class FieldMultiscalesSerializeTest {
 		dset.path = ".";
 		dset.coordinateTransformations = new CoordinateTransform[] {
 				ScaleCoordinateTransform.options()
-						.withName("").withInput(".").withOutput("field").withScale(new double[] { 1, 2, 3 }).build() };
+						.name("").input(".").output("field").scale(new double[] { 1, 2, 3 }).build() };
 
 		return new OmeNgffMultiScaleMetadata(
 				3, "/", null, null, "0.5", null,

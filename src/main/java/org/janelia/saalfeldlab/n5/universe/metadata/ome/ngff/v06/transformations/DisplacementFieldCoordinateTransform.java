@@ -45,7 +45,7 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 
 	/**
 	 * Options for a displacement field transform. A transform is given either the
-	 * {@link #withField field} itself, or a {@link #withPath path} to read it from, or both
+	 * {@link #field field} itself, or a {@link #path path} to read it from, or both
 	 * (e.g. for a field that was just written to that path).
 	 *
 	 * @param <T> the type of the field's values
@@ -55,7 +55,7 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 		private boolean fieldSet = false;
 		private RealRandomAccessible<RealComposite<T>> field;
 
-		public Options<T> withField(final RealRandomAccessible<RealComposite<T>> field) {
+		public Options<T> field(final RealRandomAccessible<RealComposite<T>> field) {
 			this.field = field;
 			this.fieldSet = true;
 			return this;
@@ -182,12 +182,12 @@ public class DisplacementFieldCoordinateTransform<T extends RealType<T>> extends
 				displacementField, 0, interpolation, FieldTransformParsing.selectPixelToPhysical(transforms, input.getName()));
 
 		return DisplacementFieldCoordinateTransform.<T>options()
-				.withName("")
-				.withPath(dataset)
-				.withInterpolation(interpolation)
-				.withInput(input.getName())
-				.withOutput(output.getName())
-				.withField(field)
+				.name("")
+				.path(dataset)
+				.interpolation(interpolation)
+				.input(input.getName())
+				.output(output.getName())
+				.field(field)
 				.build();
 	}
 

@@ -63,10 +63,10 @@ public class RotationCoordinateTransformAdapter implements JsonSerializer< Rotat
 			rotation = reverse ? TransformUtils.reverseCoordinates(rotationMtxStored) : rotationMtxStored;
 			final RotationCoordinateTransform tf;
 			tf = RotationCoordinateTransform.options()
-					.withName(base.getName())
-					.withInput(base.getInput())
-					.withOutput(base.getOutput())
-					.withRotation(rotation)
+					.name(base.getName())
+					.input(base.getInput())
+					.output(base.getOutput())
+					.rotation(rotation)
 					.build();
 			return tf;
 		} else {

@@ -26,10 +26,10 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 	public SequenceCoordinateTransform(
 			final CoordinateTransform<?>[] transformations) {
 		this(new Options()
-				.withName("")
-				.withInput(OmeNgffReference.DUMMY)
-				.withOutput(OmeNgffReference.DUMMY)
-				.withTransformations(transformations));
+				.name("")
+				.input(OmeNgffReference.DUMMY)
+				.output(OmeNgffReference.DUMMY)
+				.transformations(transformations));
 	}
 
 	private SequenceCoordinateTransform(final Options options) {
@@ -59,14 +59,14 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		private boolean transformationsSet = false;
 		private CoordinateTransform<?>[] transformations;
 
-		public Options withTransformations(final CoordinateTransform<?>... transformations) {
+		public Options transformations(final CoordinateTransform<?>... transformations) {
 			this.transformations = transformations;
 			this.transformationsSet = true;
 			return this;
 		}
 
-		public Options withTransformations(final List<? extends CoordinateTransform<?>> transformations) {
-			return withTransformations(transformations == null ? null
+		public Options transformations(final List<? extends CoordinateTransform<?>> transformations) {
+			return transformations(transformations == null ? null
 					: transformations.toArray(new CoordinateTransform<?>[0]));
 		}
 
@@ -178,10 +178,10 @@ public class SequenceCoordinateTransform extends AbstractCoordinateTransform<Rea
 		Collections.reverse(invTransforms);
 
 		return new SequenceCoordinateTransform(options()
-				.withName(getName() + "inv")
-				.withInput(getOutput())
-				.withOutput(getInput())
-				.withTransformations(invTransforms));
+				.name(getName() + "inv")
+				.input(getOutput())
+				.output(getInput())
+				.transformations(invTransforms));
 	}
 
 }

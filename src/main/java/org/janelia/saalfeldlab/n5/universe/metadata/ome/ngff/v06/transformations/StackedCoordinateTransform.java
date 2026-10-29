@@ -32,15 +32,15 @@ public class StackedCoordinateTransform extends AbstractCoordinateTransform<Real
 	{
 		private List<SubAxisTransformation> transforms;
 
-		public Options withTransforms( final List<SubAxisTransformation> transforms )
+		public Options transforms( final List<SubAxisTransformation> transforms )
 		{
 			this.transforms = transforms;
 			return this;
 		}
 
-		public Options withTransforms( final SubAxisTransformation... transforms )
+		public Options transforms( final SubAxisTransformation... transforms )
 		{
-			return withTransforms( transforms == null ? null : Arrays.asList( transforms ) );
+			return transforms( transforms == null ? null : Arrays.asList( transforms ) );
 		}
 
 		public StackedCoordinateTransform build()

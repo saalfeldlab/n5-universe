@@ -149,9 +149,9 @@ public class MetadataUtils {
 		if (scale != null && translation != null)
 			return new CoordinateTransform<?>[]{
 					SequenceCoordinateTransform.options()
-							.withInput(input)
-							.withOutput(output)
-							.withTransformations(
+							.input(input)
+							.output(output)
+							.transformations(
 									new ScaleCoordinateTransform(scale),
 									new TranslationCoordinateTransform(translation))
 							.build()};
@@ -159,12 +159,12 @@ public class MetadataUtils {
 		if (scale != null)
 			return new CoordinateTransform<?>[]{
 					ScaleCoordinateTransform.options()
-							.withScale(scale).withInput(input).withOutput(output).build()};
+							.scale(scale).input(input).output(output).build()};
 
 		if (translation != null)
 			return new CoordinateTransform<?>[]{
 					TranslationCoordinateTransform.options()
-							.withTranslation(translation).withInput(input).withOutput(output).build()};
+							.translation(translation).input(input).output(output).build()};
 
 		return new CoordinateTransform<?>[0];
 	}
@@ -197,14 +197,14 @@ public class MetadataUtils {
 		final OmeNgffReference output = new OmeNgffReference(outputName, null);
 
 		if (cts.length == 1) {
-			return new CoordinateTransform[] { cts[0].copy(new BasicOptions().withInput(input).withOutput(output)) };
+			return new CoordinateTransform[] { cts[0].copy(new BasicOptions().input(input).output(output)) };
 		}
 
 		return new CoordinateTransform<?>[]{
 				SequenceCoordinateTransform.options()
-						.withInput(input)
-						.withOutput(output)
-						.withTransformations(cts)
+						.input(input)
+						.output(output)
+						.transformations(cts)
 						.build()};
 	}
 

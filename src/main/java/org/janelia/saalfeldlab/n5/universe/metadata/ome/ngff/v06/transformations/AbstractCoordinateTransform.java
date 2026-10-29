@@ -131,7 +131,7 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	
 	/**
 	 * Builder/helper for creating coordinate transformations, and for copying
-	 * them with modifications. Calling a with(Field) method of this class
+	 * them with modifications. Calling a setter method of this class
 	 * indicates that the provided field should be set when creating, or modified
 	 * when copying.
 	 * <p>
@@ -140,8 +140,8 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 	 * transform. Transforms are created with the {@code build()} method of the options.
 	 * For example
 	 * <pre>
-	 * ScaleCoordinateTransform.options().withName(name).withScale(scale).build();
-	 * ct.copy(new BasicOptions().withName(newName));
+	 * ScaleCoordinateTransform.options().name(name).scale(scale).build();
+	 * ct.copy(new BasicOptions().name(newName));
 	 * </pre>
 	 * <p>
 	 * Fields that are not set are copied unchanged. A field explicitly set to
@@ -170,29 +170,28 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 
 		/**
 		 * @return this, as the type of the concrete options class, so that the
-		 *         with(Field) methods of subclasses can be chained in any order
+		 *         setter methods of subclasses can be chained in any order
 		 */
 		@SuppressWarnings("unchecked")
 		protected O self() {
 			return (O) this;
 		}
 
-		// TODO remove `with` prefixes
-		public O withName(String name) {
+		public O name(String name) {
 			this.name = name;
 			this.nameSet = true;
 			return self();
 		}
 
-		public O withInput(OmeNgffReference input) {
+		public O input(OmeNgffReference input) {
 			this.input = input;
 			this.inputSet = true;
 			this.inputCoordinateSystem = null;
 			return self();
 		}
 
-		public O withInput(String input) {
-			return withInput(input == null ? null : new OmeNgffReference(input));
+		public O input(String input) {
+			return input(input == null ? null : new OmeNgffReference(input));
 		}
 
 		/**
@@ -203,30 +202,30 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		 * @param input the input coordinate system
 		 * @return this
 		 */
-		public O withInput(CoordinateSystem input) {
-			withInput(input == null ? null : new OmeNgffReference(input.getName()));
+		public O input(CoordinateSystem input) {
+			input(input == null ? null : new OmeNgffReference(input.getName()));
 			this.inputCoordinateSystem = input;
 			return self();
 		}
 
-		public O withOutput(OmeNgffReference output) {
+		public O output(OmeNgffReference output) {
 			this.output = output;
 			this.outputSet = true;
 			this.outputCoordinateSystem = null;
 			return self();
 		}
 
-		public O withOutput(String output) {
-			return withOutput(output == null ? null : new OmeNgffReference(output));
+		public O output(String output) {
+			return output(output == null ? null : new OmeNgffReference(output));
 		}
 
 		/**
 		 * @param output the output coordinate system
 		 * @return this
-		 * @see #withInput(CoordinateSystem)
+		 * @see #input(CoordinateSystem)
 		 */
-		public O withOutput(CoordinateSystem output) {
-			withOutput(output == null ? null : new OmeNgffReference(output.getName()));
+		public O output(CoordinateSystem output) {
+			output(output == null ? null : new OmeNgffReference(output.getName()));
 			this.outputCoordinateSystem = output;
 			return self();
 		}
@@ -239,7 +238,7 @@ public abstract class AbstractCoordinateTransform<T extends RealTransform> imple
 		 * @param path the parameter path, may be null
 		 * @return this
 		 */
-		public O withPath(String path) {
+		public O path(String path) {
 			this.path = path;
 			this.pathSet = true;
 			return self();

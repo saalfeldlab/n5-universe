@@ -20,9 +20,9 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 		super(TYPE);
 	}
 
-	public ScaleCoordinateTransform(final double[] scale) {
+	public ScaleCoordinateTransform(final double... scale) {
 		// less weird if we stored the options as the field
-		this(new Options().withScale(scale));
+		this(new Options().scale(scale));
 	}
 
 	private ScaleCoordinateTransform(Options options) {
@@ -48,7 +48,7 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 		private boolean scaleSet = false;
 		private double[] scale;
 		
-		public Options withScale(double[] scale){ 
+		public Options scale(double... scale){ 
 			this.scale = scale;
 			this.scaleSet = true;
 			return this;
@@ -83,13 +83,6 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 
 		return new ScaleCoordinateTransform(this, copyParams);
 	}
-	
-	void blah() {
-		copy(options().withInput("new_input"));
-//		CoordinateTransform ct = new ScaleCoordinateTransform(null);
-//		ct.options().withScale()
-	}
-
 
 	@Override
 	protected double[] readParameters(final N5Reader n5, final String path, final boolean reverse) {
@@ -98,19 +91,19 @@ public class ScaleCoordinateTransform extends AbstractParametrizedTransform<Scal
 	}
 
 	@Override
-	public ScaleGet buildTransform( double[] parameters )
-	{
+	public ScaleGet buildTransform(double[] parameters) {
+
 		this.scale = parameters;
-		if( parameters == null )
+		if (parameters == null)
 			return null;
-		else if( parameters.length == 2 )
+		else if (parameters.length == 2)
 			transform = new Scale2D(parameters);
-		else if( parameters.length == 3 )
+		else if (parameters.length == 3)
 			transform = new Scale3D(parameters);
 		else
 			transform = new Scale(parameters);
 
-		return (ScaleGet) transform;
+		return (ScaleGet)transform;
 	}
 
 	@Override

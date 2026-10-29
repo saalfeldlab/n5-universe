@@ -26,8 +26,8 @@ public class ThinPlateSplineCoordinateTransform extends AbstractCoordinateTransf
 	public ThinPlateSplineCoordinateTransform(
 			final double[][] movingPoints,
 			final double[][] targetPoints) {
-		this(options().withName("").withInput(OmeNgffReference.DUMMY).withOutput(OmeNgffReference.DUMMY)
-				.withPoints(movingPoints, targetPoints));
+		this(options().name("").input(OmeNgffReference.DUMMY).output(OmeNgffReference.DUMMY)
+				.points(movingPoints, targetPoints));
 	}
 
 	private ThinPlateSplineCoordinateTransform(final Options options) {
@@ -52,7 +52,7 @@ public class ThinPlateSplineCoordinateTransform extends AbstractCoordinateTransf
 
 	/**
 	 * Options for a thin plate spline transform. Its parameters are given either as the
-	 * {@link #withPoints moving and target points}, or as a {@link #withTransform transform}
+	 * {@link #points moving and target points}, or as a {@link #transform transform}
 	 * that has already been built.
 	 */
 	public static class Options extends TransformOptions<Options> {
@@ -61,18 +61,18 @@ public class ThinPlateSplineCoordinateTransform extends AbstractCoordinateTransf
 		private double[][] targetPoints;
 		private ThinPlateR2LogRSplineKernelTransform kernelTransform;
 
-		public Options withPoints(final double[][] movingPoints, final double[][] targetPoints) {
+		public Options points(final double[][] movingPoints, final double[][] targetPoints) {
 			this.movingPoints = movingPoints;
 			this.targetPoints = targetPoints;
 			this.kernelTransform = null;
 			return this;
 		}
 
-		public Options withTransform(final ThinplateSplineTransform tps) {
-			return withTransform(tps.getKernelTransform());
+		public Options transform(final ThinplateSplineTransform tps) {
+			return transform(tps.getKernelTransform());
 		}
 
-		public Options withTransform(final ThinPlateR2LogRSplineKernelTransform kernelTransform) {
+		public Options transform(final ThinPlateR2LogRSplineKernelTransform kernelTransform) {
 			this.kernelTransform = kernelTransform;
 			this.movingPoints = null;
 			this.targetPoints = null;

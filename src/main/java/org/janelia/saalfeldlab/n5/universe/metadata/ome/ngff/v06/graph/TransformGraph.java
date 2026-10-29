@@ -160,10 +160,10 @@ public class TransformGraph
 		}
 
 		final StackedCoordinateTransform totalTransform = StackedCoordinateTransform.options()
-				.withName(from.getName() + " > " + to.getName())
-				.withInput(from.getName())
-				.withOutput(to.getName())
-				.withTransforms(stackedEntries(tList, from, to))
+				.name(from.getName() + " > " + to.getName())
+				.input(from.getName())
+				.output(to.getName())
+				.transforms(stackedEntries(tList, from, to))
 				.build();
 
 		totalTransform.setSpaces(spaces);
@@ -185,10 +185,10 @@ public class TransformGraph
 		}
 
 		final StackedCoordinateTransform totalTransform = StackedCoordinateTransform.options()
-				.withName("name")
-				.withInput(from.getName())
-				.withOutput(to.getName())
-				.withTransforms(stackedEntries(tList, from, to))
+				.name("name")
+				.input(from.getName())
+				.output(to.getName())
+				.transforms(stackedEntries(tList, from, to))
 				.build();
 
 		return totalTransform;
@@ -239,7 +239,7 @@ public class TransformGraph
 		else if( from.equals(to))
 			return Optional.of( new TransformPath(
 					IdentityCoordinateTransform.options()
-							.withName("identity").withInput(from.getName()).withOutput(to.getName()).build()));
+							.name("identity").input(from.getName()).output(to.getName()).build()));
 
 		return allPaths( from ).stream().filter( p -> spaces.getSpace(p.getEnd()).equals(to)).findAny();
 	}

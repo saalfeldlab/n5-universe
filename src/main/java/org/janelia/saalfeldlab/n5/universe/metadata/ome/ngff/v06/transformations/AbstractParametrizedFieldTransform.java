@@ -59,7 +59,7 @@ public abstract class AbstractParametrizedFieldTransform<T extends RealTransform
 		private boolean interpolationSet = false;
 		private String interpolation = LINEAR_INTERPOLATION;
 
-		public O withInterpolation(String interpolation) {
+		public O interpolation(String interpolation) {
 			this.interpolation = interpolation;
 			this.interpolationSet = true;
 			return self();

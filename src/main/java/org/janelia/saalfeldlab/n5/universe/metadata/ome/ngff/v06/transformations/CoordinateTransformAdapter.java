@@ -153,11 +153,11 @@ public class CoordinateTransformAdapter
 				final CoordinateTransform<?> fwd = context.deserialize( btmp.get("forward"), CoordinateTransform.class );
 				final CoordinateTransform<?> inv = context.deserialize( btmp.get("inverse"), CoordinateTransform.class );
 				out = BijectionCoordinateTransform.options()
-						.withName(bid.getName())
-						.withInput(bid.getInput())
-						.withOutput(bid.getOutput())
-						.withForward(fwd)
-						.withInverse(inv)
+						.name(bid.getName())
+						.input(bid.getInput())
+						.output(bid.getOutput())
+						.forward(fwd)
+						.inverse(inv)
 						.build();
 			}
 			break;
@@ -176,10 +176,10 @@ public class CoordinateTransformAdapter
 					transforms[i] = context.deserialize( e, CoordinateTransform.class );
 				}
 				out = SequenceCoordinateTransform.options()
-						.withName(id.getName())
-						.withInput(id.getInput())
-						.withOutput(id.getOutput())
-						.withTransformations(transforms)
+						.name(id.getName())
+						.input(id.getInput())
+						.output(id.getOutput())
+						.transformations(transforms)
 						.build();
 			}
 			else {

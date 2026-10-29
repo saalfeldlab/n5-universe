@@ -43,7 +43,7 @@ public abstract class AbstractAffineCoordinateTransform<T extends RealTransform>
 		private boolean affineSet = false;
 		private double[][] affine;
 
-		public O withAffine(double[][] affine) {
+		public O affine(double[][] affine) {
 			this.affine = affine;
 			this.affineSet = true;
 			return self();

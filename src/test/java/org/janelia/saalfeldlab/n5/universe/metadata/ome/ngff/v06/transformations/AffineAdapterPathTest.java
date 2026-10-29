@@ -94,14 +94,14 @@ public class AffineAdapterPathTest {
 			final String output, final double[][] matrix) {
 
 		return InvertibleAffineCoordinateTransform.options()
-				.withName(name).withInput(input).withOutput(output).withAffine(matrix).build();
+				.name(name).input(input).output(output).affine(matrix).build();
 	}
 
 	private static GeneralAffineCoordinateTransform general(final String name, final String input,
 			final String output, final double[][] matrix) {
 
 		return GeneralAffineCoordinateTransform.options()
-				.withName(name).withInput(input).withOutput(output).withAffine(matrix).build();
+				.name(name).input(input).output(output).affine(matrix).build();
 	}
 
 	/** an affine that reads its matrix from {@code path}, and has already read it */
@@ -109,7 +109,7 @@ public class AffineAdapterPathTest {
 			final String path, final String input, final String output) {
 
 		final InvertibleAffineCoordinateTransform ct = InvertibleAffineCoordinateTransform.options()
-				.withName(name).withInput(input).withOutput(output).withPath(path).build();
+				.name(name).input(input).output(output).path(path).build();
 		ct.bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 		ct.buildTransform(ct.getParameters());
 		return ct;
@@ -120,7 +120,7 @@ public class AffineAdapterPathTest {
 			final String path, final String input, final String output) {
 
 		final GeneralAffineCoordinateTransform ct = GeneralAffineCoordinateTransform.options()
-				.withName(name).withInput(input).withOutput(output).withPath(path).build();
+				.name(name).input(input).output(output).path(path).build();
 		ct.bindParameters(n5, OmeNgffMetadataParser.storesDimensionsReversed(n5));
 		ct.buildTransform(ct.getParameters());
 		return ct;
@@ -568,7 +568,7 @@ public class AffineAdapterPathTest {
 		invertible("aff", "in", "out",B).write(n5, "affine");
 
 		final GeneralAffineCoordinateTransform affine = GeneralAffineCoordinateTransform.options()
-				.withName("aff").withInput("in").withOutput("out").withPath("affine").build();
+				.name("aff").input("in").output("out").path("affine").build();
 		final ByDimensionCoordinateTransform ct = constructedByDimension(affine);
 
 		try {
@@ -626,8 +626,8 @@ public class AffineAdapterPathTest {
 
 		final ScaleCoordinateTransform scale = new ScaleCoordinateTransform(new double[] { 2.0 });
 		return ByDimensionCoordinateTransform.options()
-				.withName("bd").withInput("a").withOutput("b")
-				.withTransformations(
+				.name("bd").input("a").output("b")
+				.transformations(
 						new SubAxisTransformation(scale, new int[] { 2 }, new int[] { 2 }),
 						new SubAxisTransformation(affine, new int[] { 0, 1 }, new int[] { 0, 1 }))
 				.build();

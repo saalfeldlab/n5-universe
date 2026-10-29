@@ -33,7 +33,7 @@ public class GeneralAffineCoordinateTransform extends AbstractAffineCoordinateTr
 	}
 
 	public GeneralAffineCoordinateTransform(final double[][] affine) {
-		this(new Options().withAffine(affine));
+		this(new Options().affine(affine));
 	}
 
 	public static class Options extends AbstractAffineOptions<Options> {
@@ -50,7 +50,7 @@ public class GeneralAffineCoordinateTransform extends AbstractAffineCoordinateTr
 	@Override
 	protected GeneralAffineCoordinateTransform withPath(final String path) {
 
-		return copy(new BasicOptions().withPath(path));
+		return copy(new BasicOptions().path(path));
 	}
 
 	@Override
@@ -98,10 +98,10 @@ public class GeneralAffineCoordinateTransform extends AbstractAffineCoordinateTr
 		try {
 			final InvertibleAffineCoordinateTransform invertible =
 					InvertibleAffineCoordinateTransform.options()
-					.withName(getName())
-					.withInput(getInput())
-					.withOutput(getOutput())
-					.withAffine(params)
+					.name(getName())
+					.input(getInput())
+					.output(getOutput())
+					.affine(params)
 					.build();
 			return new InverseCoordinateTransform(invertible);
 		} catch (RuntimeException e) {

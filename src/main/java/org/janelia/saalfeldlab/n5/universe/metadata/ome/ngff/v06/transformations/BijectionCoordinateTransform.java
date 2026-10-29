@@ -35,12 +35,12 @@ public class BijectionCoordinateTransform extends AbstractCoordinateTransform<Ex
 		private CoordinateTransform<?> forward;
 		private CoordinateTransform<?> inverse;
 
-		public Options withForward(final CoordinateTransform<?> forward) {
+		public Options forward(final CoordinateTransform<?> forward) {
 			this.forward = forward;
 			return this;
 		}
 
-		public Options withInverse(final CoordinateTransform<?> inverse) {
+		public Options inverse(final CoordinateTransform<?> inverse) {
 			this.inverse = inverse;
 			return this;
 		}

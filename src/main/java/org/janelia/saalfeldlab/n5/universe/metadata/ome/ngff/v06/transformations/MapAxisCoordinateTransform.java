@@ -38,7 +38,7 @@ public class MapAxisCoordinateTransform extends AbstractCoordinateTransform<Affi
 
 		private int[] axisMapping;
 
-		public Options withAxisMapping(final int[] axisMapping) {
+		public Options axisMapping(final int[] axisMapping) {
 			this.axisMapping = axisMapping;
 			return this;
 		}

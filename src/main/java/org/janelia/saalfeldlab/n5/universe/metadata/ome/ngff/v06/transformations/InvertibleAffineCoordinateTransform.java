@@ -35,7 +35,7 @@ public class InvertibleAffineCoordinateTransform extends AbstractAffineCoordinat
 	}
 
 	public InvertibleAffineCoordinateTransform(final double[][] affine) {
-		this(new Options().withAffine(affine));
+		this(new Options().affine(affine));
 	}
 
 	public static class Options extends AbstractAffineOptions<Options> {
@@ -52,7 +52,7 @@ public class InvertibleAffineCoordinateTransform extends AbstractAffineCoordinat
 	@Override
 	protected InvertibleAffineCoordinateTransform withPath(final String path) {
 
-		return copy(new BasicOptions().withPath(path));
+		return copy(new BasicOptions().path(path));
 	}
 
 	@Override

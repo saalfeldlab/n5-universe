@@ -291,17 +291,17 @@ public class SceneParsingTest {
 		final double[] translation = new double[]{1, 2, 3};
 		final CoordinateTransform<?>[] cts = new CoordinateTransform[]{
 				TranslationCoordinateTransform.options()
-						.withName("CBCT_to_world")
-						.withInput(new OmeNgffReference("physical", "CBCT"))
-						.withOutput(new OmeNgffReference("world"))
-						.withTranslation(translation)
+						.name("CBCT_to_world")
+						.input(new OmeNgffReference("physical", "CBCT"))
+						.output(new OmeNgffReference("world"))
+						.translation(translation)
 						.build(),
 				DisplacementFieldCoordinateTransform.<FloatType>options()
-						.withName("A_to_B")
-						.withPath("coordinateTransformations/dfield")
-						.withInterpolation("linear")
-						.withInput(new OmeNgffReference("physical", "A"))
-						.withOutput(new OmeNgffReference("physical", "B"))
+						.name("A_to_B")
+						.path("coordinateTransformations/dfield")
+						.interpolation("linear")
+						.input(new OmeNgffReference("physical", "A"))
+						.output(new OmeNgffReference("physical", "B"))
 						.build()};
 
 		final File root = Files.createTempDirectory("scene-write-").toFile();
@@ -355,10 +355,10 @@ public class SceneParsingTest {
 
 			final CoordinateTransform<?>[] cts = new CoordinateTransform[]{
 					DisplacementFieldCoordinateTransform.<FloatType>options()
-							.withPath("coordinateTransformations/dfield")
-							.withInterpolation("linear")
-							.withInput(new OmeNgffReference("physical", "A"))
-							.withOutput(new OmeNgffReference("physical", "B"))
+							.path("coordinateTransformations/dfield")
+							.interpolation("linear")
+							.input(new OmeNgffReference("physical", "A"))
+							.output(new OmeNgffReference("physical", "B"))
 							.build()};
 
 			new OmeNgffSceneParser(zarr).writeMetadata(new NgffSceneMetadata("", new NgffScene(cts)), zarr, "");

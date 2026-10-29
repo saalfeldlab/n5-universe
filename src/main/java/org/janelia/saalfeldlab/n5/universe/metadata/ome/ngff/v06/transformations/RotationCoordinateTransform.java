@@ -27,12 +27,12 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 	}
 
 	public RotationCoordinateTransform(final double[] affineFlat) {
-		this(new Options().withRotation(TransformUtils.toRotationMatrix(affineFlat)));
+		this(new Options().rotation(TransformUtils.toRotationMatrix(affineFlat)));
 		buildTransform(affineFlat);
 	}
 
 	public RotationCoordinateTransform(final double[][] rotation) {
-		this(new Options().withRotation(rotation));
+		this(new Options().rotation(rotation));
 	}
 
 	private RotationCoordinateTransform(Options options) {
@@ -56,7 +56,7 @@ public class RotationCoordinateTransform extends AbstractParametrizedTransform<A
 		private boolean rotationSet = false;
 		private double[][] rotation;
 
-		public Options withRotation(double[][] rotation) {
+		public Options rotation(double[][] rotation) {
 			this.rotation = rotation;
 			this.rotationSet = true;
 			return this;

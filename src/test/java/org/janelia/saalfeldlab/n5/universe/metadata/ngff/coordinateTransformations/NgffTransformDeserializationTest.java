@@ -65,8 +65,8 @@ public class NgffTransformDeserializationTest {
 	public void testByDimensionAxesRoundTrip() {
 
 		final ByDimensionCoordinateTransform bd = ByDimensionCoordinateTransform.options()
-				.withName("bd").withInput("a").withOutput("b")
-				.withTransformations(
+				.name("bd").input("a").output("b")
+				.transformations(
 						new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{1}, new int[]{1}),
 						new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{3.0, 4.0}), new int[]{0, 2}, new int[]{0, 2}))
 				.build();
@@ -87,8 +87,8 @@ public class NgffTransformDeserializationTest {
 	public void testByDimensionInverseSwapsAxes() {
 
 		final ByDimensionCoordinateTransform bd = ByDimensionCoordinateTransform.options()
-				.withName("bd").withInput("a").withOutput("b")
-				.withTransformations(
+				.name("bd").input("a").output("b")
+				.transformations(
 						new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{0}, new int[]{1}),
 						new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{3.0}), new int[]{1}, new int[]{0}))
 				.build();
@@ -107,8 +107,8 @@ public class NgffTransformDeserializationTest {
 	public void testByDimensionIdentityChildTakesDimensionsFromAxes() {
 
 		final ByDimensionCoordinateTransform bd = ByDimensionCoordinateTransform.options()
-				.withName("bd").withInput("a").withOutput("b")
-				.withTransformations(
+				.name("bd").input("a").output("b")
+				.transformations(
 						new SubAxisTransformation(new IdentityCoordinateTransform(), new int[]{0, 1}, new int[]{0, 1}),
 						new SubAxisTransformation(new ScaleCoordinateTransform(new double[]{2.0}), new int[]{2}, new int[]{2}))
 				.build();

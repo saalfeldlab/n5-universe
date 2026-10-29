@@ -48,7 +48,7 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 
 		private SubAxisTransformation[] transformations;
 
-		public Options withTransformations(final SubAxisTransformation... transformations) {
+		public Options transformations(final SubAxisTransformation... transformations) {
 			this.transformations = transformations;
 			return this;
 		}
@@ -223,10 +223,10 @@ public class ByDimensionCoordinateTransform extends AbstractCoordinateTransform<
 		}
 
 		return options()
-				.withName(getName() == null ? null : getName() + "-inv")
-				.withInput(getOutput())
-				.withOutput(getInput())
-				.withTransformations(invEntries)
+				.name(getName() == null ? null : getName() + "-inv")
+				.input(getOutput())
+				.output(getInput())
+				.transformations(invEntries)
 				.build();
 	}
 

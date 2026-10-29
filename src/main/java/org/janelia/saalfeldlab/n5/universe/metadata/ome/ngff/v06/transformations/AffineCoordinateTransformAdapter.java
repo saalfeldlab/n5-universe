@@ -81,17 +81,17 @@ public class AffineCoordinateTransformAdapter implements
 			final AbstractAffineCoordinateTransform tf;
 			if (affine != null && sourceDimsEqualTargetDims(affine)) {
 				tf = InvertibleAffineCoordinateTransform.options()
-						.withName(base.getName())
-						.withInput(base.getInput())
-						.withOutput(base.getOutput())
-						.withAffine(affine)
+						.name(base.getName())
+						.input(base.getInput())
+						.output(base.getOutput())
+						.affine(affine)
 						.build();
 			} else {
 				tf = GeneralAffineCoordinateTransform.options()
-						.withName(base.getName())
-						.withInput(base.getInput())
-						.withOutput(base.getOutput())
-						.withAffine(affine)
+						.name(base.getName())
+						.input(base.getInput())
+						.output(base.getOutput())
+						.affine(affine)
 						.build();
 			}
 			return tf;

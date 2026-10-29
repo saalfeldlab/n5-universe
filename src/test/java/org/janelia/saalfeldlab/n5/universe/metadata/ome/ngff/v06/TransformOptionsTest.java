@@ -41,10 +41,10 @@ public class TransformOptionsTest {
 	public void testSetterOrderDoesNotMatter() {
 
 		final ScaleCoordinateTransform nameFirst = ScaleCoordinateTransform.options()
-				.withName("s").withInput("in").withOutput("out").withScale(new double[] { 2, 3 }).build();
+				.name("s").input("in").output("out").scale(new double[] { 2, 3 }).build();
 
 		final ScaleCoordinateTransform scaleFirst = ScaleCoordinateTransform.options()
-				.withScale(new double[] { 2, 3 }).withOutput("out").withInput("in").withName("s").build();
+				.scale(new double[] { 2, 3 }).output("out").input("in").name("s").build();
 
 		for (final ScaleCoordinateTransform ct : new ScaleCoordinateTransform[] { nameFirst, scaleFirst }) {
 			assertEquals("s", ct.getName());
@@ -58,7 +58,7 @@ public class TransformOptionsTest {
 	@Test
 	public void testUnsetFieldsAreNull() {
 
-		final ScaleCoordinateTransform ct = ScaleCoordinateTransform.options().withScale(new double[] { 2 }).build();
+		final ScaleCoordinateTransform ct = ScaleCoordinateTransform.options().scale(new double[] { 2 }).build();
 		assertNull(ct.getName());
 		assertNull(ct.getInput());
 		assertNull(ct.getOutput());
@@ -71,7 +71,7 @@ public class TransformOptionsTest {
 	public void testOptionsDoNotShareArrays() {
 
 		final double[] scale = { 2, 3 };
-		final ScaleCoordinateTransform ct = ScaleCoordinateTransform.options().withScale(scale).build();
+		final ScaleCoordinateTransform ct = ScaleCoordinateTransform.options().scale(scale).build();
 		scale[0] = 100;
 		assertEquals(2, ct.scale[0], 0.0);
 		assertEquals(2, ct.getTransform().getScale(0), 0.0);
@@ -83,81 +83,81 @@ public class TransformOptionsTest {
 		final double[] v = { 1, 2 };
 
 		assertEquals(TranslationCoordinateTransform.TYPE, TranslationCoordinateTransform.options()
-				.withName("t").withTranslation(v).build().getType());
+				.name("t").translation(v).build().getType());
 
 		assertEquals(RotationCoordinateTransform.TYPE, RotationCoordinateTransform.options()
-				.withName("r").withRotation(new double[][] { { 1, 0 }, { 0, 1 } }).build().getType());
+				.name("r").rotation(new double[][] { { 1, 0 }, { 0, 1 } }).build().getType());
 
 		assertEquals(InvertibleAffineCoordinateTransform.TYPE, InvertibleAffineCoordinateTransform.options()
-				.withName("a").withAffine(AFFINE).build().getType());
+				.name("a").affine(AFFINE).build().getType());
 
 		assertEquals(GeneralAffineCoordinateTransform.TYPE, GeneralAffineCoordinateTransform.options()
-				.withName("g").withAffine(AFFINE).build().getType());
+				.name("g").affine(AFFINE).build().getType());
 
 		assertEquals(IdentityCoordinateTransform.TYPE, IdentityCoordinateTransform.options()
-				.withName("i").build().getType());
+				.name("i").build().getType());
 
 		final IdentityCoordinateTransform id = IdentityCoordinateTransform.options().build();
 		final BijectionCoordinateTransform bijection = BijectionCoordinateTransform.options()
-				.withName("b").withForward(id).withInverse(id).build();
+				.name("b").forward(id).inverse(id).build();
 		assertSame(id, bijection.getForward());
 
 		final ByDimensionCoordinateTransform byDimension = ByDimensionCoordinateTransform.options()
-				.withName("bd").withInput("a").withOutput("b")
-				.withTransformations(new SubAxisTransformation(
-						ScaleCoordinateTransform.options().withScale(v).build(), new int[] { 0, 1 }, new int[] { 0, 1 }))
+				.name("bd").input("a").output("b")
+				.transformations(new SubAxisTransformation(
+						ScaleCoordinateTransform.options().scale(v).build(), new int[] { 0, 1 }, new int[] { 0, 1 }))
 				.build();
 		assertEquals(1, byDimension.getTransformations().length);
 
-		assertNotNull(StackedCoordinateTransform.options().withName("st").withTransforms().build());
+		assertNotNull(StackedCoordinateTransform.options().name("st").transforms().build());
 
 		assertArrayEquals(new int[] { 1, 0 }, MapAxisCoordinateTransform.options()
-				.withName("m").withAxisMapping(new int[] { 1, 0 }).build().getAxisMapping());
+				.name("m").axisMapping(new int[] { 1, 0 }).build().getAxisMapping());
 
 		final ThinPlateSplineCoordinateTransform tps = ThinPlateSplineCoordinateTransform.options()
-				.withName("tps")
-				.withPoints(new double[][] { { 0, 1, 0, 1 }, { 0, 0, 1, 1 } },
+				.name("tps")
+				.points(new double[][] { { 0, 1, 0, 1 }, { 0, 0, 1, 1 } },
 						new double[][] { { 0, 1, 0, 2 }, { 0, 0, 1, 2 } })
 				.build();
 		assertNotNull(tps.getTransform());
 
 		assertEquals("p", DisplacementFieldCoordinateTransform.<FloatType>options()
-				.withName("d").withPath("p").build().getParameterPath());
+				.name("d").path("p").build().getParameterPath());
 
 		assertEquals("p", CoordinateFieldCoordinateTransform.<FloatType>options()
-				.withName("c").withPath("p").withInterpolation("nearest").build().getParameterPath());
+				.name("c").path("p").interpolation("nearest").build().getParameterPath());
 
 		assertEquals("nearest", CoordinateFieldCoordinateTransform.<FloatType>options()
-				.withInterpolation("nearest").withPath("p").build().getInterpolation());
+				.interpolation("nearest").path("p").build().getInterpolation());
 	}
 
 	@Test
 	public void testCopyReplacesParametersWithTheTypesOptions() {
 
 		final ScaleCoordinateTransform scale = ScaleCoordinateTransform.options()
-				.withName("s").withScale(new double[] { 2, 3 }).build();
+				.name("s").scale(new double[] { 2, 3 }).build();
 
-		final ScaleCoordinateTransform rescaled = scale.copy(ScaleCoordinateTransform.options().withScale(new double[] { 5, 6 }));
+		final ScaleCoordinateTransform rescaled = scale.copy(ScaleCoordinateTransform.options().scale(new double[] { 5, 6 }));
 		assertArrayEquals(new double[] { 5, 6 }, rescaled.scale, 0.0);
 		assertEquals("s", rescaled.getName());
 		assertArrayEquals(new double[] { 2, 3 }, scale.scale, 0.0);
 
 		final TranslationCoordinateTransform translation = TranslationCoordinateTransform.options()
-				.withTranslation(new double[] { 1, 2 }).build();
+				.translation(new double[] { 1, 2 }).build();
 		assertArrayEquals(new double[] { 7, 8 },
-				translation.copy(TranslationCoordinateTransform.options().withTranslation(new double[] { 7, 8 })).translation, 0.0);
+				translation.copy(TranslationCoordinateTransform.options().translation(new double[] { 7, 8 })).translation, 0.0);
 
 		final InvertibleAffineCoordinateTransform affine = InvertibleAffineCoordinateTransform.options()
-				.withAffine(AFFINE).build();
+				.affine(AFFINE).build();
 		final InvertibleAffineCoordinateTransform movedAffine = affine.copy(
-				InvertibleAffineCoordinateTransform.options().withAffine(new double[][] { { 1, 0, 5 }, { 0, 1, 6 } }));
+				InvertibleAffineCoordinateTransform.options().affine(new double[][] { { 1, 0, 5 }, { 0, 1, 6 } }));
 		assertEquals(5, movedAffine.affine[0][2], 0.0);
 		assertEquals(1, affine.affine[0][2], 0.0);
 
-		final SequenceCoordinateTransform sequence = SequenceCoordinateTransform.options().withName("seq")
-				.withTransformations(scale).build();
+		final SequenceCoordinateTransform sequence = SequenceCoordinateTransform.options().name("seq")
+				.transformations(scale).build();
 		final SequenceCoordinateTransform replaced = sequence.copy(SequenceCoordinateTransform.options()
-				.withTransformations(scale, translation));
+				.transformations(scale, translation));
 		assertEquals(2, replaced.getTransformations().length);
 		assertEquals(1, sequence.getTransformations().length);
 		assertEquals("seq", replaced.getName());
@@ -167,9 +167,9 @@ public class TransformOptionsTest {
 	public void testCopyKeepsParametersThatAreNotSet() {
 
 		final ScaleCoordinateTransform scale = ScaleCoordinateTransform.options()
-				.withName("s").withScale(new double[] { 2, 3 }).build();
+				.name("s").scale(new double[] { 2, 3 }).build();
 
-		final ScaleCoordinateTransform renamed = scale.copy(ScaleCoordinateTransform.options().withName("s2"));
+		final ScaleCoordinateTransform renamed = scale.copy(ScaleCoordinateTransform.options().name("s2"));
 		assertEquals("s2", renamed.getName());
 		assertArrayEquals(new double[] { 2, 3 }, renamed.scale, 0.0);
 		assertNotSame(scale.scale, renamed.scale);
@@ -179,17 +179,17 @@ public class TransformOptionsTest {
 	public void testFieldCopyCanNotChangeInterpolation() {
 
 		final DisplacementFieldCoordinateTransform<FloatType> df = DisplacementFieldCoordinateTransform.<FloatType>options()
-				.withPath("p").build();
+				.path("p").build();
 
 		assertEquals("linear", df.copy().getInterpolation());
 
 		try {
-			df.copy(DisplacementFieldCoordinateTransform.<FloatType>options().withInterpolation("nearest"));
+			df.copy(DisplacementFieldCoordinateTransform.<FloatType>options().interpolation("nearest"));
 			fail("the interpolation of a field can not be changed");
 		} catch (final UnsupportedOperationException e) {}
 
 		// the same interpolation is fine
-		assertEquals("linear", df.copy(DisplacementFieldCoordinateTransform.<FloatType>options().withInterpolation("linear"))
+		assertEquals("linear", df.copy(DisplacementFieldCoordinateTransform.<FloatType>options().interpolation("linear"))
 				.getInterpolation());
 	}
 
@@ -198,11 +198,11 @@ public class TransformOptionsTest {
 
 		final CoordinateTransform<?> identity = IdentityCoordinateTransform.options().build();
 		try {
-			identity.copy(IdentityCoordinateTransform.options().withPath("p"));
+			identity.copy(IdentityCoordinateTransform.options().path("p"));
 			fail("identity has no parameter path");
 		} catch (final UnsupportedOperationException e) {}
 
-		assertEquals("p", ScaleCoordinateTransform.options().withPath("p").build()
-				.copy(ScaleCoordinateTransform.options().withName("n")).getParameterPath());
+		assertEquals("p", ScaleCoordinateTransform.options().path("p").build()
+				.copy(ScaleCoordinateTransform.options().name("n")).getParameterPath());
 	}
 }
