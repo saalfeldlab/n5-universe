@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.axes;
 
+import java.util.HashMap;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -27,6 +28,24 @@ public enum Unit {
 	public static final char MICRO = '\u00B5';
 	public static final char MU = '\u03BC';
 
+	/**
+	 * Alternate names and non-SI abbreviations, keyed by lower-case string.
+	 */
+	private static final HashMap<String, Unit> aliases = new HashMap<>();
+	static {
+		aliases.put("micron", micrometer);
+
+		aliases.put("in", inch);
+		aliases.put("ft", foot);
+		aliases.put("yd", yard);
+		aliases.put("mi", mile);
+		aliases.put("pc", parsec);
+		aliases.put("min", minute);
+		aliases.put("sec", second);
+		aliases.put("hr", hour);
+		aliases.put("d", day);
+	}
+
 	Unit(String type) {
 
 		this.type = type;
@@ -51,8 +70,15 @@ public enum Unit {
 	public static Unit fromString( final String unitString ) {
 
 		final String unitNorm = unitString.trim();
-		return tryParse(unitNorm.toLowerCase())
-				.orElse(fromAbbreviation(unitNorm));
+		final String unitLower = unitNorm.toLowerCase();
+		return tryParse(unitLower)
+				.orElse(fromAlias(unitLower)
+				.orElse(fromSiAbbreviation(unitNorm).orElse(null)));
+	}
+
+	private static Optional<Unit> fromAlias(final String alias) {
+
+		return Optional.ofNullable(aliases.get(alias));
 	}
 
 	private static Optional<Unit> tryParse(final String unit) {
@@ -62,14 +88,6 @@ public enum Unit {
 		} catch (Exception ignore) {}
 
 		return Optional.empty();
-	}
-
-	@Nullable
-	private static Unit fromAbbreviation(final String abbrev) {
-
-		return fromSiAbbreviation(abbrev)
-				.orElse(fromOtherAbbreviation(abbrev.toLowerCase())
-				.orElse(null));
 	}
 
 	private static Optional<Unit> fromSiAbbreviation(final String si) {
@@ -91,7 +109,7 @@ public enum Unit {
 		case 'Q':
 			return "quetta";
 		case 'R':
-			return "rotta";
+			return "ronna";
 		case 'Y':
 			return "yotta";
 		case 'Z':
@@ -127,7 +145,7 @@ public enum Unit {
 		case 'p':
 			return "pico";
 		case 'f':
-			return "fempto";
+			return "femto";
 		case 'a':
 			return "atto";
 		case 'z':
@@ -150,37 +168,6 @@ public enum Unit {
 			return "second";
 		}
 		return null;
-	}
-
-	/**
-	 * Covers units that are not SI.
-	 * 
-	 * @param abbreviation
-	 * @return a unit, or null
-	 */
-	private static Optional<Unit> fromOtherAbbreviation(final String abbreviation) {
-
-		switch (abbreviation) {
-		case "in":
-			return Optional.of(Unit.inch);
-		case "ft":
-			return Optional.of(Unit.foot);
-		case "yd":
-			return Optional.of(Unit.yard);
-		case "mi":
-			return Optional.of(Unit.mile);
-		case "pc":
-			return Optional.of(Unit.parsec);
-		case "min":
-			return Optional.of(Unit.minute);
-		case "sec":
-			return Optional.of(Unit.second);
-		case "hr":
-			return Optional.of(Unit.hour);
-		case "d":
-			return Optional.of(Unit.day);
-		}
-		return Optional.empty();
 	}
 
 }

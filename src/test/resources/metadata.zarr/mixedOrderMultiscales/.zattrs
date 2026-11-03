@@ -1,0 +1,123 @@
+{
+    "multiscales": [
+        {
+            "version": "0.4",
+            "name": "mixedOrderMultiscales",
+            "axes": [
+                {
+                    "name": "c",
+                    "type": "channel"
+                },
+                {
+                    "name": "x",
+                    "type": "space",
+                    "unit": "nanometer"
+                },
+                {
+                    "name": "y",
+                    "type": "space",
+                    "unit": "nanometer"
+                },
+                {
+                    "name": "z",
+                    "type": "space",
+                    "unit": "nanometer"
+                }
+            ],
+            "datasets": [
+                {
+                    "path": "s0",
+                    "coordinateTransformations": [
+                        {
+                            "type": "scale",
+                            "scale": [
+                                1.0,
+                                11.0,
+                                12.0,
+                                13.0
+                            ]
+                        },
+                        {
+                            "type": "translation",
+                            "translation": [
+                                0.0,
+                                1.0,
+                                2.0,
+                                3.0
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "path": "s1",
+                    "coordinateTransformations": [
+                        {
+                            "type": "scale",
+                            "scale": [
+                                1.0,
+                                22.0,
+                                24.0,
+                                26.0
+                            ]
+                        },
+                        {
+                            "type": "translation",
+                            "translation": [
+                                0.0,
+                                2.0,
+                                4.0,
+                                6.0
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "path": "s2",
+                    "coordinateTransformations": [
+                        {
+                            "type": "scale",
+                            "scale": [
+                                1.0,
+                                44.0,
+                                48.0,
+                                52.0
+                            ]
+                        },
+                        {
+                            "type": "translation",
+                            "translation": [
+                                0.0,
+                                4.0,
+                                8.0,
+                                12.0
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "path": "s3",
+                    "coordinateTransformations": [
+                        {
+                            "type": "scale",
+                            "scale": [
+                                1.0,
+                                88.0,
+                                96.0,
+                                104.0
+                            ]
+                        },
+                        {
+                            "type": "translation",
+                            "translation": [
+                                0.0,
+                                8.0,
+                                16.0,
+                                24.0
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

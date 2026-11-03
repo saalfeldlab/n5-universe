@@ -2,7 +2,7 @@ package org.janelia.saalfeldlab.n5.universe.metadata;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+import java.nio.file.Files;
 import java.util.Optional;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
@@ -15,6 +15,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.canonical.CanonicalSpatialDa
 import org.janelia.saalfeldlab.n5.universe.metadata.canonical.SpatialMetadataCanonical;
 import org.janelia.saalfeldlab.n5.universe.metadata.transforms.AffineSpatialTransform;
 import org.janelia.saalfeldlab.n5.universe.translation.JqUtils;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,12 +43,9 @@ public class AxisMetadataTests {
 		final String n5Root = "src/test/resources/canonical.n5";
 		n5rootF = new File(n5Root);
 
-		final URL configUrl = TransformTests.class.getResource( "/n5.jq" );
-		final File baseDir = new File( configUrl.getFile() ).getParentFile();
-		containerDir = new File( baseDir, "canonical.n5" );
-
 		try {
 
+			containerDir = Files.createTempDirectory("axis-metadata-tests-").toFile();
 			n5 = new N5FSReader( n5rootF.getCanonicalPath(), JqUtils.gsonBuilder(null));
 			n5w = new N5FSWriter( containerDir.getCanonicalPath(), JqUtils.gsonBuilder(null));
 
@@ -68,6 +66,18 @@ public class AxisMetadataTests {
 		blkSz3d = new int[] { 8, 8, 8 };
 		blkSz4d = new int[] { 8, 8, 8, 8 };
 		blkSz5d = new int[] { 8, 8, 8, 8, 8 };
+	}
+
+	@After
+	public void after() {
+
+		if (n5w != null) {
+			n5w.remove();
+			n5w.close();
+		}
+
+		if (n5 != null)
+			n5.close();
 	}
 
 	@Test

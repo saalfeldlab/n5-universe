@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations;
 
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform.TransformOptions;
+
 import net.imglib2.realtransform.Scale;
 import net.imglib2.realtransform.Scale2D;
 import net.imglib2.realtransform.Scale3D;
@@ -14,10 +16,6 @@ public class ScaleCoordinateTransformation extends AbstractCoordinateTransformat
 	public ScaleCoordinateTransformation(final double[] scale) {
 		super(TYPE);
 		this.scale = scale;
-	}
-
-	public ScaleCoordinateTransformation(ScaleCoordinateTransformation other) {
-		this(other.scale);
 	}
 
 	public double[] getScale() {
@@ -36,4 +34,15 @@ public class ScaleCoordinateTransformation extends AbstractCoordinateTransformat
 			return new Scale( getScale() );
 	}
 
+	@Override
+	public ScaleCoordinateTransformation copy() {
+
+		return new ScaleCoordinateTransformation(this.scale);
+	}
+
+	@Override
+	public ScaleCoordinateTransformation copy(final TransformOptions<?> copyParams) {
+
+		return copy();
+	}
 }

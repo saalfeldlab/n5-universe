@@ -1,6 +1,8 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v04;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
@@ -8,17 +10,19 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Optional;
 
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
+import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform;
 import org.junit.Test;
 
 import net.imglib2.realtransform.AffineTransform3D;
@@ -106,45 +110,194 @@ public class NgffAxisTests {
 
 		final URI rootF = Paths.get("src", "test", "resources", "metadata.zarr").toUri();
 		final N5Reader zarr = new N5Factory().openReader(rootF.toString());
-		final String[] names = new String[]{"z", "y", "x", "c"};
 
-		// the expected scales and translations are reversed versions
-		// of the arrays appearing in the JSON
-		final double[] expectedScales = new double[]{13, 12, 11, 1};
-		final double[] expectedTranslations = new double[]{3, 2, 1, 0};
-
-		// f- and c-order metadata should have axes, scales, adn translations in the same order after parsing 
+		// f- and c-order multiscales metadata should have axes, scales, and translations
+		// in the same order after parsing (reversed relative to the JSON).
+		// The children's axis parameters are aligned with their array's dimensions,
+		// so they are reversed again for f-order arrays.
 		final OmeNgffMetadataParser parser = new OmeNgffMetadataParser();
+		final String[] expectedNames = new String[]{"z", "y", "x", "c"};
+		final double[] expectedScales = new double[] { 13, 12, 11, 1 };
+		final double[] expectedTranslations = new double[] { 3, 2, 1, 0 };
 
 		// f-Order
+		// n5-zarr does not reverse dimensions of f-order arrays,
+		// so the dimensions are in the same order as the JSON shape
+		final long[] expectedDimensionsF = new long[] { 1, 4096, 4096, 1536 };
 		final N5TreeNode fOrderNode = CoordinateTransformParsingTest.setupNode(zarr, "fOrder", "1");
-		axisOrderTest(parser.parseMetadata(zarr, fOrderNode), names, expectedScales, expectedTranslations);
+		axisOrderTest(parser.parseMetadata(zarr, fOrderNode), expectedNames, expectedScales, expectedTranslations,
+				expectedDimensionsF, new int[] { 3, 2, 1, 0 });
 
 		// c-Order
+		// n5-zarr reverses dimensions of c-order arrays,
+		// so the dimensions are reversed relative to the JSON shape
+		final long[] expectedDimensionsC = new long[] { 1536, 4096, 4096, 1 };
 		final N5TreeNode cOrderNode = CoordinateTransformParsingTest.setupNode(zarr, "cOrder", "1");
-		axisOrderTest(parser.parseMetadata(zarr, cOrderNode), names, expectedScales, expectedTranslations);
+		axisOrderTest(parser.parseMetadata(zarr, cOrderNode), expectedNames, expectedScales, expectedTranslations,
+				expectedDimensionsC, null);
 	}
 
-	private void axisOrderTest(final Optional<OmeNgffMetadata> metaOpt, final String[] expectedNames,
-			final double[] expectedScales, final double[] expectedTranslations) {
+	@Test
+	public void testMixedStorageOrderMultiscales() {
 
-		assertTrue("ss not parsable", metaOpt.isPresent());
+		final URI rootF = Paths.get("src", "test", "resources", "metadata.zarr").toUri();
+		final N5Reader zarr = new N5Factory().openReader(rootF.toString());
+
+		// s0 and s3 are c-order arrays, s1 and s2 are f-order arrays.
+		// The multiscales metadata is shared by all scale levels, so the parsed
+		// axes, scales, and translations are reversed relative to the JSON for every level.
+		// Only the children's axis parameters differ, since they are aligned with
+		// their array's dimensions, which n5-zarr reverses for c-order arrays only.
+		final OmeNgffMetadataParser parser = new OmeNgffMetadataParser();
+		final Optional<OmeNgffMetadata> metaOpt = parser
+				.parseMetadata(zarr, new N5TreeNode("mixedOrderMultiscales"));
+
+		assertTrue("not parsable", metaOpt.isPresent());
+		final OmeNgffMetadata meta = metaOpt.get();
+		assertTrue("no multiscales found", meta.multiscales.length > 0);
+
+		final String[] expectedNames = new String[] { "z", "y", "x", "c" };
+		assertArrayEquals("names do not match", expectedNames,
+				Arrays.stream(meta.multiscales[0].axes).map(a -> a.getName()).toArray(N -> new String[N]));
+
+		final int[] reversal = new int[] { 3, 2, 1, 0 };
+		final NgffSingleScaleAxesMetadata[] children = meta.getChildrenMetadata();
+		assertEquals("number of scale levels", 4, children.length);
+
+		final long[][] expectedDimensions = new long[][] {
+				{ 1536, 4096, 4096, 1 },	// s0 c-order, reversed by n5-zarr
+				{ 1, 2048, 2048, 768 },		// s1 f-order, as in the JSON shape
+				{ 1, 1024, 1024, 384 },		// s2 f-order, as in the JSON shape
+				{ 192, 512, 512, 1 }		// s3 c-order, reversed by n5-zarr
+		};
+
+		for (int i = 0; i < 4; i++) {
+
+			final String level = "s" + i;
+			final double f = 1 << i;
+
+			// multiscales values, reversed relative to the JSON
+			final double[] expectedScales = new double[] { 13 * f, 12 * f, 11 * f, 1 };
+			final double[] expectedTranslations = new double[] { 3 * f, 2 * f, 1 * f, 0 };
+
+			final CoordinateTransform<?>[] cts = meta.multiscales[0].datasets[i].coordinateTransformations;
+			assertTrue(level + " first coordinate transform not scale", cts[0] instanceof ScaleCoordinateTransform);
+			assertArrayEquals(level + " scales do not match", expectedScales,
+					((ScaleCoordinateTransform)cts[0]).scale, EPS);
+
+			assertTrue(level + " second coordinate transform not translation",
+					cts[1] instanceof TranslationCoordinateTransform);
+			assertArrayEquals(level + " translations do not match", expectedTranslations,
+					((TranslationCoordinateTransform)cts[1]).translation, EPS);
+
+			// f-order children are permuted relative to the multiscales metadata, c-order children are not
+			final boolean fOrder = (i == 1 || i == 2);
+			final int[] expectedPermutation = fOrder ? reversal : null;
+
+			String[] childNames = Arrays.copyOf(expectedNames, expectedNames.length);
+			double[] childScales = expectedScales;
+			double[] childTranslations = expectedTranslations;
+			if (expectedPermutation != null) {
+				AxisUtils.permute(childNames, childNames, expectedPermutation);
+				childScales = AxisUtils.permute(expectedScales, expectedPermutation);
+				childTranslations = AxisUtils.permute(expectedTranslations, expectedPermutation);
+			}
+
+			final NgffSingleScaleAxesMetadata child = children[i];
+			assertArrayEquals(level + " permutation from parent does not match", expectedPermutation,
+					child.getPermutationFromParent());
+			assertArrayEquals(level + " dimensions do not match", expectedDimensions[i],
+					child.getAttributes().getDimensions());
+			assertArrayEquals(level + " child names do not match", childNames, child.getAxisLabels());
+			assertArrayEquals(level + " child scales do not match", childScales, child.getScale(), EPS);
+			assertArrayEquals(level + " child translations do not match", childTranslations,
+					child.getTranslation(), EPS);
+		}
+	}
+
+	@Test
+	public void testPermutationFromParentPropagates() {
+
+		final int[] reversal = new int[] { 2, 1, 0 };
+		final NgffSingleScaleAxesMetadata child = new NgffSingleScaleAxesMetadata("s0",
+				new double[] { 1, 2, 3 }, new double[] { 4, 5, 6 },
+				AxisUtils.defaultAxes("x", "y", "z"), null, reversal);
+
+		assertArrayEquals("permutation from parent", reversal, child.getPermutationFromParent());
+		assertNull("no parent", new NgffSingleScaleAxesMetadata("s0",
+				new double[] { 1, 2, 3 }, null, AxisUtils.defaultAxes("x", "y", "z"), null)
+				.getPermutationFromParent());
+
+		// the getter returns a copy
+		child.getPermutationFromParent()[0] = 99;
+		assertArrayEquals("getter returns a copy", reversal, child.getPermutationFromParent());
+
+		assertArrayEquals("modifySpatialTransform keeps permutation", reversal,
+				child.modifySpatialTransform("s1", new AffineTransform3D()).getPermutationFromParent());
+
+		assertArrayEquals("buildNgffMetadata keeps permutation", reversal,
+				MetadataUtils.buildNgffMetadata("s1", child, new double[] { 2, 4, 6 }, new double[3])
+						.getPermutationFromParent());
+
+		// permuting again composes: new[i] = parent[reversal[q[i]]]
+		final int[] q = new int[] { 1, 0, 2 };
+		final NgffSingleScaleAxesMetadata permuted = MetadataUtils.permuteNgffMetadata(child, q);
+		assertArrayEquals("permuteNgffMetadata composes permutation", new int[] { 1, 2, 0 },
+				permuted.getPermutationFromParent());
+		final double[] parentScale = new double[] { 3, 2, 1 };
+		assertArrayEquals("composed permutation maps parent scale to child scale",
+				permuted.getScale(), AxisUtils.permute(parentScale, permuted.getPermutationFromParent()), EPS);
+	}
+
+	// The expected names, scales, and translations are those of the multiscales metadata.
+	// The expected child values are derived from these by applying expectedPermutation.
+	// The expected dimensions are those of the child array.
+	private void axisOrderTest(final Optional<OmeNgffMetadata> metaOpt,
+			final String[] expectedNames,
+			final double[] expectedScales,
+			final double[] expectedTranslations,
+			final long[] expectedDimension,
+			final int[] expectedPermutation) {
+
+		assertTrue("not parsable", metaOpt.isPresent());
 
 		final OmeNgffMetadata meta = metaOpt.get();
 		assertTrue("no multiscales found", meta.multiscales.length > 0);
 
 		final Axis[] axes = meta.multiscales[0].axes;
 		final String[] names = Arrays.stream(axes).map(a -> a.getName()).toArray(N -> new String[N]);
-		assertArrayEquals("names don't match", expectedNames, names);
+		assertArrayEquals("names do not match", expectedNames, names);
 
-		final CoordinateTransformation<?>[] cts = meta.multiscales[0].datasets[0].coordinateTransformations;
-		assertTrue("first coordinate transform not scale", cts[0] instanceof ScaleCoordinateTransformation);
-		final ScaleCoordinateTransformation ct0 = (ScaleCoordinateTransformation)cts[0];
-		assertArrayEquals("scales don't match", expectedScales, ct0.getScale(), EPS);
+		final CoordinateTransform<?>[] cts = meta.multiscales[0].datasets[0].coordinateTransformations;
 
-		assertTrue("second coordinate transform not translation", cts[1] instanceof TranslationCoordinateTransformation);
-		final TranslationCoordinateTransformation ct1 = (TranslationCoordinateTransformation)cts[1];
-		assertArrayEquals("translations don't match", expectedTranslations, ct1.getTranslation(), EPS);
+		assertTrue("first coordinate transform not scale", cts[0] instanceof ScaleCoordinateTransform);
+		final ScaleCoordinateTransform ct0 = (ScaleCoordinateTransform)cts[0];
+		assertArrayEquals("scales do not match", expectedScales, ct0.scale, EPS);
+
+		assertTrue("second coordinate transform not translation", cts[1] instanceof TranslationCoordinateTransform);
+		final TranslationCoordinateTransform ct1 = (TranslationCoordinateTransform)cts[1];
+		assertArrayEquals("translations do not match", expectedTranslations, ct1.translation, EPS);
+
+		// test child
+		final NgffSingleScaleAxesMetadata child = meta.getChildrenMetadata()[0];
+		final DatasetAttributes attrs = child.getAttributes();
+
+		assertArrayEquals("permutation from parent does not match", expectedPermutation,
+				child.getPermutationFromParent());
+
+		String[] childNames = Arrays.copyOf(expectedNames, expectedNames.length);
+		double[] childScales = Arrays.copyOf(expectedScales, expectedScales.length);
+		double[] childTranslations = Arrays.copyOf(expectedTranslations, expectedTranslations.length);
+		if (expectedPermutation != null) {
+			AxisUtils.permute(childNames, childNames, expectedPermutation);
+			childScales = AxisUtils.permute(childScales, expectedPermutation);
+			childTranslations = AxisUtils.permute(childTranslations, expectedPermutation);
+		}
+
+		assertArrayEquals("dimensions do not match", expectedDimension, attrs.getDimensions());
+		assertArrayEquals("child names do not match", childNames, child.getAxisLabels());
+		assertArrayEquals("child scales do not match", childScales, child.getScale(), EPS);
+		assertArrayEquals("child translations do not match", childTranslations, child.getTranslation(), EPS);
 	}
 
 }

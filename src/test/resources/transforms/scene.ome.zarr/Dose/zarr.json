@@ -1,0 +1,114 @@
+{
+  "attributes": {
+    "ome": {
+      "version": "0.6.dev4",
+      "multiscales": [
+        {
+          "coordinateSystems": [
+            {
+              "name": "physical",
+              "axes": [
+                {
+                  "name": "z",
+                  "type": "space",
+                  "unit": "micrometer"
+                },
+                {
+                  "name": "y",
+                  "type": "space",
+                  "unit": "micrometer"
+                },
+                {
+                  "name": "x",
+                  "type": "space",
+                  "unit": "micrometer"
+                }
+              ]
+            }
+          ],
+          "datasets": [
+            {
+              "path": "s0",
+              "coordinateTransformations": [
+                {
+                  "type": "scale",
+                  "input": {
+                    "path": "s0"
+                  },
+                  "output": {
+                    "name": "physical"
+                  },
+                  "scale": [
+                    100.0,
+                    100.0,
+                    100.0
+                  ]
+                }
+              ]
+            },
+            {
+              "path": "s1",
+              "coordinateTransformations": [
+                {
+                  "type": "scale",
+                  "input": {
+                    "path": "s1"
+                  },
+                  "output": {
+                    "name": "physical"
+                  },
+                  "scale": [
+                    202.22222222222223,
+                    200.8695652173913,
+                    200.58823529411765
+                  ]
+                }
+              ]
+            },
+            {
+              "path": "s2",
+              "coordinateTransformations": [
+                {
+                  "type": "scale",
+                  "input": {
+                    "path": "s2"
+                  },
+                  "output": {
+                    "name": "physical"
+                  },
+                  "scale": [
+                    413.6363636363637,
+                    405.2631578947368,
+                    401.1764705882353
+                  ]
+                }
+              ]
+            },
+            {
+              "path": "s3",
+              "coordinateTransformations": [
+                {
+                  "type": "scale",
+                  "input": {
+                    "path": "s3"
+                  },
+                  "output": {
+                    "name": "physical"
+                  },
+                  "scale": [
+                    827.2727272727274,
+                    825.0,
+                    811.9047619047618
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "Dose"
+        }
+      ]
+    }
+  },
+  "zarr_format": 3,
+  "node_type": "group"
+}

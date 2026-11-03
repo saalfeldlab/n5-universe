@@ -20,7 +20,6 @@ import org.junit.Test;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform3D;
-import net.imglib2.realtransform.ScaleAndTranslation;
 
 public class CoordinateTransformParsingTest {
 
@@ -58,9 +57,18 @@ public class CoordinateTransformParsingTest {
 		final AffineGet[] tforms = meta.spatialTransforms();
 		assertTrue("ss has one transform", tforms.length == 1);
 
-		final ScaleAndTranslation tform = (ScaleAndTranslation)tforms[0];
-		assertArrayEquals(expectedScale, tform.getScaleCopy(), EPS);
-		assertArrayEquals(expectedTranslation, tform.getTranslationCopy(), EPS);
+		// read scale and translation off the affine matrix: an all-zero translation
+		// yields a scale-only transform (e.g. Scale2D), not a ScaleAndTranslation
+		final AffineGet tform = tforms[0];
+		final int n = expectedScale.length;
+		final double[] scale = new double[n];
+		final double[] translation = new double[n];
+		for (int i = 0; i < n; i++) {
+			scale[i] = tform.get(i, i);
+			translation[i] = tform.get(i, n);
+		}
+		assertArrayEquals(expectedScale, scale, EPS);
+		assertArrayEquals(expectedTranslation, translation, EPS);
 	}
 
 	protected static N5TreeNode setupNode(final N5Reader n5, final String path, final String childPath) {

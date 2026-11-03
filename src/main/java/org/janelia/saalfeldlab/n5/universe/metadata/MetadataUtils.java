@@ -13,10 +13,14 @@ import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadata.CosemTransfo
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.CoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.ScaleCoordinateTransformation;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TranslationCoordinateTransformation;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffReference;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.AbstractCoordinateTransform.BasicOptions;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.CoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.ScaleCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.SequenceCoordinateTransform;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations.TranslationCoordinateTransform;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
@@ -36,6 +40,8 @@ public class MetadataUtils {
 	// duplicate variables in N5ScalePyramidExporter in n5-ij
 	public static final String DOWN_SAMPLE = "Sample";
 	public static final String DOWN_AVERAGE = "Average";
+
+	private static final Gson gson = new Gson();
 
 	public static double[] mul(final double[] a, final double[] b) {
 
@@ -100,7 +106,7 @@ public class MetadataUtils {
 		return factors;
 	}
 
-	public static CoordinateTransformation<?>[] buildScaleTranslationTransformList(final double[] scale, final double[] translation) {
+	public static CoordinateTransform<?>[] buildScaleTranslationTransformList(final double[] scale, final double[] translation) {
 
 		int nTforms = 0;
 		if (scale != null)
@@ -109,19 +115,100 @@ public class MetadataUtils {
 		if (translation != null)
 			nTforms++;
 
-		final CoordinateTransformation<?>[] coordinateTransformations = new CoordinateTransformation<?>[nTforms];
+		final CoordinateTransform<?>[] coordinateTransformations = new CoordinateTransform<?>[nTforms];
 
 		int i = 0;
 		if (scale != null)
-			coordinateTransformations[i++] = new ScaleCoordinateTransformation(scale);
+			coordinateTransformations[i++] = new ScaleCoordinateTransform(scale);
 
 		if (translation != null)
-			coordinateTransformations[i++] = new TranslationCoordinateTransformation(translation);
+			coordinateTransformations[i++] = new TranslationCoordinateTransform(translation);
 
 		return coordinateTransformations;
 	}
 
-	public static ScaleAndTranslation scaleTranslationFromCoordinateTransformations(final CoordinateTransformation<?>[] cts) {
+	/**
+	 * Builds the dataset {@code coordinateTransformations} for OME-Zarr 0.6.
+	 *
+	 * @param scale the scale, or null
+	 * @param translation the translation, or null
+	 * @param inputPath path of the array the transforms apply to, relative to the
+	 *            multiscales group and matching {@code datasets[i].path}, e.g.
+	 *            {@code "s0"}
+	 * @param outputName name of the coordinate system the transforms map into,
+	 *            e.g. {@code "physical"}
+	 * @return the transformations, empty when both scale and translation are null
+	 */
+	public static CoordinateTransform<?>[] buildScaleTranslationTransformListV06(
+			final double[] scale, final double[] translation,
+			final String inputPath, final String outputName) {
+
+		final OmeNgffReference input = OmeNgffReference.DUMMY;
+		final OmeNgffReference output = new OmeNgffReference(outputName, null);
+
+		if (scale != null && translation != null)
+			return new CoordinateTransform<?>[]{
+					SequenceCoordinateTransform.options()
+							.input(input)
+							.output(output)
+							.transformations(
+									new ScaleCoordinateTransform(scale),
+									new TranslationCoordinateTransform(translation))
+							.build()};
+
+		if (scale != null)
+			return new CoordinateTransform<?>[]{
+					ScaleCoordinateTransform.options()
+							.scale(scale).input(input).output(output).build()};
+
+		if (translation != null)
+			return new CoordinateTransform<?>[]{
+					TranslationCoordinateTransform.options()
+							.translation(translation).input(input).output(output).build()};
+
+		return new CoordinateTransform<?>[0];
+	}
+
+	/**
+	 * Returns {@code cts} with the endpoint references that OME-Zarr 0.6 requires:
+	 * the array the transforms apply to, and the coordinate system they produce.
+	 * <p>
+	 * A single scale or translation carries the references itself. Anything else -
+	 * several transforms, which compose rather than describing separate edges, or a
+	 * type this cannot copy - is wrapped in a {@code sequence} that carries them,
+	 * leaving the originals untouched.
+	 * <p>
+	 * The input transforms are never modified. They are typically shared with the
+	 * {@link NgffSingleScaleAxesMetadata} the dataset was built from, which may be
+	 * serialized at a version that must not carry references.
+	 *
+	 * @param cts the transforms, or null
+	 * @param inputPath path of the array, relative to the multiscales group
+	 * @param outputName name of the coordinate system the transforms map into
+	 * @return the referenced transforms, or {@code cts} when there is nothing to do
+	 */
+	public static CoordinateTransform<?>[] withReferences(final CoordinateTransform<?>[] cts,
+			final String inputPath, final String outputName) {
+
+		if (cts == null || cts.length == 0)
+			return cts;
+
+		final OmeNgffReference input = new OmeNgffReference(null, inputPath);
+		final OmeNgffReference output = new OmeNgffReference(outputName, null);
+
+		if (cts.length == 1) {
+			return new CoordinateTransform[] { cts[0].copy(new BasicOptions().input(input).output(output)) };
+		}
+
+		return new CoordinateTransform<?>[]{
+				SequenceCoordinateTransform.options()
+						.input(input)
+						.output(output)
+						.transformations(cts)
+						.build()};
+	}
+
+	public static ScaleAndTranslation scaleTranslationFromCoordinateTransformations(final CoordinateTransform<?>[] cts) {
 
 		if (cts == null || cts.length == 0)
 			return null;
@@ -133,16 +220,20 @@ public class MetadataUtils {
 		return out;
 	}
 
-	public static ScaleAndTranslation coordinateTransformToScaleAndTranslation(CoordinateTransformation<?> ct) {
+	public static ScaleAndTranslation coordinateTransformToScaleAndTranslation(CoordinateTransform<?> ct) {
 
-		if (ct.getType().equals(ScaleCoordinateTransformation.TYPE)) {
-			final double[] s = ((ScaleCoordinateTransformation)ct).getScale();
+		if (ct.getType().equals(ScaleCoordinateTransform.TYPE)) {
+			final double[] s = ((ScaleCoordinateTransform)ct).scale;
 			return new ScaleAndTranslation(s, new double[s.length]);
-		} else if (ct.getType().equals(TranslationCoordinateTransformation.TYPE)) {
-			final double[] t = ((TranslationCoordinateTransformation)ct).getTranslation();
+		} else if (ct.getType().equals(TranslationCoordinateTransform.TYPE)) {
+			final double[] t = ((TranslationCoordinateTransform)ct).translation;
 			final double[] s = new double[t.length];
 			Arrays.fill(s, 1.0);
 			return new ScaleAndTranslation(s, t);
+		} else if (ct instanceof SequenceCoordinateTransform) {
+			// 0.6 composes a dataset's scale and translation into one sequence
+			return scaleTranslationFromCoordinateTransformations(
+					((SequenceCoordinateTransform)ct).getTransformations());
 		}
 		return null;
 	}
@@ -186,7 +277,7 @@ public class MetadataUtils {
 	public static void updateChildrenMetadata(final N5TreeNode parent, final N5Metadata[] childrenMetadata,
 			final boolean relative) {
 
-		final HashMap<String, N5Metadata> children = new HashMap<>();
+		final HashMap<String, N5Metadata> referenced = new HashMap<>();
 		Arrays.stream(childrenMetadata).forEach(x -> {
 			final String absolutePath;
 			if (relative) {
@@ -194,13 +285,23 @@ public class MetadataUtils {
 			} else {
 				absolutePath = x.getPath();
 			}
-			children.put(absolutePath, x);
+			referenced.put(absolutePath, x);
 		});
+
+		// update children
 		parent.childrenList().forEach(c -> {
-			final N5Metadata m = children.get(MetadataUtils.normalizeGroupPath(c.getPath()));
-			if (m != null)
-				c.setMetadata(m);
+			updateNodeMetadata(c, referenced);
 		});
+
+		// update parent itself
+		updateNodeMetadata(parent, referenced);
+	}
+
+	private static void updateNodeMetadata(final N5TreeNode node, final HashMap<String, N5Metadata> newMetadata) {
+
+		final N5Metadata m = newMetadata.get(MetadataUtils.normalizeGroupPath(node.getPath()));
+		if (m != null)
+			node.setMetadata(m);
 	}
 
 	public static String canonicalPath(final N5TreeNode parent, final String child) {
@@ -430,7 +531,8 @@ public class MetadataUtils {
 				resolution,
 				translation,
 				baseMetadata.getAxes(),
-				baseMetadata.getAttributes());
+				baseMetadata.getAttributes(),
+				baseMetadata.getPermutationFromParent());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -462,12 +564,16 @@ public class MetadataUtils {
 
 		AxisUtils.permute(axesPermuted, axesPermuted, axisPermutation);
 
+		// compose with any existing permutation relative to the parent:
+		// new[i] = old[q[i]] = parent[p[q[i]]]
+		final int[] fromParent = metadata.getPermutationFromParent();
 		return new NgffSingleScaleAxesMetadata(
 				metadata.getPath(),
 				AxisUtils.permute(metadata.getScale(), axisPermutation),
 				AxisUtils.permute(metadata.getTranslation(), axisPermutation),
 				axesPermuted,
-				metadata.getAttributes());
+				metadata.getAttributes(),
+				fromParent == null ? null : AxisUtils.permute(fromParent, axisPermutation));
 	}
 
 	public static N5CosemMetadata permuteCosemMetadata(final N5CosemMetadata metadata, int[] axisPermutation) {
@@ -542,6 +648,10 @@ public class MetadataUtils {
 		for (int i = array.size() - 1; i >= 0; i--)
 			result.add(array.get(i));
 		return result;
+	}
+
+	public static double[][] toMatrix(JsonElement json) {
+		return gson.fromJson(json, double[][].class);
 	}
 
 }

@@ -227,6 +227,21 @@ public class CoordinateSystem
 			.toArray();
 	}
 
+	/**
+	 * 
+	 * @return a new coordinate system with axes reversed
+	 */
+	public CoordinateSystem reverseAxes() {
+
+		final int N = axes.length;
+		final Axis[] revAxes = new Axis[N];
+		int j = N - 1;
+		for( int i = 0; i < N; i++)
+			revAxes[i] = axes[j--];
+
+		return new CoordinateSystem( name, revAxes );
+	}
+
 	@Override
 	public boolean equals( final Object other )
 	{

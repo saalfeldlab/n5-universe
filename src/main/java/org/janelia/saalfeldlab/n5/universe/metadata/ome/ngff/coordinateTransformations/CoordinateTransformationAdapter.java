@@ -45,12 +45,11 @@ public class CoordinateTransformationAdapter implements JsonDeserializer< Coordi
 		if (reverse)
 			reverseParameters(jobj);
 
-		Class<?> clz;
 		AbstractCoordinateTransformation< ? > out = null;
 		switch ( jobj.get( "type" ).getAsString() )
 		{
 		case ( IdentityCoordinateTransformation.TYPE ):
-			clz = IdentityCoordinateTransformation.class;
+			out = context.deserialize( jobj, IdentityCoordinateTransformation.class );
 			break;
 		case ( ScaleCoordinateTransformation.TYPE ):
 			out = context.deserialize( jobj, ScaleCoordinateTransformation.class );
