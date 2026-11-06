@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
-import org.janelia.saalfeldlab.n5.universe.StorageFormat;
+import org.janelia.saalfeldlab.n5.universe.factory.StorageFormat;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.MultiscalesAdapter;

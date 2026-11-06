@@ -20,9 +20,6 @@ import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataPars
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3DatasetAttributes;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3KeyValueWriter;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-
 public class N5MetadataUtils {
 
 	protected final static ArrayList<N5MetadataParser<?>> PARSERS;
@@ -174,18 +171,10 @@ public class N5MetadataUtils {
 	
 	public static void writeDimensionNamesIfZarr3( final N5Writer n5, final String dataset, final String[] dimensionNames ) {
 
-		if( n5 instanceof ZarrV3KeyValueWriter)
-		{
-			JsonElement json = ((ZarrV3KeyValueWriter)n5).getRawAttributes(dataset);
-			if( json == null || !json.isJsonObject())
-				return;
-
-			json.getAsJsonObject().add(
-					ZarrV3DatasetAttributes.DIMENSION_NAMES_KEY,
-					new Gson().toJsonTree(dimensionNames));
-
-			((ZarrV3KeyValueWriter)n5).writeAttributes(dataset, json);
-		}
+		// ZarrV3Dialect treats DIMENSION_NAMES_KEY as an array attribute and writes it
+		// at the root of zarr.json (not under "attributes/")
+		if (n5 instanceof ZarrV3KeyValueWriter && n5.datasetExists(dataset))
+			n5.setAttribute(dataset, ZarrV3DatasetAttributes.DIMENSION_NAMES_KEY, dimensionNames);
 	}
 
 }

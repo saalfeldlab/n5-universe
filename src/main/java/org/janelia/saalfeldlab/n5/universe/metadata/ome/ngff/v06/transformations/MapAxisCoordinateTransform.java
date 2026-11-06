@@ -1,9 +1,9 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v06.transformations;
 
 import org.janelia.saalfeldlab.n5.N5Exception;
-import org.janelia.saalfeldlab.n5.codec.transpose.TransposeCodec;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.coordinateTransformations.TransformUtils;
+import org.janelia.saalfeldlab.n5.zarr.codec.transpose.TransposeCodec;
 
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineTransform;
