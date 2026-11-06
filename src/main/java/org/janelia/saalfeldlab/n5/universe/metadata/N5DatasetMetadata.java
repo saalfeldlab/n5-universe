@@ -12,7 +12,6 @@ public interface N5DatasetMetadata extends N5Metadata {
 
   /**
    * Return the dataset attributes if this metadata object represents a single dataset.
-   * Can return null if this metadata object represents multiscale set of datasets, for example.
    *
    * @return the attributes
    */

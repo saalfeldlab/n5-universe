@@ -28,6 +28,7 @@ import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.NgffSingleScaleAxesMetadata;
+import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMetadataParser;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.OmeNgffMultiScaleMetadata.OmeNgffDataset;
@@ -301,13 +302,6 @@ public class NgffTests {
 		// a group below the root is both the multiscale group and the array
 		final String nestedContainer = writeSelfReferencedMultiscales("a/b");
 		assertSelfReferencedDataset("shallow parse of 'a/b'", shallowParse(nestedContainer, "a/b"));
-
-		/*
-		 * Deep parsing does not yet find a self-referenced multiscale group
-		 * below the root. Group parsers only run for nodes without metadata that
-		 * have children, and such a node has neither: the plain parsers
-		 * recognize the array it is, and its only scale level is itself.
-		 */
 	}
 
 	/**
@@ -356,19 +350,28 @@ public class NgffTests {
 		Assert.assertNotNull(message + " has metadata", meta);
 		Assert.assertTrue(message + " is a dataset, but was " + meta.getClass().getSimpleName(), node.isDataset());
 
-		// the multiscales describe the array, so its spatial metadata must survive
-		Assert.assertTrue(message + " has spatial metadata, but was " + meta.getClass().getSimpleName(),
-				meta instanceof N5SpatialDatasetMetadata);
+		// the multiscales
+		Assert.assertTrue(message + " should be Ngff metadata, but was " + meta.getClass().getSimpleName(),
+				meta instanceof OmeNgffMetadata);
 
-		// zarr parameters are reversed, so the json scale [2.2, 0.9, 0.9] is (x,y,z) here
-		final AffineTransform3D transform = ((N5SpatialDatasetMetadata)meta).spatialTransform3d();
+		final OmeNgffMetadata ngffMeta = (OmeNgffMetadata)meta;
+		final NgffSingleScaleAxesMetadata s0Meta = ngffMeta.getChildrenMetadata()[0];
+
+		testSelfRefResolutions(message, ngffMeta);
+		testSelfRefResolutions(message, s0Meta);
+
+		Assert.assertArrayEquals(message + " axis labels",
+				new String[]{"x", "y", "z"}, s0Meta.getAxisLabels());
+	}
+
+	private static void testSelfRefResolutions(String message, SpatialMetadata sMeta) {
+		
+		final double eps = 1e-9;
+		final AffineTransform3D transform = sMeta.spatialTransform3d();
 		Assert.assertEquals(message + " x scale", 0.9, transform.get(0, 0), eps);
 		Assert.assertEquals(message + " y scale", 0.9, transform.get(1, 1), eps);
 		Assert.assertEquals(message + " z scale", 2.2, transform.get(2, 2), eps);
-		Assert.assertEquals(message + " unit", "mm", ((N5SpatialDatasetMetadata)meta).unit());
-
-		Assert.assertArrayEquals(message + " axis labels",
-				new String[]{"x", "y", "z"}, ((AxisMetadata)meta).getAxisLabels());
+		Assert.assertEquals(message + " unit", "mm", sMeta.unit());
 	}
 
 	private static final String SELF_REFERENCED_MULTISCALES =
@@ -486,7 +489,6 @@ public class NgffTests {
 	}
 
 	public static void writePermutedAxes(final N5Writer zarr, final String base, final boolean cOrder, final int[] permutation) {
-
 
 		final long[] dims = AxisUtils.permute(DEFAULT_DIMENSIONS, permutation);
 		final int[] blkSize = Arrays.stream(dims).mapToInt(x -> (int)x).toArray();

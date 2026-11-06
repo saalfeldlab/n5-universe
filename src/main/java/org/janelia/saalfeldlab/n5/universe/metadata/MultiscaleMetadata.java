@@ -6,6 +6,8 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
+
 /**
  * An abstract class for a {@link SpatialMetadataGroup} whose children contain
  * the same data sampled at different resolutions.
@@ -15,7 +17,8 @@ import java.util.regex.Pattern;
  *
  * @param <T> metadata type
  */
-public abstract class MultiscaleMetadata<T extends N5DatasetMetadata & SpatialMetadata> implements SpatialMetadataGroup<T> {
+public abstract class MultiscaleMetadata<T extends N5DatasetMetadata & SpatialMetadata> 
+	implements SpatialMetadataGroup<T>, N5DatasetMetadata {
 
   static final Predicate<String> scaleLevelPredicate = Pattern.compile("^s\\d+$").asPredicate();
 
@@ -63,11 +66,16 @@ public abstract class MultiscaleMetadata<T extends N5DatasetMetadata & SpatialMe
 	return childrenMetadata;
   }
 
+  public DatasetAttributes getAttributes() {
+	  return childrenMetadata[0].getAttributes();
+  }
+
   @Override
   public String[] units() {
 
 	return units;
   }
+
 
   /**
    * Sort the array according to scale level; If not all metadata are scale sets, no sorting is done.

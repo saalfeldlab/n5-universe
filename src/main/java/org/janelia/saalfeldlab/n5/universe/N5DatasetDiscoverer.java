@@ -250,35 +250,6 @@ public class N5DatasetDiscoverer {
 	}
 
 	/**
-	 * Applies a parser to a node, storing the metadata it returns in the node.
-	 * <p>
-	 * A parser may set metadata on the node itself while parsing, for example a
-	 * multiscale group parser whose dataset path refers to the group being
-	 * parsed. Such a node is both a group and a dataset, and the metadata the
-	 * parser assigns it describe the dataset, whereas the metadata it returns
-	 * describe the group. The dataset metadata are more specific, and so are
-	 * kept in preference to the returned metadata here.
-	 *
-	 * @param n5
-	 *            the reader
-	 * @param node
-	 *            the node
-	 * @param parser
-	 *            the parser
-	 * @return {@code true} if the parser returned metadata
-	 */
-	private static boolean applyParser(final N5Reader n5, final N5TreeNode node, final N5MetadataParser<?> parser) {
-
-		final N5Metadata priorMeta = node.getMetadata();
-		final Optional<? extends N5Metadata> parsedMeta = parser.apply(n5, node);
-
-		if (node.getMetadata() == priorMeta)
-			parsedMeta.ifPresent(node::setMetadata);
-
-		return parsedMeta.isPresent();
-	}
-
-	/**
 	 * Parses metadata for a node using the given parsers, stopping after the first
 	 * success.
 	 * <p>
