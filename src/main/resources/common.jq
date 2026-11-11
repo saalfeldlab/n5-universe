@@ -43,7 +43,21 @@ def applyDownsamplingToFlatAffine( $a; $f ):
   elif ($s | length) == 3 then [($s[0]*$f[0]), 0, 0, ($f[0]-1)/2.0, 0, ($s[1]*$f[1]), 0, ($f[1]-1)/2.0, 0, 0,  ($s[2]*$f[2]), ($f[2]-1)/2.0 ]
   else null end;
 
+# Elementwise product and sum of two arrays of numbers of the same length.
+# (Arrays of different lengths are an error: transpose pads the shorter one with null.)
 def arrMultiply( $s1; $s2 ): [$s1, $s2] | transpose | map(.[0] * .[1]) ;
+
+def arrAdd( $s1; $s2 ): [$s1, $s2] | transpose | map(.[0] + .[1]) ;
+
+# The downsampling factors of a scale array, relative to the scale array $base:
+# the per-dimension ratio. A ratio within 1e-6 of an integer is rounded to it.
+# Takes scales as arrays of numbers of the same length (null otherwise).
+def downsamplingFactorsFromScales( $base ):
+  if (type == "array") and ($base | type == "array") and (length == ($base | length)) then
+    [ [., $base] | transpose[]
+      | (.[0] / .[1]) as $r | (($r + 0.5) | floor) as $n
+      | if (($r - $n) < 1e-6 and ($n - $r) < 1e-6) then $n else $r end ]
+  else null end;
 
 def axisTypeFromLabel( $labRaw ):
     $labRaw | ascii_downcase as $lab |
