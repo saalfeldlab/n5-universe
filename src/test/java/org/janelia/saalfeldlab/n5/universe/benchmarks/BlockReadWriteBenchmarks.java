@@ -13,6 +13,7 @@ import org.janelia.saalfeldlab.n5.DataBlock;
 import org.janelia.saalfeldlab.n5.DataType;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
 import org.janelia.saalfeldlab.n5.FileSystemKeyValueAccess;
+import org.janelia.saalfeldlab.n5.FileSystemKeyValueRoot;
 import org.janelia.saalfeldlab.n5.GzipCompression;
 import org.janelia.saalfeldlab.n5.Lz4Compression;
 import org.janelia.saalfeldlab.n5.N5KeyValueWriter;
@@ -49,7 +50,7 @@ import com.google.gson.GsonBuilder;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Fork(1)
 public class BlockReadWriteBenchmarks {
-	
+
 	static final String GZIP_COMPRESSION = "gzip";
 	static final String RAW_COMPRESSION = "raw";
 	static final String LZ4_COMPRESSION = "lz4";
@@ -106,8 +107,8 @@ public class BlockReadWriteBenchmarks {
 		File tmpDir;
 		try {
 			tmpDir = Files.createTempDirectory("n5-blockWriteBenchmark-").toFile();
-			FileSystemKeyValueAccess kva = new FileSystemKeyValueAccess();
-			n5 = new N5KeyValueWriter(kva, tmpDir.getAbsolutePath(), new GsonBuilder(), true);
+			FileSystemKeyValueRoot kvr = new FileSystemKeyValueRoot(tmpDir.getAbsolutePath());
+			n5 = new N5KeyValueWriter(kvr, new GsonBuilder(), true);
 
 			int[] blockSize = new int[numDimensions];
 			Arrays.fill(blockSize, blockDim);
@@ -119,7 +120,7 @@ public class BlockReadWriteBenchmarks {
 			DataType dtype = DataType.fromString(dataType);
 
 			// write blocks into the readGroup so that they can be read during the benchmark
-			final Compression compression = getCompression(compressionType); 
+			final Compression compression = getCompression(compressionType);
 			dsetAttrs = new DatasetAttributes(dims, blockSize, dtype, compression);
 			n5.createDataset(readGroup, dsetAttrs);
 			blocks = new ArrayList<>();
@@ -230,7 +231,7 @@ public class BlockReadWriteBenchmarks {
 	private void fill(byte[] arr) {
 		random.nextBytes(arr);
 	}
-	
+
 	private void fillBlockSequence(DataType dtype, DataBlock<?> blk) {
 
 		switch (dtype) {
@@ -272,13 +273,13 @@ public class BlockReadWriteBenchmarks {
 			break;
 		}
 	}
-	
+
 
 	private void fillSequence(byte[] arr) {
 		for (int i = 0; i < arr.length; i++)
 			arr[i] = (byte)i;
 	}
-	
+
 	private void fillSequence(short[] arr) {
 		for (int i = 0; i < arr.length; i++)
 			arr[i] = (short)i;

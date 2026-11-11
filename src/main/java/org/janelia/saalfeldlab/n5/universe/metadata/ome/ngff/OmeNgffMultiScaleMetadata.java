@@ -1,12 +1,10 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.stream.DoubleStream;
 
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.N5URI;
+import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
 import org.janelia.saalfeldlab.n5.universe.metadata.MetadataUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5SingleScaleMetadata;
@@ -56,14 +54,14 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 
 	public OmeNgffMultiScaleMetadata(final int nd, final String path, final String name,
 			final String type, final String version, final Axis[] axes,
-			final OmeNgffDataset[] datasets, 
+			final OmeNgffDataset[] datasets,
 			final CoordinateTransformation<?>[] coordinateTransformations,
 			final DatasetAttributes[] childrenAttributes,
 			final OmeNgffDownsamplingMetadata metadata) {
 
-		super( MetadataUtils.normalizeGroupPath(path), 
+		super( MetadataUtils.normalizeGroupPath(path),
 				buildMetadata(nd, path, datasets, childrenAttributes, coordinateTransformations, metadata, axes));
-		
+
 		if (datasets != null) {
 			this.datasets = relativizeDatasets(path, datasets);
 		} else {
@@ -79,17 +77,17 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		this.metadata = metadata;
 		this.childrenAttributes = childrenAttributes;
 	}
-	
+
 	public OmeNgffMultiScaleMetadata(final int nd, final String path, final String name,
 			final String type, final String version, final Axis[] axes,
-			final OmeNgffDataset[] datasets, 
+			final OmeNgffDataset[] datasets,
 			final CoordinateTransformation<?>[] coordinateTransformations,
 			final DatasetAttributes[] childrenAttributes,
 			final OmeNgffDownsamplingMetadata metadata,
 			final NgffSingleScaleAxesMetadata[] childrenMetadata) {
 
 		super( MetadataUtils.normalizeGroupPath(path), childrenMetadata);
-		
+
 		if (datasets != null) {
 			this.datasets = relativizeDatasets(path, datasets);
 		} else {
@@ -105,17 +103,15 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		this.metadata = metadata;
 		this.childrenAttributes = childrenAttributes;
 	}
-	
+
 	private OmeNgffDataset[] relativizeDatasets(final String path, OmeNgffDataset[] datasets) {
 
-		final URI bu = URI.create(path);
 		final OmeNgffDataset[] dsetsOut = new OmeNgffDataset[datasets.length];
 		for (int i = 0; i < datasets.length; i++) {
 
 			final OmeNgffDataset dset = datasets[i];
-			final URI du = URI.create(dset.path);
 			final OmeNgffDataset relDset = new OmeNgffDataset();
-			relDset.path = bu.relativize(du).toString();
+			relDset.path = MetadataUtils.relativePath(path, dset.path);
 			relDset.coordinateTransformations = dset.coordinateTransformations;
 			dsetsOut[i] = relDset;
 		}
@@ -142,7 +138,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		final N5SingleScaleMetadata childrenMetadata = new N5SingleScaleMetadata( getPath(), id, factors, pixelRes, offset, "pixel", datasetMeta.getAttributes() );
 		return childrenMetadata;
 	}
-	
+
 	private static OmeNgffDataset[] buildDatasets( final String path, final NgffSingleScaleAxesMetadata[] children) {
 
 		if( children == null )
@@ -158,7 +154,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		}
 		return datasets;
 	}
-	
+
 	public static NgffSingleScaleAxesMetadata[] buildMetadata( final int nd, final String path,
 			final DatasetAttributes[] childrenAttributes,
 			final OmeNgffMultiScaleMetadata multiscales) {
@@ -166,7 +162,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 		return buildMetadata(nd, path, multiscales.datasets, childrenAttributes, multiscales.coordinateTransformations, multiscales.metadata,
 				multiscales.axes);
 	}
-	
+
 	public static NgffSingleScaleAxesMetadata[] buildMetadata(
 			final int nd, final String path, final OmeNgffDataset[] datasets,
 			final DatasetAttributes[] childrenAttributes,
@@ -174,12 +170,12 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final OmeNgffDownsamplingMetadata metadata,
 			final Axis[] axes)
 	{
-			
-		return buildMetadata( nd, path, datasets, 
-				childrenAttributes, 
+
+		return buildMetadata( nd, path, datasets,
+				childrenAttributes,
 				transforms,
 				metadata,
-				axes, 
+				axes,
 				false);
 	}
 
@@ -188,7 +184,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 			final DatasetAttributes[] childrenAttributes,
 			final CoordinateTransformation<?>[] transforms,
 			final OmeNgffDownsamplingMetadata metadata,
-			final Axis[] axes, 
+			final Axis[] axes,
 			boolean reverseParameters)
 	{
 		final String normPath = MetadataUtils.normalizeGroupPath(path);
@@ -228,7 +224,7 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 	{
 		return buildMetadata(nd, getPath(), datasets, datasetAttributes, coordinateTransformations, metadata, axes);
 	}
-	
+
 	public NgffSingleScaleAxesMetadata[] buildChildren()
 	{
 		return buildMetadata( axes.length, getPath(), datasets,
@@ -239,26 +235,16 @@ public class OmeNgffMultiScaleMetadata extends SpatialMultiscaleMetadata<NgffSin
 	public OmeNgffDataset[] getDatasets() {
 		return datasets;
 	}
-	
+
 	public CoordinateTransformation<?>[] getCoordinateTransformations() {
 		return coordinateTransformations;
 	}
 
 	public String[] getCanonicalPaths() {
-
-		return Arrays.stream(getPaths()).map((x) -> {
-			if (x.startsWith("/"))
-				return x;
-			 else {
-				N5URI url;
-				try {
-					url = new N5URI("?" + getPath() + "/" + x);
-				} catch (final URISyntaxException e) {
-					return null;
-				}
-				return url.getGroupPath();
-			}
-		}).toArray(String[]::new);
+		final N5DirectoryPath path = N5DirectoryPath.of(getPath());
+		return Arrays.stream(getPaths())
+				.map(x -> path.resolve(x).normalPath())
+				.toArray(String[]::new);
 	}
 
 	@Override

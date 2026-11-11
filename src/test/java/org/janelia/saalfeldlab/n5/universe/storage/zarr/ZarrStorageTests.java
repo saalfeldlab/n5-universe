@@ -3,8 +3,8 @@ package org.janelia.saalfeldlab.n5.universe.storage.zarr;
 import com.google.gson.GsonBuilder;
 import org.janelia.saalfeldlab.n5.N5Reader;
 import org.janelia.saalfeldlab.n5.N5Writer;
-import org.janelia.saalfeldlab.n5.universe.N5Factory;
-import org.janelia.saalfeldlab.n5.universe.StorageFormat;
+import org.janelia.saalfeldlab.n5.universe.factory.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.factory.StorageFormat;
 import org.janelia.saalfeldlab.n5.universe.StorageSchemeWrappedN5Test;
 import org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr2.Zarr2AmazonS3FactoryTest;
 import org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr2.Zarr2FileSystemTest;
@@ -16,8 +16,8 @@ import org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr3.Zarr3GoogleCloudFa
 import org.janelia.saalfeldlab.n5.universe.storage.zarr.zarr3.Zarr3HttpFactoryTest;
 import org.janelia.saalfeldlab.n5.zarr.N5ZarrTest;
 import org.janelia.saalfeldlab.n5.zarr.v3.ZarrV3Test;
-import org.junit.AssumptionViolatedException;
 import org.junit.Ignore;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -66,10 +66,7 @@ public class ZarrStorageTests {
 		@Override protected N5Writer createTempN5Writer(String location, GsonBuilder gsonBuilder, String dimensionSeparator, boolean mapN5DatasetAttributes) {
 
 			factory.getOptions().gsonBuilder(gsonBuilder)
-                    .zarr2(opts -> opts
-                            .dimensionSeparator(dimensionSeparator)
-                            .mapN5DatasetAttributes(mapN5DatasetAttributes)
-                    );
+                    .zarr3(opts -> opts.dimensionSeparator(dimensionSeparator));
 			final N5Writer writer = getWriter(location);
 			tempWriters.add(writer);
 			return writer;
@@ -97,11 +94,10 @@ public class ZarrStorageTests {
 			return getReader(location);
 		}
 
-		@Ignore
+		@Test
+		@Ignore("skip zarr python compatibility tests in n5-universe")
 		@Override
 		public void serializationTest() {
-
-			throw new AssumptionViolatedException("skip zarr python compatibility tests in n5-universe");
 
 		}
 	}
@@ -169,16 +165,16 @@ public class ZarrStorageTests {
 			return getReader(location);
 		}
 
-		@Ignore
+		@Test
+		@Ignore("skip zarr python compatibility tests in n5-universe")
 		@Override public void testReadZarrPython() {
 
-			throw new AssumptionViolatedException("skip zarr python compatibility tests in n5-universe");
 		}
 
-		@Ignore
+		@Test
+		@Ignore("skip zarr python compatibility tests in n5-universe")
 		@Override public void testReadZarrNestedPython() {
 
-			throw new AssumptionViolatedException("skip zarr python compatibility tests in n5-universe");
 		}
 
 	}

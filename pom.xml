@@ -108,20 +108,20 @@
 		<license.organizationName>Saalfeld Lab</license.organizationName>
 		<license.copyrightOwners>Stephan Saalfeld</license.copyrightOwners>
 
-		<scijava.jvm.version>8</scijava.jvm.version>
-
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
-		<n5.version>4.0.1</n5.version>
-		<n5-aws-s3.version>5.0.1</n5-aws-s3.version>
+		<n5.version>4.0.3-SNAPSHOT</n5.version>
+		<n5-aws-s3.version>5.1.1-SNAPSHOT</n5-aws-s3.version>
 		<n5-blosc.version>2.0.0</n5-blosc.version>
-		<n5-google-cloud.version>6.0.0</n5-google-cloud.version>
-		<n5-hdf5.version>3.0.0</n5-hdf5.version>
+		<n5-google-cloud.version>6.0.2-SNAPSHOT</n5-google-cloud.version>
+		<n5-hdf5.version>3.0.1-SNAPSHOT</n5-hdf5.version>
 		<n5-imglib2.version>8.0.0</n5-imglib2.version>
-		<n5-zarr.version>2.0.1</n5-zarr.version>
+		<n5-zarr.version>2.0.2-SNAPSHOT</n5-zarr.version>
 		<n5-zstandard.version>2.0.0</n5-zstandard.version>
 
+		<n5-factory-spi.version>1.0.0-SNAPSHOT</n5-factory-spi.version>
+		<n5-factory.version>1.0.0-SNAPSHOT</n5-factory.version>
 		<jackson-jq.version>1.0.0-preview.20191208</jackson-jq.version>
 		<alphanumeric-comparator.version>1.4.1</alphanumeric-comparator.version>
 
@@ -138,6 +138,16 @@
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>
 			<artifactId>n5</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-factory-spi</artifactId>
+			<version>${n5-factory-spi.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.janelia.saalfeldlab</groupId>
+			<artifactId>n5-factory</artifactId>
+			<version>${n5-factory.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.janelia.saalfeldlab</groupId>

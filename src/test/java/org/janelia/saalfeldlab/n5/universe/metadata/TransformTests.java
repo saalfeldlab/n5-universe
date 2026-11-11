@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+import java.nio.file.Files;
 import java.util.Optional;
 
 import org.janelia.saalfeldlab.n5.GzipCompression;
@@ -65,11 +65,11 @@ public class TransformTests {
 			0.5, 0.6, 3.3, -30 };
 
 	@Before
-	public void before()
+	public void before() throws IOException
 	{
-		final URL configUrl = TransformTests.class.getResource( "/n5.jq" );
-		final File baseDir = new File( configUrl.getFile() ).getParentFile();
-		containerDir = new File( baseDir, "transforms.n5" );
+		final File tmpDir = Files.createTempDirectory("n5-transform-test-").toFile();
+		tmpDir.deleteOnExit();
+		containerDir = new File( tmpDir, "transforms.n5" );
 
 		try {
 			n5 = new N5FSWriter( containerDir.getCanonicalPath(), JqUtils.gsonBuilder(null) );

@@ -113,7 +113,7 @@ public class NgffAxisTests {
 		final double[] expectedScales = new double[]{13, 12, 11, 1};
 		final double[] expectedTranslations = new double[]{3, 2, 1, 0};
 
-		// f- and c-order metadata should have axes, scales, adn translations in the same order after parsing 
+		// f- and c-order metadata should have axes, scales, adn translations in the same order after parsing
 		final OmeNgffMetadataParser parser = new OmeNgffMetadataParser();
 
 		// f-Order

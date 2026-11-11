@@ -1,13 +1,12 @@
 package org.janelia.saalfeldlab.n5.universe.metadata;
 
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Optional;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.janelia.saalfeldlab.n5.DatasetAttributes;
-import org.janelia.saalfeldlab.n5.N5URI;
+import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
 import org.janelia.saalfeldlab.n5.universe.N5TreeNode;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5CosemMetadata.CosemTransform;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
@@ -188,16 +187,11 @@ public class MetadataUtils {
 
 		final HashMap<String, N5Metadata> children = new HashMap<>();
 		Arrays.stream(childrenMetadata).forEach(x -> {
-			final String absolutePath;
-			if (relative) {
-				absolutePath = normalizeGroupPath(parent.getPath() + "/" + x.getPath());
-			} else {
-				absolutePath = x.getPath();
-			}
+			final String absolutePath = canonicalPath(relative ? parent.getPath() : "", x.getPath());
 			children.put(absolutePath, x);
 		});
 		parent.childrenList().forEach(c -> {
-			final N5Metadata m = children.get(MetadataUtils.normalizeGroupPath(c.getPath()));
+			final N5Metadata m = children.get(normalizeGroupPath(c.getPath()));
 			if (m != null)
 				c.setMetadata(m);
 		});
@@ -210,41 +204,27 @@ public class MetadataUtils {
 
 	public static String canonicalPath(final String parent, final String child) {
 
-		try {
-			final N5URI url = new N5URI("?/" + parent + "/" + child);
-			return url.normalizeGroupPath();
-		} catch (final URISyntaxException e) {}
-		return null;
+		return N5DirectoryPath.of(parent).resolve(child).normalPath();
 	}
 
 	public static String normalizeGroupPath(final String path) {
 
-		try {
-			return new N5URI("?" + path).normalizeGroupPath();
-		} catch (final URISyntaxException e) {
-			e.printStackTrace();
-		}
-		return path;
+		return N5DirectoryPath.of(path).normalPath();
 	}
 
 	/**
-	 * Returns a relative group path from the child absolute path group path child
-	 * the parent absolute group path.
-	 *
-	 * If the child path is not a descendent of parent, child will be returned.
+	 * Returns the child path relative to parent. Both are group paths,
+	 * so "/" will be appended if there is none (except for the root
+	 * path {@code ""}). If the child path is not a descendent of
+	 * parent, child will be returned.
 	 *
 	 * @param parent an absolute path
 	 * @param child an absolute path
-	 * @return relative path from child to parent, if it exists.
+	 * @return relative path of child wrt parent, if it exists.
 	 */
 	public static String relativePath(final String parent, final String child) {
 
-		try {
-			final String purl = new N5URI("?" + parent).normalizeGroupPath();
-			final String curl = new N5URI("?" + child).normalizeGroupPath();
-			return new N5URI("?" + curl.replaceFirst("^"+purl, "")).normalizeGroupPath();
-		} catch (final URISyntaxException e) {}
-		return child;
+		return N5DirectoryPath.of(parent).relativize(N5DirectoryPath.of(child)).normalPath();
 	}
 
 	/**

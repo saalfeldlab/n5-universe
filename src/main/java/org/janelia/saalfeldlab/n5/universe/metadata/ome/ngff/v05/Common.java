@@ -1,25 +1,21 @@
 package org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import org.janelia.saalfeldlab.n5.N5Exception;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.janelia.saalfeldlab.n5.universe.N5Factory;
+import org.janelia.saalfeldlab.n5.universe.factory.N5Location;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.Axis;
-import org.janelia.saalfeldlab.n5.universe.metadata.axes.AxisUtils;
 import org.janelia.saalfeldlab.n5.universe.metadata.axes.CoordinateSystem;
-import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.CoordinateSystems;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.graph.TransformGraph;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AffineCoordinateTransformAdapter;
 import org.janelia.saalfeldlab.n5.universe.metadata.ome.ngff.v05.transformations.AffineCoordinateTransform;
@@ -247,12 +243,11 @@ public class Common {
 	public static TransformGraph openGraph( final String uri ) {
 
 		try {
-
-			final N5URI n5uri = new N5URI(uri);
-			final N5Reader n5 = new N5Factory().gsonBuilder(gsonBuilder()).openReader(n5uri.getContainerPath());
-			return openGraph(n5, n5uri.getGroupPath());
-
-		} catch (URISyntaxException e) {}
+			final N5Reader n5 = new N5Factory().gsonBuilder(gsonBuilder()).openReader(uri);
+			return openGraph(n5, N5Location.of(uri).groupPathOrRoot().normalPath());
+		} catch (N5Exception e) {
+			// TODO: should we just let N5Exception propagate instead of returning null?
+		}
 		return null;
 	}
 
@@ -342,33 +337,29 @@ public class Common {
 	{
 		try
 		{
-			final N5URI n5url = new N5URI( url );
-			final String loc = n5url.getContainerPath();
-			if( loc.endsWith( ".json" ))
-			{
-				return new ValuePair<>( openJson( url ), null);
-			}
-			else
-			{
-				final N5Reader n5 = new N5Factory().gsonBuilder( gsonBuilder() ).openReader( loc );
-				final String dataset = n5url.getGroupPath() != null ? n5url.getGroupPath() : "/";
-				final String attribute = n5url.getAttributePath();
-//				final String attribute = n5url.getAttributePath() != null ? n5url.getAttributePath() : "coordinateTransformations[0]";
+			final N5Location location = N5Location.of(url);
+			if (location.containerUri().getPath().endsWith(".json"))
+				return new ValuePair<>(openJson(url), null);
+			final N5Reader n5 = new N5Factory().gsonBuilder(gsonBuilder()).openReader(url);
+			final String dataset = location.groupPathOrRoot().normalPath();
+			final String attribute = location.attributePathOrRoot();
+//			final String attribute = location.attributePath() != null ? location.attributePath() : "coordinateTransformations[0]";
 
-				try {
-					final CoordinateTransform<?> ct = n5.getAttribute(dataset, attribute, CoordinateTransform.class);
-					return new ValuePair<>( ct, n5 );
-				} catch( N5Exception | ClassCastException e ) {}
+			try {
+				final CoordinateTransform<?> ct = n5.getAttribute(dataset, attribute, CoordinateTransform.class);
+				return new ValuePair<>( ct, n5 );
+			} catch( N5Exception | ClassCastException e ) {}
 
-				try {
-					return openReference( url, n5, dataset, attribute ); // try to open a reference
-				} catch( N5Exception | ClassCastException e ) {}
+			try {
+				return openReference( url, n5, dataset, attribute ); // try to open a reference
+			} catch( N5Exception | ClassCastException e ) {}
 
-//				final CoordinateTransform<?> nct = CoordinateTransform.create(ct);
-//				return new ValuePair<>( nct, n5 );
-			}
+//			final CoordinateTransform<?> nct = CoordinateTransform.create(ct);
+//			return new ValuePair<>( nct, n5 );
 		}
-		catch ( final URISyntaxException e ) { }
+		catch ( final N5Exception e ) {
+			// TODO: should we just let N5Exception propagate instead of returning null?
+		}
 
 		return null;
 	}

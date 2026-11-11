@@ -10,8 +10,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
 import org.janelia.saalfeldlab.n5.N5Reader;
-import org.janelia.saalfeldlab.n5.N5URI;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5DatasetMetadata;
 import org.janelia.saalfeldlab.n5.universe.metadata.N5Metadata;
 
@@ -79,14 +79,17 @@ public class N5TreeNode {
 
 	public Optional<N5TreeNode> child(final String name) {
 
-		final String childPath = N5URI.normalizeGroupPath(path + "/" + name);
-		return children.stream().filter(x ->  N5URI.normalizeGroupPath(x.getPath()).equals(childPath)).findFirst();
+		final N5DirectoryPath childPath = N5DirectoryPath.of(path).resolve(name).asDirectory();
+		return children.stream().filter(x -> N5DirectoryPath.of(x.getPath()).equals(childPath)).findFirst();
 	}
 
 	public Optional<N5TreeNode> getDescendant(String path) {
 
-		return getDescendants(x -> N5URI.normalizeGroupPath(x.getPath()).equals(N5URI.normalizeGroupPath(path)))
-				.findFirst();
+		final N5DirectoryPath dirPath = N5DirectoryPath.of(path);
+		return getDescendants(x ->
+				N5DirectoryPath.of(x.getPath()).equals(dirPath)
+
+		).findFirst();
 	}
 
 	/**
@@ -198,7 +201,6 @@ public class N5TreeNode {
 		final StringBuffer out = new StringBuffer();
 		out.append(prefix + node.path + "\n");
 		for (final N5TreeNode c : node.childrenList()) {
-			System.out.println(c.path);
 			out.append(printRecursiveHelper(c, prefix + " "));
 		}
 
@@ -206,7 +208,7 @@ public class N5TreeNode {
 	}
 
 	/**
-	 * Generates a tree based on the output of {@link N5Reader#deepList}, returning
+	 * Generates a tree based on the output of {@link N5Reader#deepList(String)}, returning
 	 * the root node.
 	 *
 	 * @param base           the path used to call deepList
@@ -222,7 +224,7 @@ public class N5TreeNode {
 	}
 
 	/**
-	 * Generates a tree based on the output of {@link N5Reader#deepList}, returning
+	 * Generates a tree based on the output of {@link N5Reader#deepList(String)}, returning
 	 * the root node.
 	 *
 	 * @param root           the root node corresponding to the base
@@ -253,6 +255,7 @@ public class N5TreeNode {
 			if (parent == null) {
 				// possible for the parent to not appear in the list
 				// if deepList is called with a filter
+				// TODO (TP): shouldn't parents be recursively added in this case?
 				parent = new N5TreeNode(parentPath);
 				pathToNode.put(parentPath, parent);
 			}
