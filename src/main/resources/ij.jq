@@ -6,7 +6,7 @@ def ijGetScale: [.pixelWidth, .pixelHeight, 1, .pixelDepth, .frameInterval];
 
 def ijGetTranslation: [.xOrigin, .yOrigin, 0, .zOrigin, 0];
 
-def ijGetUnits: [.unit, .unit, "", .unit, ""]
+def ijGetUnits: [.unit, .unit, "", .unit, ""];
 
 def ijGetAxes: .pixelUnit as $unit | ijDimensions as $czt |
      [  "x", "y" ]
