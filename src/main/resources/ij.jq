@@ -1,4 +1,6 @@
 # jq definitions for IJ metadata
+include "tree";
+
 
 def isIJ: isDataset and (attrs | has("pixelWidth") and has("pixelHeight") and has("pixelUnit") and has("xOrigin") and has("yOrigin"));
 

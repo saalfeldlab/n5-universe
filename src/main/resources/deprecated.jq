@@ -1,4 +1,10 @@
 # jq definitions for the deprecated "canonical" metadata style
+include "tree";
+include "common";
+include "cosem";
+include "ij";
+include "n5v";
+
 
 def arrayAndUnitToTransform: {
     "spatialTransform": {

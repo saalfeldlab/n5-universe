@@ -5,26 +5,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import net.thisptr.jackson.jq.BuiltinFunctionLoader;
 import net.thisptr.jackson.jq.JsonQuery;
 import net.thisptr.jackson.jq.Scope;
 import net.thisptr.jackson.jq.Versions;
 import net.thisptr.jackson.jq.exception.JsonQueryException;
 import org.janelia.saalfeldlab.n5.N5Exception;
-import org.janelia.saalfeldlab.n5.N5Exception.N5IOException;
 import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
 
 /**
@@ -34,13 +26,10 @@ import org.janelia.saalfeldlab.n5.N5Path.N5DirectoryPath;
  * one, is an error: it usually means the expression forgot to collect a stream
  * of results into an array.
  * <p>
- * If the expression starts with {@code include "n5";}, that is replaced by the
- * shared definitions, assembled from three resources: the {@link
- * DialectInfo#jqResource() dialect accessors}, then {@code /common.jq}
- * (definitions on plain json values, which know nothing of nodes or dialects),
- * then {@code /tree.jq} (definitions that take a {@link Directory} node or tree:
- * children, tree paths, and the dialect accessors). The order matters: each part
- * may only use definitions from the parts before it.
+ * The expression may start with {@code include "name";} directives, which are
+ * replaced by the named jq files (see {@link JqIncludes}). There is no implicit
+ * prelude: even the dialect accessors ({@code attrs}, {@code setAttrs}, ...) must
+ * be included, with {@code include "dialect";}.
  */
 final class JqTranslation {
 
@@ -62,14 +51,27 @@ final class JqTranslation {
 	private final JsonQuery query;
 
 	JqTranslation(final DialectInfo dialect, final String translation) {
+		this(dialect, translation, JqIncludes.defaultSearchPath());
+	}
+
+	/**
+	 * @param searchPath
+	 * 		directories that {@code include} looks in, before the jq files shipped
+	 * 		with n5-universe
+	 */
+	JqTranslation(final DialectInfo dialect, final String translation, final List<Path> searchPath) {
 		try {
-			query = JsonQuery.compile(resolveImports(dialect, translation), Versions.JQ_1_6);
+			query = JsonQuery.compile(JqIncludes.resolve(dialect, translation, searchPath), Versions.JQ_1_6);
 		} catch (final JsonQueryException e) {
 			throw new N5Exception("Could not compile jq translation: " + translation, e);
 		}
 	}
 
-	private JsonElement apply(final JsonElement src) {
+	/**
+	 * Apply the query to {@code src} and return its (single) output as is,
+	 * without interpreting it as a hierarchy.
+	 */
+	JsonElement apply(final JsonElement src) {
 		try {
 			final JsonNode in = objectMapper.readTree(src.toString());
 			final List<JsonNode> out = new ArrayList<>();
@@ -186,37 +188,5 @@ final class JqTranslation {
 			found = inChild;
 		}
 		return found;
-	}
-
-
-	// -- includes --
-
-	private static final Pattern INCLUDE_N5 = Pattern.compile("^\\s*include\\s+\"n5\"\\s*;");
-
-	private static final Map<DialectInfo, String> preludes = loadPreludes();
-
-	private static Map<DialectInfo, String> loadPreludes() {
-		final String shared = loadResource("/common.jq") + "\n" + loadResource("/tree.jq") + "\n";
-		final Map<DialectInfo, String> map = new EnumMap<>(DialectInfo.class);
-		for (final DialectInfo dialect : DialectInfo.values())
-			map.put(dialect, loadResource(dialect.jqResource()) + "\n" + shared);
-		return map;
-	}
-
-	private static String resolveImports(final DialectInfo dialect, final String query) {
-		final Matcher matcher = INCLUDE_N5.matcher(query);
-		return matcher.lookingAt() ? preludes.get(dialect) + query.substring(matcher.end()) : query;
-	}
-
-	private static String loadResource(final String name) {
-		try (final InputStream in = JqTranslation.class.getResourceAsStream(name)) {
-			if (in == null)
-				throw new N5IOException("Resource not found: " + name);
-			try (final BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-				return reader.lines().collect(Collectors.joining("\n"));
-			}
-		} catch (final IOException e) {
-			throw new N5IOException("Could not read resource: " + name, e);
-		}
 	}
 }

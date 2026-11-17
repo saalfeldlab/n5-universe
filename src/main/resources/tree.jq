@@ -2,13 +2,16 @@
 #   { "attributes": { <file name>: <file content> }, "children": { <name>: <node> } }
 # i.e. anything that touches .children, tree paths, or the dialect accessors (attrs,
 # setAttrs, dsAttrs, dsDimensions). Definitions on plain json values belong in common.jq.
-# Concatenated after dialect-<x>.jq and common.jq; see JqTranslation.
+# Includes dialect (the dialect-<x>.jq of the container) and common; see JqIncludes.
 # NB: the commented-out defs below read `.attributes` as if it were the merged
 # attribute map of the old ContainerMetadataNode, so on the current tree shape they
 # would silently produce wrong results. They are commented out so that calling one
 # fails to compile instead, and are to be rewritten onto attrs/setAttrs/dsAttrs (and
 # re-enabled) as they are needed. Defs that only serve a commented-out def are
 # commented out with it. The active defs are tested in TreeDefinitionTests.
+include "dialect";
+include "common";
+
 
 def forAllNodes(f): f | if has("children") then .children |= map_values(forAllNodes(f)) else . end;
 

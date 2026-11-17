@@ -1,4 +1,7 @@
 # jq definitions for NGFF-v0.4
+include "tree";
+include "common";
+
 
 def hasMultiscales: type == "object" and has("children") and ( numTformChildren > 1 );
 

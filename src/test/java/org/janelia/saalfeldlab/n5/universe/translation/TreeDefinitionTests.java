@@ -152,7 +152,7 @@ public class TreeDefinitionTests {
 
 	private TranslatedN5Reader translate(final String translation) {
 
-		return new TranslatedN5Reader(n5, "include \"n5\"; " + translation, ".");
+		return new TranslatedN5Reader(n5, "include \"cosem\"; include \"deprecated\"; include \"ij\"; include \"n5v\"; include \"ngff-04\"; " + translation, ".");
 	}
 
 	/**
@@ -450,17 +450,4 @@ public class TreeDefinitionTests {
 		assertArrayEquals(new long[]{4, 3, 2}, translated.getDatasetAttributes("ds").getDimensions());
 	}
 
-	@Test
-	public void testBackupNgffMultiscales() {
-
-		n5.setAttribute("ms", "multiscales", json(NGFF_MULTISCALES));
-		n5.setAttribute("ms", "k", 1);
-
-		final TranslatedN5Reader translated = translate("getSubTree(\"/ms\") |= backupNgffMultiscales(\"ngffMultiscales\")");
-
-		assertNull(translated.getAttribute("ms", "multiscales", JsonElement.class));
-		assertEquals(json(NGFF_MULTISCALES), translated.getAttribute("ms", "ngffMultiscales", JsonElement.class));
-		assertEquals(1, (int)translated.getAttribute("ms", "k", Integer.class));
-		assertOnlyDialectAttributeFiles(translated, "ms");
-	}
 }

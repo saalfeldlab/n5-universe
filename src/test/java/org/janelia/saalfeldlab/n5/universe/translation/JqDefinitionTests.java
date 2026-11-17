@@ -30,7 +30,7 @@ public class JqDefinitionTests {
 		dir.putAttributes("attributes.json", gson.toJsonTree(attributes));
 
 		final JqTranslation translation = new JqTranslation(DialectInfo.N5,
-				"include \"n5\"; setAttrs(" + definition + ")");
+				"include \"cosem\"; include \"deprecated\"; include \"ij\"; include \"n5v\"; include \"ngff-04\"; setAttrs(" + definition + ")");
 		final JsonElement translated = translation.translate(dir).getAttributes("attributes.json");
 
 		return gson.fromJson(translated, CanonicalSpatialDatasetMetadata.class);

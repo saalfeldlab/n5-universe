@@ -1,4 +1,7 @@
 # jq definitions for n5-viewer metadata
+include "tree";
+include "common";
+
 
 def isN5V: type == "object" and has("pixelResolution");
 
